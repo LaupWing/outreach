@@ -17,4 +17,12 @@ export const mockMailboxes: Mailbox[] = [
         sent_today: 3,
         status: 'warming_up',
     },
+    {
+        id: 3,
+        address: 'hallo@snelstack.io',
+        type: 'imap',
+        daily_limit: 30,
+        sent_today: 0,
+        status: 'paused',
+    },
 ];

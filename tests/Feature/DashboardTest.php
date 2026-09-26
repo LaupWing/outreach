@@ -29,3 +29,9 @@ test('the offers page is open while it runs on mock data', function () {
 
     $response->assertOk();
 });
+
+test('the mailboxes page is open while it runs on mock data', function () {
+    $response = $this->get(route('mailboxes.index'));
+
+    $response->assertOk();
+});
