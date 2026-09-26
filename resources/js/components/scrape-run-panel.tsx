@@ -188,10 +188,17 @@ export function ScrapeRunPanel({
                                 <SidePanelRow icon={Timer} label="Duration">
                                     {duration(run) ?? (
                                         <SidePanelEmpty>
-                                            Still running
+                                            {run.status === 'queued' ? 'Waiting for the queue' : 'Still running'}
                                         </SidePanelEmpty>
                                     )}
                                 </SidePanelRow>
+                                {run.error && (
+                                    <SidePanelRow icon={ShieldAlert} label="Failed">
+                                        <span className="text-red-600 dark:text-red-400">
+                                            {run.error}
+                                        </span>
+                                    </SidePanelRow>
+                                )}
                                 <SidePanelRow icon={Mail} label="Email rate">
                                     {run.found > 0
                                         ? `${run.with_email} of ${run.found}`

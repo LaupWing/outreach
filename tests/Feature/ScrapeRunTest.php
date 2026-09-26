@@ -1,9 +1,11 @@
 <?php
 
 use App\Enums\ScrapeRunStatus;
+use App\Jobs\ProcessScrapeRun;
 use App\Models\Lead;
 use App\Models\Niche;
 use App\Models\ScrapeRun;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia;
 
 test('guests are sent to the login page', function () {
@@ -42,6 +44,7 @@ test('the scrape page lists runs newest first and counts only this month against
 });
 
 test('a scrape is queued for an existing niche', function () {
+    Queue::fake();
     $this->freezeTime();
     $niche = Niche::factory()->create();
 
@@ -63,11 +66,17 @@ test('a scrape is queued for an existing niche', function () {
         ->and($run->status)->toBe(ScrapeRunStatus::Queued)
         ->and($run->requests)->toBe(0)
         ->and($run->found)->toBe(0)
+        ->and($run->pages)->toBe(3);
+
+    Queue::assertPushed(ProcessScrapeRun::class, fn (ProcessScrapeRun $job) => $job->run->is($run));
+
+    expect(true)
         ->and($run->started_at->toDateTimeString())->toBe(now()->toDateTimeString())
         ->and($run->finished_at)->toBeNull();
 });
 
 test('a scrape can create its niche on the way', function () {
+    Queue::fake();
     $this->actingAs($this->user)
         ->post(route('scrape.store'), [
             'query' => 'advocaat',
@@ -93,6 +102,7 @@ test('a scrape needs a niche', function () {
 });
 
 test('a scrape is refused when it would pass the free budget', function () {
+    Queue::fake();
     $niche = Niche::factory()->create();
     ScrapeRun::factory()->for($niche)->create(['requests' => 999, 'started_at' => now()]);
 

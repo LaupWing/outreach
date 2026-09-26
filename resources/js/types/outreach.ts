@@ -112,6 +112,10 @@ export type ScrapeRun = {
     place: string;
     niche_id: number;
     status: ScrapeRunStatus;
+    /** Pages asked for, one request each. */
+    pages: number;
+    /** Why it failed, when it did. */
+    error: string | null;
     /** Places API requests spent; every page of 20 results is one. */
     requests: number;
     found: number;

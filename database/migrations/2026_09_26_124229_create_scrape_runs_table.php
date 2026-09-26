@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('query');
             $table->string('place');
             $table->string('status');
+            $table->unsignedTinyInteger('pages')->default(3);
+            $table->string('error')->nullable();
             $table->unsignedSmallInteger('requests')->default(0);
             $table->unsignedInteger('found')->default(0);
             $table->unsignedInteger('with_email')->default(0);

@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, usePoll } from '@inertiajs/react';
 import { Radar } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NewScrapeDialog } from '@/components/new-scrape-dialog';
@@ -19,6 +19,18 @@ type PageProps = {
 
 export default function ScrapeIndex() {
     const { runs, niches, leads, usage } = usePage<PageProps>().props;
+
+    // While a run works on the queue, refresh the counts every few seconds; idle otherwise.
+    const busy = runs.some((run) => run.status === 'queued' || run.status === 'running');
+    const { start, stop } = usePoll(3000, { only: ['runs', 'leads', 'usage'] }, { autoStart: false });
+
+    useEffect(() => {
+        if (busy) {
+            start();
+        } else {
+            stop();
+        }
+    }, [busy, start, stop]);
 
     // Search deep-links here with ?run=ID.
     const { url } = usePage();

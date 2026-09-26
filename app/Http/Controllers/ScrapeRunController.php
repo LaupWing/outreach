@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ScrapeRunStatus;
 use App\Http\Requests\ScrapeRuns\StoreScrapeRunRequest;
+use App\Jobs\ProcessScrapeRun;
 use App\Support\PlacesBudget;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -33,7 +34,7 @@ class ScrapeRunController extends Controller
      * Queue a Places search.
      *
      * Only the row is written for now: the job that calls Places, reads the sites
-     * and fills in the counts comes with the scraper. Until then a run stays queued.
+     * and fills in the counts runs on the queue; the page polls while it works.
      */
     public function store(StoreScrapeRunRequest $request): RedirectResponse
     {
@@ -43,8 +44,8 @@ class ScrapeRunController extends Controller
             ? $user->niches()->create(['name' => $request->string('new_niche')->trim()->toString()])->id
             : $request->integer('niche_id');
 
-        $user->scrapeRuns()->create([
-            ...$request->safe()->only(['query', 'place']),
+        $run = $user->scrapeRuns()->create([
+            ...$request->safe()->only(['query', 'place', 'pages']),
             'niche_id' => $nicheId,
             'status' => ScrapeRunStatus::Queued,
             'requests' => 0,
@@ -53,7 +54,9 @@ class ScrapeRunController extends Controller
             'finished_at' => null,
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Scrape queued.')]);
+        ProcessScrapeRun::dispatch($run);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Scrape queued. Leads show up as the run finishes.')]);
 
         return back();
     }

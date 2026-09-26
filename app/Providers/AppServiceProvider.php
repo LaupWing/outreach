@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Support\Enrichment\HttpSiteReader;
+use App\Support\Enrichment\SiteReader;
 use App\Support\MailboxConnection;
+use App\Support\Places\GooglePlacesSearch;
+use App\Support\Places\PlacesSearch;
 use App\Support\SmtpImapConnection;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -18,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(MailboxConnection::class, SmtpImapConnection::class);
+        $this->app->bind(PlacesSearch::class, GooglePlacesSearch::class);
+        $this->app->bind(SiteReader::class, HttpSiteReader::class);
     }
 
     /**

@@ -21,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property string $query
  * @property string $place
  * @property ScrapeRunStatus $status
+ * @property int $pages
+ * @property string|null $error
  * @property int $requests
  * @property int $found
  * @property int $with_email
@@ -30,7 +32,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['user_id', 'niche_id', 'query', 'place', 'status', 'requests', 'found', 'with_email', 'blocked', 'started_at', 'finished_at'])]
+#[Fillable(['user_id', 'niche_id', 'query', 'place', 'status', 'pages', 'error', 'requests', 'found', 'with_email', 'blocked', 'started_at', 'finished_at'])]
 class ScrapeRun extends Model
 {
     /** @use HasFactory<ScrapeRunFactory> */
@@ -58,6 +60,7 @@ class ScrapeRun extends Model
     {
         return [
             'status' => ScrapeRunStatus::class,
+            'pages' => 'integer',
             'requests' => 'integer',
             'found' => 'integer',
             'with_email' => 'integer',

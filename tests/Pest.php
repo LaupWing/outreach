@@ -20,6 +20,9 @@ pest()->extend(TestCase::class)
     ->beforeEach(function (): void {
         // Rows belong to whoever is signed in, so every test starts as an onboarded owner;
         // guest tests log out first, tenancy tests switch accounts.
+        // Inertia responses render the root view; the built assets are not part of the test.
+        $this->withoutVite();
+
         $this->user = User::factory()->onboarded()->create();
         $this->actingAs($this->user);
     })
