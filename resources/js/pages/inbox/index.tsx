@@ -17,6 +17,7 @@ import { mockMailboxes } from '@/mock/mailboxes';
 import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
 import { mockOffers } from '@/mock/offers';
+import { mockSequenceSteps } from '@/mock/sequence-steps';
 import { index as inboxIndex } from '@/routes/inbox';
 import type { Lead, Message } from '@/types';
 
@@ -191,8 +192,11 @@ export default function InboxIndex() {
                     lead={panelLead}
                     niche={mockNiches.find((niche) => niche.id === panelLead?.niche_id)}
                     offer={mockOffers.find((offer) => offer.id === panelLead?.offer_id)}
+                    niches={mockNiches}
+                    offers={mockOffers}
                     messages={mockMessages.filter((message) => message.lead_id === panelLead?.id)}
                     mailboxes={mockMailboxes}
+                    steps={mockSequenceSteps}
                     open={selected !== null}
                     onClose={() => setSelected(null)}
                     initialTab="messages"

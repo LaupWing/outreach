@@ -1,5 +1,6 @@
 import {
     Building2,
+    Check,
     ChevronLeft,
     ChevronRight,
     Flag,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { DialogSteps } from '@/components/dialog-steps';
+import { leadStatuses } from '@/components/lead-status-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -36,7 +38,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { LeadStatus, Niche, Offer } from '@/types';
+import type { Lead, LeadStatus, Niche, Offer } from '@/types';
 
 /** Sentinel value in the niche select that swaps it for a text field. */
 const NEW_NICHE = '__new';
@@ -44,35 +46,62 @@ const NEW_NICHE = '__new';
 /** Who they are first, then how to reach them; nine fields is too many for one screen. */
 const STEPS = ['Business', 'Contact'];
 
+/** Every status, in pipeline order; an existing lead can be moved anywhere. */
+const ALL_STATUSES = (Object.keys(leadStatuses) as LeadStatus[]).map(
+    (value) => ({ value, label: leadStatuses[value].label }),
+);
+
 /** A hand-added lead is either untouched or already mailed from elsewhere; the rest follows from sending. */
-const STATUSES: { value: LeadStatus; label: string }[] = [
-    { value: 'new', label: 'New' },
-    { value: 'emailed', label: 'Emailed' },
-];
+const NEW_STATUSES = ALL_STATUSES.filter(
+    (option) => option.value === 'new' || option.value === 'emailed',
+);
+
+/** Form values for a lead, or the blanks for a new one. */
+const valuesFrom = (lead?: Lead) => ({
+    company: lead?.company ?? '',
+    email: lead?.email ?? '',
+    phone: lead?.phone ?? '',
+    website: lead?.website ?? '',
+    city: lead?.city ?? '',
+    nicheId: lead ? String(lead.niche_id) : '',
+    offerId: lead?.offer_id ? String(lead.offer_id) : '',
+    status: lead?.status ?? ('new' as LeadStatus),
+    hook: lead?.hook ?? '',
+});
 
 /**
- * Adds a lead the scraper did not find. Self-contained with its own trigger, so it
- * can sit in a page's static topbar actions. Nothing is saved yet; that comes with Laravel.
+ * Adds a lead the scraper did not find, or edits an existing one when `lead` is given.
+ * Self-contained with its own trigger, so it can sit in a page's static topbar actions.
+ * Nothing is saved yet; that comes with Laravel.
  */
-export function NewLeadDialog({
+export function LeadDialog({
+    lead,
     niches,
     offers,
+    trigger,
 }: {
+    lead?: Lead;
     niches: Niche[];
     offers: Offer[];
+    /** Replaces the default "+ Lead" button. */
+    trigger?: ReactNode;
 }) {
+    const initial = valuesFrom(lead);
+    const editing = lead !== undefined;
+    const statuses = editing ? ALL_STATUSES : NEW_STATUSES;
+
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(0);
-    const [company, setCompany] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
-    const [website, setWebsite] = useState('');
-    const [city, setCity] = useState('');
-    const [nicheId, setNicheId] = useState('');
+    const [company, setCompany] = useState(initial.company);
+    const [email, setEmail] = useState(initial.email);
+    const [phone, setPhone] = useState(initial.phone);
+    const [website, setWebsite] = useState(initial.website);
+    const [city, setCity] = useState(initial.city);
+    const [nicheId, setNicheId] = useState(initial.nicheId);
     const [newNiche, setNewNiche] = useState('');
-    const [offerId, setOfferId] = useState('');
-    const [status, setStatus] = useState<LeadStatus>('new');
-    const [hook, setHook] = useState('');
+    const [offerId, setOfferId] = useState(initial.offerId);
+    const [status, setStatus] = useState<LeadStatus>(initial.status);
+    const [hook, setHook] = useState(initial.hook);
 
     const hasNiche =
         nicheId === NEW_NICHE ? newNiche.trim() !== '' : nicheId !== '';
@@ -96,27 +125,47 @@ export function NewLeadDialog({
     const toggle = (value: boolean) => {
         setOpen(value);
         setStep(0);
+
+        // A cancelled edit must not linger into the next one.
+        if (value && editing) {
+            const values = valuesFrom(lead);
+            setCompany(values.company);
+            setEmail(values.email);
+            setPhone(values.phone);
+            setWebsite(values.website);
+            setCity(values.city);
+            setNicheId(values.nicheId);
+            setNewNiche('');
+            setOfferId(values.offerId);
+            setStatus(values.status);
+            setHook(values.hook);
+        }
     };
 
     return (
         <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                >
-                    <Plus />
-                    Lead
-                </Button>
+                {trigger ?? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                    >
+                        <Plus />
+                        Lead
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <form onSubmit={submit} className="flex flex-col gap-5">
                     <DialogHeader>
-                        <DialogTitle>New lead</DialogTitle>
+                        <DialogTitle>
+                            {editing ? 'Edit lead' : 'New lead'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Add a business the scraper did not find. Fill what
-                            you know; the rest can be enriched later.
+                            {editing
+                                ? 'Change what you know about this business.'
+                                : 'Add a business the scraper did not find. Fill what you know; the rest can be enriched later.'}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -304,9 +353,9 @@ export function NewLeadDialog({
                                 <div
                                     role="radiogroup"
                                     aria-label="Status"
-                                    className="flex rounded-md border border-border bg-accent/40 p-0.5"
+                                    className="flex flex-wrap rounded-md border border-border bg-accent/40 p-0.5"
                                 >
-                                    {STATUSES.map((option) => (
+                                    {statuses.map((option) => (
                                         <button
                                             key={option.value}
                                             type="button"
@@ -314,7 +363,10 @@ export function NewLeadDialog({
                                             aria-checked={status === option.value}
                                             onClick={() => setStatus(option.value)}
                                             className={cn(
-                                                'flex flex-1 items-center justify-center rounded-[5px] border px-2 py-1.5 text-sm transition-colors',
+                                                'flex flex-1 items-center justify-center rounded-[5px] border py-1.5 transition-colors',
+                                                editing
+                                                    ? 'px-1.5 text-xs'
+                                                    : 'px-2 text-sm',
                                                 status === option.value
                                                     ? 'border-(--raised-border) bg-background text-foreground shadow-(--raised-shadow)'
                                                     : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -341,10 +393,12 @@ export function NewLeadDialog({
                             </Field>
 
                             {/* Source is not a choice here: everything from this dialog is manual. */}
-                            <p className="text-xs text-muted-foreground">
+                            {!editing && (
+                                <p className="text-xs text-muted-foreground">
                                     Added by hand; the enricher can still read the site for
                                     signals.
                                 </p>
+                            )}
                             </div>
                     )}
 
@@ -352,6 +406,7 @@ export function NewLeadDialog({
                         {step === 0 ? (
                             <>
                                 <Button
+                                    key="cancel"
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setOpen(false)}
@@ -359,6 +414,7 @@ export function NewLeadDialog({
                                     Cancel
                                 </Button>
                                 <Button
+                                    key="next"
                                     type="button"
                                     disabled={!ready}
                                     onClick={() => setStep(1)}
@@ -370,6 +426,7 @@ export function NewLeadDialog({
                         ) : (
                             <>
                                 <Button
+                                    key="back"
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setStep(0)}
@@ -377,9 +434,9 @@ export function NewLeadDialog({
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button type="submit" disabled={!ready}>
-                                    <Plus />
-                                    Add lead
+                                <Button key="submit" type="submit" disabled={!ready}>
+                                    {editing ? <Check /> : <Plus />}
+                                    {editing ? 'Save' : 'Add lead'}
                                 </Button>
                             </>
                         )}

@@ -13,9 +13,9 @@ import { FilterCombobox } from '@/components/filters/filter-combobox';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { leadStatuses } from '@/components/lead-status-badge';
+import { LeadDialog } from '@/components/lead-dialog';
 import { LeadPanel } from '@/components/lead-panel';
 import { LeadsTable } from '@/components/leads-table';
-import { NewLeadDialog } from '@/components/new-lead-dialog';
 import {
     Popover,
     PopoverContent,
@@ -26,6 +26,7 @@ import { mockMailboxes } from '@/mock/mailboxes';
 import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
 import { mockOffers } from '@/mock/offers';
+import { mockSequenceSteps } from '@/mock/sequence-steps';
 import { index as leadsIndex } from '@/routes/leads';
 import type { Lead, LeadSource, LeadStatus } from '@/types';
 
@@ -203,8 +204,11 @@ export default function LeadsIndex() {
                     lead={panelLead}
                     niche={mockNiches.find((niche) => niche.id === panelLead?.niche_id)}
                     offer={mockOffers.find((offer) => offer.id === panelLead?.offer_id)}
+                    niches={mockNiches}
+                    offers={mockOffers}
                     messages={mockMessages.filter((message) => message.lead_id === panelLead?.id)}
                     mailboxes={mockMailboxes}
+                    steps={mockSequenceSteps}
                     open={selected !== null}
                     onClose={() => setSelected(null)}
                 />
@@ -215,5 +219,5 @@ export default function LeadsIndex() {
 
 LeadsIndex.layout = {
     breadcrumbs: [{ title: 'Leads', href: leadsIndex(), icon: Users }],
-    actions: <NewLeadDialog niches={mockNiches} offers={mockOffers} />,
+    actions: <LeadDialog niches={mockNiches} offers={mockOffers} />,
 };

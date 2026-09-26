@@ -8,6 +8,7 @@ import {
     Mail,
     MapPin,
     MessageSquare,
+    Pencil,
     Phone,
     Radar,
     Send,
@@ -17,7 +18,9 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
+import { ComposeEmailDialog } from '@/components/compose-email-dialog';
 import { LeadActivity } from '@/components/lead-activity';
+import { LeadDialog } from '@/components/lead-dialog';
 import { LeadMessages } from '@/components/lead-messages';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import {
@@ -28,7 +31,7 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import type { Lead, Mailbox, Message, Niche, Offer } from '@/types';
+import type { Lead, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
 
 const tabs = [
     { key: 'details', label: 'Details', icon: FileText },
@@ -60,6 +63,9 @@ export function LeadPanel({
     lead,
     niche,
     offer,
+    niches = [],
+    offers = [],
+    steps = [],
     messages,
     mailboxes,
     open,
@@ -69,8 +75,13 @@ export function LeadPanel({
     lead: Lead | null;
     niche: Niche | undefined;
     offer: Offer | undefined;
+    /** The full lists feed the edit dialog's selects. */
+    niches?: Niche[];
+    offers?: Offer[];
     messages: Message[];
     mailboxes: Mailbox[];
+    /** Sequence steps of every offer; the compose dialog picks the lead's own. */
+    steps?: SequenceStep[];
     open: boolean;
     onClose: () => void;
     /** The inbox opens straight on the thread, the leads page on the details. */
@@ -114,14 +125,34 @@ export function LeadPanel({
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" disabled={!lead.email}>
-                                <Mail />
-                                Email
-                            </Button>
+                            <ComposeEmailDialog
+                                lead={lead}
+                                offer={offer}
+                                steps={steps.filter((step) => step.offer_id === lead.offer_id)}
+                                messages={messages}
+                                mailboxes={mailboxes}
+                                trigger={
+                                    <Button variant="outline" size="sm" disabled={!lead.email}>
+                                        <Mail />
+                                        Email
+                                    </Button>
+                                }
+                            />
                             <Button variant="outline" size="sm">
                                 <StickyNote />
                                 Add note
                             </Button>
+                            <LeadDialog
+                                lead={lead}
+                                niches={niches}
+                                offers={offers}
+                                trigger={
+                                    <Button variant="outline" size="sm">
+                                        <Pencil />
+                                        Edit
+                                    </Button>
+                                }
+                            />
                         </div>
                     </div>
 
