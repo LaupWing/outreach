@@ -15,7 +15,7 @@ import type { FilterOption } from '@/components/filters/filter-trigger';
 import { leadStatuses } from '@/components/lead-status-badge';
 import { LeadPanel } from '@/components/lead-panel';
 import { LeadsTable } from '@/components/leads-table';
-import { Button } from '@/components/ui/button';
+import { NewLeadDialog } from '@/components/new-lead-dialog';
 import {
     Popover,
     PopoverContent,
@@ -215,10 +215,5 @@ export default function LeadsIndex() {
 
 LeadsIndex.layout = {
     breadcrumbs: [{ title: 'Leads', href: leadsIndex(), icon: Users }],
-    actions: (
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Plus />
-            Lead
-        </Button>
-    ),
+    actions: <NewLeadDialog niches={mockNiches} offers={mockOffers} />,
 };
