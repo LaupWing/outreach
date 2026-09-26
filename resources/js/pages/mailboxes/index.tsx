@@ -6,7 +6,7 @@ import type { FilterOption } from '@/components/filters/filter-trigger';
 import { MailboxPanel } from '@/components/mailbox-panel';
 import { mailboxStatuses } from '@/components/mailbox-status-badge';
 import { MailboxesTable, type MailboxCounts } from '@/components/mailboxes-table';
-import { NewMailboxDialog } from '@/components/new-mailbox-dialog';
+import { MailboxDialog } from '@/components/mailbox-dialog';
 import { mockLeads } from '@/mock/leads';
 import { mockMailboxes } from '@/mock/mailboxes';
 import { mockMessages } from '@/mock/messages';
@@ -111,5 +111,5 @@ MailboxesIndex.layout = {
     breadcrumbs: [
         { title: 'Mailboxes', href: mailboxesIndex(), icon: MailboxIcon },
     ],
-    actions: <NewMailboxDialog />,
+    actions: <MailboxDialog />,
 };

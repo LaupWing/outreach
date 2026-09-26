@@ -7,7 +7,7 @@ import type { FilterOption } from '@/components/filters/filter-trigger';
 import { OfferPanel } from '@/components/offer-panel';
 import { offerStatuses } from '@/components/offer-status-badge';
 import { OffersTable, type OfferCounts } from '@/components/offers-table';
-import { NewOfferDialog } from '@/components/new-offer-dialog';
+import { OfferDialog } from '@/components/offer-dialog';
 import { mockLeads } from '@/mock/leads';
 import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
@@ -121,6 +121,7 @@ export default function OffersIndex() {
                 <OfferPanel
                     offer={panelOffer}
                     niche={mockNiches.find((niche) => niche.id === panelOffer?.niche_id)}
+                    niches={mockNiches}
                     steps={mockSequenceSteps.filter((step) => step.offer_id === panelOffer?.id)}
                     leads={mockLeads.filter((lead) => lead.offer_id === panelOffer?.id)}
                     emailed={panelOffer ? counts[panelOffer.id].emailed : 0}
@@ -134,5 +135,5 @@ export default function OffersIndex() {
 
 OffersIndex.layout = {
     breadcrumbs: [{ title: 'Offers', href: offersIndex(), icon: Tag }],
-    actions: <NewOfferDialog niches={mockNiches} />,
+    actions: <OfferDialog niches={mockNiches} />,
 };

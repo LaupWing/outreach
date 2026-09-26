@@ -1,4 +1,5 @@
 import {
+    Check,
     ChevronLeft,
     ChevronRight,
     FileText,
@@ -31,7 +32,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { Niche } from '@/types';
+import type { Niche, Offer } from '@/types';
 
 /** The offer itself first, the first mail second. */
 const STEPS = ['Offer', 'First mail'];
@@ -42,17 +43,38 @@ const NEW_NICHE = '__new';
 const textareaClassName =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30';
 
+/** Form values for an offer, or the blanks for a new one. */
+const valuesFrom = (offer?: Offer) => ({
+    name: offer?.name ?? '',
+    nicheId: offer ? String(offer.niche_id) : '',
+    description: offer?.description ?? '',
+});
+
 /**
  * Creates an offer: the thing you test on a niche. The first mail can come along;
- * the rest of the sequence is added in the offer's panel. Nothing is saved yet.
+ * the rest of the sequence is added in the offer's panel. With `offer` it edits
+ * the basics instead; the mails then live in the panel's Sequence tab, so the
+ * mail step is dropped. Nothing is saved yet.
  */
-export function NewOfferDialog({ niches }: { niches: Niche[] }) {
+export function OfferDialog({
+    offer,
+    niches,
+    trigger,
+}: {
+    offer?: Offer;
+    niches: Niche[];
+    /** Replaces the default "+ Offer" button. */
+    trigger?: ReactNode;
+}) {
+    const initial = valuesFrom(offer);
+    const editing = offer !== undefined;
+
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(0);
-    const [name, setName] = useState('');
-    const [nicheId, setNicheId] = useState('');
+    const [name, setName] = useState(initial.name);
+    const [nicheId, setNicheId] = useState(initial.nicheId);
     const [newNiche, setNewNiche] = useState('');
-    const [description, setDescription] = useState('');
+    const [description, setDescription] = useState(initial.description);
     const [withFirstMail, setWithFirstMail] = useState(true);
     const [subject, setSubject] = useState('{{hook_subject}}');
     const [body, setBody] = useState(
@@ -64,7 +86,9 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
     const basicsReady = name.trim() !== '' && hasNiche;
     const ready =
         basicsReady &&
-        (!withFirstMail || (subject.trim() !== '' && body.trim() !== ''));
+        (editing ||
+            !withFirstMail ||
+            (subject.trim() !== '' && body.trim() !== ''));
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -74,37 +98,53 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
     const toggle = (value: boolean) => {
         setOpen(value);
         setStep(0);
+
+        // A cancelled edit must not linger into the next one.
+        if (value && editing) {
+            const values = valuesFrom(offer);
+            setName(values.name);
+            setNicheId(values.nicheId);
+            setNewNiche('');
+            setDescription(values.description);
+        }
     };
 
     return (
         <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                >
-                    <Plus />
-                    Offer
-                </Button>
+                {trigger ?? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                    >
+                        <Plus />
+                        Offer
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
                 <form onSubmit={submit} className="flex flex-col gap-5">
                     <DialogHeader>
-                        <DialogTitle>New offer</DialogTitle>
+                        <DialogTitle>
+                            {editing ? 'Edit offer' : 'New offer'}
+                        </DialogTitle>
                         <DialogDescription>
-                            What you propose to a niche. Leads get an offer, and
-                            every mail they receive comes from its sequence.
+                            {editing
+                                ? 'Change the name, niche or description. The mails live in the Sequence tab.'
+                                : 'What you propose to a niche. Leads get an offer, and every mail they receive comes from its sequence.'}
                         </DialogDescription>
                     </DialogHeader>
 
-                    <DialogSteps
-                        steps={STEPS}
-                        current={step}
-                        onSelect={setStep}
-                    />
+                    {!editing && (
+                        <DialogSteps
+                            steps={STEPS}
+                            current={step}
+                            onSelect={setStep}
+                        />
+                    )}
 
-                    {step === 0 ? (
+                    {editing || step === 0 ? (
                         <div className="grid gap-4">
                             <Field label="Name" icon={Tag} htmlFor="offer-name">
                                 <Input
@@ -237,7 +277,22 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
                     )}
 
                     <DialogFooter>
-                        {step === 0 ? (
+                        {editing ? (
+                            <>
+                                <Button
+                                    key="cancel"
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button key="submit" type="submit" disabled={!ready}>
+                                    <Check />
+                                    Save
+                                </Button>
+                            </>
+                        ) : step === 0 ? (
                             <>
                                 <Button
                                     key="cancel"

@@ -3,7 +3,7 @@ import { SlidersHorizontal, Tag, Target } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
-import { NewNicheDialog } from '@/components/new-niche-dialog';
+import { NicheDialog } from '@/components/niche-dialog';
 import { NichePanel } from '@/components/niche-panel';
 import { nicheStatuses } from '@/components/niche-status-badge';
 import { NichesTable, type NicheCounts } from '@/components/niches-table';
@@ -112,5 +112,5 @@ export default function NichesIndex() {
 
 NichesIndex.layout = {
     breadcrumbs: [{ title: 'Niches', href: nichesIndex(), icon: Target }],
-    actions: <NewNicheDialog />,
+    actions: <NicheDialog />,
 };

@@ -6,6 +6,7 @@ import {
     Mail,
     MessageSquare,
     Pause,
+    Pencil,
     Play,
     Plug,
     Reply,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
+import { MailboxDialog } from '@/components/mailbox-dialog';
 import type { MailboxCounts } from '@/components/mailboxes-table';
 import { mailboxTypes } from '@/components/mailboxes-table';
 import { MailboxStatusBadge } from '@/components/mailbox-status-badge';
@@ -165,6 +167,15 @@ export function MailboxPanel({
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <MailboxDialog
+                                mailbox={mailbox}
+                                trigger={
+                                    <Button variant="outline" size="sm">
+                                        <Pencil />
+                                        Edit
+                                    </Button>
+                                }
+                            />
                             {mailbox.status === 'paused' ? (
                                 <Button variant="outline" size="sm">
                                     <Play />

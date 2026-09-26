@@ -9,6 +9,7 @@ import {
 import { useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
+import { NicheDialog } from '@/components/niche-dialog';
 import { NicheStatusBadge, nicheStatuses } from '@/components/niche-status-badge';
 import { OfferStatusBadge } from '@/components/offer-status-badge';
 import {
@@ -96,10 +97,15 @@ export function NichePanel({
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                                <Pencil />
-                                Edit
-                            </Button>
+                            <NicheDialog
+                                niche={niche}
+                                trigger={
+                                    <Button variant="outline" size="sm">
+                                        <Pencil />
+                                        Edit
+                                    </Button>
+                                }
+                            />
                             {niche.status !== 'proven' && (
                                 <Button variant="outline" size="sm">
                                     <Check />

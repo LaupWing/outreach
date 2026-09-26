@@ -9,6 +9,7 @@ import {
     KeyRound,
     Mail,
     Plus,
+    RefreshCw,
     Server,
 } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
@@ -26,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import type { MailboxType } from '@/types';
+import type { Mailbox, MailboxType } from '@/types';
 
 /** Pick the connection first, then set it up; the two forms look nothing alike. */
 const STEPS = ['Connection', 'Set up'];
@@ -57,30 +58,52 @@ const types: {
     },
 ];
 
+/** Form values for a mailbox, or the blanks for a new one. Hosts are not on the model yet, so they start empty either way. */
+const valuesFrom = (mailbox?: Mailbox) => ({
+    type: mailbox?.type ?? null,
+    address: mailbox?.address ?? '',
+    dailyLimit: mailbox?.daily_limit ?? 20,
+    warmUp: mailbox ? mailbox.status === 'warming_up' : true,
+});
+
 /**
- * Adds a sending mailbox. Every box is its own connection, so several Gmail
- * accounts are fine: each one goes through Google's account picker separately.
+ * Adds a sending mailbox, or edits one when `mailbox` is given. Every box is
+ * its own connection, so several Gmail accounts are fine: each one goes
+ * through Google's account picker separately. Editing keeps the connection
+ * type; only the limit, warm-up and (for IMAP) the credentials change.
  */
-export function NewMailboxDialog() {
+export function MailboxDialog({
+    mailbox,
+    trigger,
+}: {
+    mailbox?: Mailbox;
+    /** Replaces the default "+ Mailbox" button. */
+    trigger?: ReactNode;
+}) {
+    const initial = valuesFrom(mailbox);
+    const editing = mailbox !== undefined;
+
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(0);
-    const [type, setType] = useState<MailboxType | null>(null);
+    const [type, setType] = useState<MailboxType | null>(initial.type);
     const [connected, setConnected] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [address, setAddress] = useState('');
+    const [address, setAddress] = useState(initial.address);
     const [imapHost, setImapHost] = useState('');
     const [smtpHost, setSmtpHost] = useState('');
     const [password, setPassword] = useState('');
-    const [dailyLimit, setDailyLimit] = useState(20);
-    const [warmUp, setWarmUp] = useState(true);
+    const [dailyLimit, setDailyLimit] = useState(initial.dailyLimit);
+    const [warmUp, setWarmUp] = useState(initial.warmUp);
 
-    const ready =
-        type === 'gmail'
-            ? connected
-            : address.trim() !== '' &&
-              imapHost.trim() !== '' &&
-              smtpHost.trim() !== '' &&
-              password.trim() !== '';
+    // An existing box is already connected; its password stays unless a new one is typed.
+    const ready = editing
+        ? type === 'gmail' || address.trim() !== ''
+        : type === 'gmail'
+          ? connected
+          : address.trim() !== '' &&
+            imapHost.trim() !== '' &&
+            smtpHost.trim() !== '' &&
+            password.trim() !== '';
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -92,6 +115,18 @@ export function NewMailboxDialog() {
         setStep(0);
         setConnected(false);
         setCopied(false);
+
+        // A cancelled edit must not linger into the next one.
+        if (value && editing) {
+            const values = valuesFrom(mailbox);
+            setType(values.type);
+            setAddress(values.address);
+            setImapHost('');
+            setSmtpHost('');
+            setPassword('');
+            setDailyLimit(values.dailyLimit);
+            setWarmUp(values.warmUp);
+        }
     };
 
     // The clipboard can be refused in some browsers; the link stays visible either way.
@@ -108,33 +143,112 @@ export function NewMailboxDialog() {
     return (
         <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                >
-                    <Plus />
-                    Mailbox
-                </Button>
+                {trigger ?? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                    >
+                        <Plus />
+                        Mailbox
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <form onSubmit={submit} className="flex flex-col gap-5">
                     <DialogHeader>
-                        <DialogTitle>New mailbox</DialogTitle>
+                        <DialogTitle>
+                            {editing ? 'Edit mailbox' : 'New mailbox'}
+                        </DialogTitle>
                         <DialogDescription>
-                            An address to send from. The sender picks whichever
-                            box still has room today, so add several to spread
-                            the load.
+                            {editing
+                                ? 'Change the limit or warm-up; reconnect if sending fails.'
+                                : 'An address to send from. The sender picks whichever box still has room today, so add several to spread the load.'}
                         </DialogDescription>
                     </DialogHeader>
 
-                    <DialogSteps
-                        steps={STEPS}
-                        current={step}
-                        onSelect={setStep}
-                    />
+                    {!editing && (
+                        <DialogSteps
+                            steps={STEPS}
+                            current={step}
+                            onSelect={setStep}
+                        />
+                    )}
 
-                    {step === 0 ? (
+                    {editing ? (
+                        <div className="grid gap-4">
+                            {type === 'gmail' ? (
+                                <div className="flex items-center gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-4 text-sm shadow-(--raised-shadow)">
+                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-500/15 text-green-600 dark:text-green-400">
+                                        <Check className="size-4" />
+                                    </span>
+                                    <span className="flex min-w-0 flex-1 flex-col">
+                                        <span className="font-medium">
+                                            Connected
+                                        </span>
+                                        <span className="truncate text-xs text-muted-foreground">
+                                            {address}
+                                        </span>
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="shrink-0"
+                                    >
+                                        <RefreshCw />
+                                        Reconnect
+                                    </Button>
+                                </div>
+                            ) : (
+                                <>
+                                    <Field label="Address" icon={AtSign} htmlFor="mailbox-address">
+                                        <Input
+                                            id="mailbox-address"
+                                            type="email"
+                                            value={address}
+                                            onChange={(event) => setAddress(event.target.value)}
+                                            placeholder="hallo@snelstack.io"
+                                        />
+                                    </Field>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <Field label="IMAP host" icon={Server} htmlFor="mailbox-imap">
+                                            <Input
+                                                id="mailbox-imap"
+                                                value={imapHost}
+                                                onChange={(event) => setImapHost(event.target.value)}
+                                                placeholder="imap.example.com:993"
+                                            />
+                                        </Field>
+                                        <Field label="SMTP host" icon={Server} htmlFor="mailbox-smtp">
+                                            <Input
+                                                id="mailbox-smtp"
+                                                value={smtpHost}
+                                                onChange={(event) => setSmtpHost(event.target.value)}
+                                                placeholder="smtp.example.com:587"
+                                            />
+                                        </Field>
+                                    </div>
+                                    <Field label="App password" icon={KeyRound} htmlFor="mailbox-password">
+                                        <Input
+                                            id="mailbox-password"
+                                            type="password"
+                                            value={password}
+                                            onChange={(event) => setPassword(event.target.value)}
+                                            placeholder="Leave empty to keep the current one"
+                                        />
+                                    </Field>
+                                </>
+                            )}
+
+                            <Limits
+                                dailyLimit={dailyLimit}
+                                setDailyLimit={setDailyLimit}
+                                warmUp={warmUp}
+                                setWarmUp={setWarmUp}
+                            />
+                        </div>
+                    ) : step === 0 ? (
                         <div
                             role="radiogroup"
                             aria-label="Connection"
@@ -303,7 +417,22 @@ export function NewMailboxDialog() {
                     )}
 
                     <DialogFooter>
-                        {step === 0 ? (
+                        {editing ? (
+                            <>
+                                <Button
+                                    key="cancel"
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button key="submit" type="submit" disabled={!ready}>
+                                    <Check />
+                                    Save
+                                </Button>
+                            </>
+                        ) : step === 0 ? (
                             <>
                                 <Button
                                     key="cancel"

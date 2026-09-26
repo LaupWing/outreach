@@ -1,4 +1,4 @@
-import { Flag, HelpCircle, Plus, Target } from 'lucide-react';
+import { Check, Flag, HelpCircle, Plus, Target } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { nicheStatuses } from '@/components/niche-status-badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import type { NicheStatus } from '@/types';
+import type { Niche, NicheStatus } from '@/types';
 
 /** Same order as the badge map: the path a niche takes. */
 const STATUSES = (Object.keys(nicheStatuses) as NicheStatus[]).map(
@@ -24,16 +24,34 @@ const STATUSES = (Object.keys(nicheStatuses) as NicheStatus[]).map(
 const textareaClassName =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30';
 
+/** Form values for a niche, or the blanks for a new one. */
+const valuesFrom = (niche?: Niche) => ({
+    name: niche?.name ?? '',
+    status: niche?.status ?? ('idea' as NicheStatus),
+    why: niche?.why ?? '',
+});
+
 /**
- * Creates a niche: a market to test an offer on. Self-contained with its own
- * trigger, so it can sit in a page's static topbar actions. Findings are left
- * out; they come from testing. Nothing is saved yet.
+ * Creates a niche: a market to test an offer on, or edits an existing one when
+ * `niche` is given. Self-contained with its own trigger, so it can sit in a
+ * page's static topbar actions. Findings are left out; they come from testing.
+ * Nothing is saved yet.
  */
-export function NewNicheDialog() {
+export function NicheDialog({
+    niche,
+    trigger,
+}: {
+    niche?: Niche;
+    /** Replaces the default "+ Niche" button. */
+    trigger?: ReactNode;
+}) {
+    const initial = valuesFrom(niche);
+    const editing = niche !== undefined;
+
     const [open, setOpen] = useState(false);
-    const [name, setName] = useState('');
-    const [status, setStatus] = useState<NicheStatus>('idea');
-    const [why, setWhy] = useState('');
+    const [name, setName] = useState(initial.name);
+    const [status, setStatus] = useState<NicheStatus>(initial.status);
+    const [why, setWhy] = useState(initial.why);
 
     const ready = name.trim() !== '';
 
@@ -42,26 +60,42 @@ export function NewNicheDialog() {
         setOpen(false);
     };
 
+    const toggle = (value: boolean) => {
+        setOpen(value);
+
+        // A cancelled edit must not linger into the next one.
+        if (value && editing) {
+            const values = valuesFrom(niche);
+            setName(values.name);
+            setStatus(values.status);
+            setWhy(values.why);
+        }
+    };
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                >
-                    <Plus />
-                    Niche
-                </Button>
+                {trigger ?? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                    >
+                        <Plus />
+                        Niche
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
                 <form onSubmit={submit} className="flex flex-col gap-5">
                     <DialogHeader>
-                        <DialogTitle>New niche</DialogTitle>
+                        <DialogTitle>
+                            {editing ? 'Edit niche' : 'New niche'}
+                        </DialogTitle>
                         <DialogDescription>
-                            A market you want to test an offer on. Start it as
-                            an idea; it moves to testing once the first scrape
-                            runs.
+                            {editing
+                                ? 'Change the name, status or why.'
+                                : 'A market you want to test an offer on. Start it as an idea; it moves to testing once the first scrape runs.'}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -116,15 +150,16 @@ export function NewNicheDialog() {
 
                     <DialogFooter>
                         <Button
+                            key="cancel"
                             type="button"
                             variant="ghost"
                             onClick={() => setOpen(false)}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={!ready}>
-                            <Plus />
-                            Add niche
+                        <Button key="submit" type="submit" disabled={!ready}>
+                            {editing ? <Check /> : <Plus />}
+                            {editing ? 'Save' : 'Add niche'}
                         </Button>
                     </DialogFooter>
                 </form>
