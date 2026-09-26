@@ -47,6 +47,19 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                                 <NavItemContent item={item} />
                                             </Link>
                                         </SidebarMenuButton>
+                                    ) : item.onClick ? (
+                                        <SidebarMenuButton
+                                            onClick={item.onClick}
+                                            tooltip={{ children: item.title }}
+                                            className={menuButtonClassName}
+                                        >
+                                            <NavItemContent item={item} />
+                                            {item.hint && (
+                                                <kbd className="ml-auto rounded border border-border bg-accent px-1 font-sans text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
+                                                    {item.hint}
+                                                </kbd>
+                                            )}
+                                        </SidebarMenuButton>
                                     ) : (
                                         <SidebarMenuButton
                                             aria-disabled

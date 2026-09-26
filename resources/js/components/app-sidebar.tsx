@@ -26,6 +26,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { setSearchOpen } from '@/hooks/use-search';
 import { dashboard } from '@/routes';
 import { index as inboxIndex } from '@/routes/inbox';
 import { index as leadsIndex } from '@/routes/leads';
@@ -41,7 +42,12 @@ const mainNavGroups: NavGroup[] = [
         items: [
             { title: 'Home', href: dashboard(), icon: House },
             { title: 'Inbox', href: inboxIndex(), icon: Inbox },
-            { title: 'Search', icon: Search },
+            {
+                title: 'Search',
+                icon: Search,
+                onClick: () => setSearchOpen(true),
+                hint: '⌘K',
+            },
         ],
     },
     {

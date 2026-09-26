@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
     Database,
     MapPin,
@@ -71,6 +71,12 @@ const sentFrom = Object.fromEntries(
 );
 
 export default function LeadsIndex() {
+    // Search and other pages deep-link to a lead with ?lead=ID.
+    const { url } = usePage();
+    const linked = new URLSearchParams(url.split('?')[1] ?? '').get('lead');
+    const linkedLead =
+        mockLeads.find((lead) => String(lead.id) === linked) ?? null;
+
     const [statuses, setStatuses] = useState<string[]>([]);
     const [sources, setSources] = useState<string[]>([]);
     const [niches, setNiches] = useState<string[]>([]);
