@@ -9,10 +9,10 @@ Every page exists on mock data. This is what the UI cannot do yet. Tick as we go
 
 ## Editing
 - [x] Edit lead (same dialog as +, prefilled)
-- [ ] Edit niche
-- [ ] Edit offer
-- [ ] Edit mailbox
-- [ ] Sequence: add a step, edit subject/body/wait, reorder, delete
+- [x] Edit niche
+- [x] Edit offer
+- [x] Edit mailbox
+- [x] Sequence: add a step, edit subject/body/wait, reorder, delete
 - [ ] Change lead status and offer from the panel header
 - [ ] Niche: Mark proven / Drop
 - [ ] Mailbox: Pause / Resume

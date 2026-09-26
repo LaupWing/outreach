@@ -1,5 +1,4 @@
 import {
-    ChevronRight,
     Clock,
     FileText,
     ListOrdered,
@@ -13,7 +12,9 @@ import {
 import { useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
+import { OfferDialog } from '@/components/offer-dialog';
 import { OfferStatusBadge } from '@/components/offer-status-badge';
+import { SequenceEditor } from '@/components/sequence-editor';
 import {
     SidePanel,
     SidePanelEmpty,
@@ -23,7 +24,6 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { Lead, Niche, Offer, SequenceStep } from '@/types';
 
 const tabs = [
@@ -38,6 +38,7 @@ type Tab = (typeof tabs)[number]['key'];
 export function OfferPanel({
     offer,
     niche,
+    niches = [],
     steps,
     leads,
     emailed,
@@ -46,6 +47,8 @@ export function OfferPanel({
 }: {
     offer: Offer | null;
     niche: Niche | undefined;
+    /** Every niche, for the select in the edit dialog. */
+    niches?: Niche[];
     steps: SequenceStep[];
     leads: Lead[];
     emailed: number;
@@ -104,10 +107,16 @@ export function OfferPanel({
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                                <Pencil />
-                                Edit
-                            </Button>
+                            <OfferDialog
+                                offer={offer}
+                                niches={niches}
+                                trigger={
+                                    <Button variant="outline" size="sm">
+                                        <Pencil />
+                                        Edit
+                                    </Button>
+                                }
+                            />
                             {offer.status === 'active' ? (
                                 <Button variant="outline" size="sm">
                                     <Square />
@@ -137,7 +146,9 @@ export function OfferPanel({
                     />
 
                     <div className="min-h-0 flex-1 overflow-auto">
-                        {tab === 'sequence' && <Sequence steps={steps} />}
+                        {tab === 'sequence' && (
+                            <SequenceEditor key={offer.id} offerId={offer.id} steps={steps} />
+                        )}
 
                         {tab === 'overview' && (
                             <div className="flex flex-col gap-4 p-5">
@@ -204,85 +215,5 @@ export function OfferPanel({
                 </>
             )}
         </SidePanel>
-    );
-}
-
-/** The mails in order, with the wait between them on the line that joins them. */
-function Sequence({ steps }: { steps: SequenceStep[] }) {
-    const [openId, setOpenId] = useState<number | null>(steps[0]?.id ?? null);
-
-    if (steps.length === 0) {
-        return (
-            <p className="p-5 text-sm text-muted-foreground">
-                No steps yet. An offer needs at least one mail before it can be sent.
-            </p>
-        );
-    }
-
-    return (
-        <ol className="flex flex-col p-5">
-            {steps.map((step, index) => {
-                const isOpen = step.id === openId;
-
-                return (
-                    <li key={step.id} className="flex flex-col">
-                        {index > 0 && (
-                            <div className="flex items-center gap-3 py-1 pl-2.5">
-                                <span className="h-6 w-px bg-border" />
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Clock className="size-3" />
-                                    wait {step.days_after_previous} days
-                                </span>
-                            </div>
-                        )}
-                        <div className="rounded-lg border border-(--raised-border) bg-accent/40 shadow-(--raised-shadow)">
-                            <button
-                                type="button"
-                                onClick={() => setOpenId(isOpen ? null : step.id)}
-                                className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm"
-                            >
-                                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-sky-400 to-violet-500 text-[10px] font-semibold text-white">
-                                    {step.step}
-                                </span>
-                                <span className="min-w-0 flex-1 truncate font-medium">
-                                    {step.subject}
-                                </span>
-                                <ChevronRight
-                                    className={cn(
-                                        'size-4 shrink-0 text-muted-foreground transition-transform',
-                                        isOpen && 'rotate-90',
-                                    )}
-                                />
-                            </button>
-                            {isOpen && (
-                                <p className="border-t border-border px-3 py-3 text-sm whitespace-pre-line text-foreground/80">
-                                    <Placeholders text={step.body} />
-                                </p>
-                            )}
-                        </div>
-                    </li>
-                );
-            })}
-        </ol>
-    );
-}
-
-/** Highlights the {{placeholders}} the writer fills per lead. */
-function Placeholders({ text }: { text: string }) {
-    return (
-        <>
-            {text.split(/(\{\{[a-z_]+\}\})/).map((part, index) =>
-                part.startsWith('{{') ? (
-                    <span
-                        key={index}
-                        className="rounded bg-violet-500/15 px-1 font-mono text-xs text-violet-700 dark:text-violet-300"
-                    >
-                        {part.slice(2, -2)}
-                    </span>
-                ) : (
-                    part
-                ),
-            )}
-        </>
     );
 }
