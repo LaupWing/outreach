@@ -28,11 +28,16 @@ export function SidePanel({
         const onPointerDown = (event: PointerEvent) => {
             const target = event.target as Element | null;
 
+            // While a dialog, menu or popover is open, the click is for that overlay, not for us.
+            const overlayOpen = document.querySelector(
+                '[role="dialog"][data-state="open"], [data-radix-popper-content-wrapper]',
+            );
+
             if (
                 !target ||
+                overlayOpen ||
                 ref.current?.contains(target) ||
-                // Anything portalled (dialogs, menus, popovers) or marked to keep the panel.
-                target.closest('[data-keeps-panel], [role="dialog"], [data-radix-popper-content-wrapper]')
+                target.closest('[data-keeps-panel]')
             ) {
                 return;
             }
