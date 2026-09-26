@@ -4,6 +4,7 @@ import {
     Inbox,
     Mailbox,
     MessageSquare,
+    Radar,
     Search,
     Tag,
     Target,
@@ -17,9 +18,6 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
     SidebarTrigger,
     useSidebar,
 } from '@/components/ui/sidebar';
@@ -42,6 +40,7 @@ const mainNavGroups: NavGroup[] = [
     {
         label: 'Outreach',
         items: [
+            { title: 'Scrape', icon: Radar },
             { title: 'Leads', icon: Users },
             { title: 'Niches', icon: Target },
             { title: 'Offers', icon: Tag },
@@ -62,24 +61,25 @@ export function AppSidebar() {
     return (
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader className="h-14 justify-center border-b border-sidebar-border px-3 transition-[height] ease-linear group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:px-2">
-                <SidebarMenu>
-                    <SidebarMenuItem className="flex items-center gap-1">
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                        {/* Collapsing happens here; expanding through the chevron in the page header. */}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <SidebarTrigger className="text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                Collapse sidebar
-                            </TooltipContent>
-                        </Tooltip>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                <div className="flex items-center gap-1">
+                    {/* A plain link, not a menu button: the icon-mode size overrides clipped the mark. */}
+                    <Link
+                        href={dashboard()}
+                        prefetch
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+                    >
+                        <AppLogo />
+                    </Link>
+                    {/* Collapsing happens here; expanding through the chevron in the page header. */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <SidebarTrigger className="text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                            Collapse sidebar
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
             </SidebarHeader>
 
             <SidebarContent className="gap-0">

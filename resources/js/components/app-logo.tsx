@@ -19,7 +19,7 @@ export default function AppLogo() {
     return (
         <>
             <AppLogoMark />
-            <div className="ml-1 flex-1 truncate text-left text-xl leading-none tracking-tight">
+            <div className="ml-1 flex-1 truncate text-left text-xl leading-none tracking-tight group-data-[collapsible=icon]:hidden">
                 <span className="bg-linear-to-r from-sky-400 to-violet-500 bg-clip-text font-bold text-transparent">
                     snel
                 </span>
