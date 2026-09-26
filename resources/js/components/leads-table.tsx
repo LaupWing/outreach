@@ -1,4 +1,12 @@
-import { Building2, Calendar, Mail, MapPin, Tag, Target } from 'lucide-react';
+import {
+    Building2,
+    Calendar,
+    Mail,
+    MapPin,
+    Send,
+    Tag,
+    Target,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
@@ -12,6 +20,7 @@ const columns: { title: string; icon: typeof Mail; className: string }[] = [
     { title: 'City', icon: MapPin, className: 'w-36' },
     { title: 'Niche', icon: Target, className: 'w-40' },
     { title: 'Status', icon: Tag, className: 'w-36' },
+    { title: 'Sent from', icon: Send, className: 'w-48' },
     { title: 'Next action', icon: Calendar, className: 'w-36' },
 ];
 
@@ -42,11 +51,14 @@ function Cell({
 export function LeadsTable({
     leads,
     niches,
+    sentFrom,
     selectedId,
     onSelect,
 }: {
     leads: Lead[];
     niches: Niche[];
+    /** Address of the mailbox that last mailed each lead, by lead id. */
+    sentFrom: Record<number, string | undefined>;
     selectedId: number | null;
     onSelect: (lead: Lead) => void;
 }) {
@@ -56,7 +68,7 @@ export function LeadsTable({
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[1100px] table-fixed border-separate border-spacing-0">
+                <table className="w-full min-w-[1300px] table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr>
                             {columns.map((column) => (
@@ -107,6 +119,9 @@ export function LeadsTable({
                                 </Cell>
                                 <Cell>
                                     <LeadStatusBadge status={lead.status} />
+                                </Cell>
+                                <Cell className="text-muted-foreground">
+                                    {sentFrom[lead.id] ?? '—'}
                                 </Cell>
                                 <Cell className="text-muted-foreground tabular-nums">
                                     {lead.next_action_at

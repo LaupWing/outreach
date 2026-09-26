@@ -16,6 +16,11 @@ import { leadStatuses } from '@/components/lead-status-badge';
 import { LeadPanel } from '@/components/lead-panel';
 import { LeadsTable } from '@/components/leads-table';
 import { Button } from '@/components/ui/button';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { mockLeads } from '@/mock/leads';
 import { mockMailboxes } from '@/mock/mailboxes';
 import { mockMessages } from '@/mock/messages';
@@ -47,12 +52,27 @@ const cityOptions: FilterOption[] = [
 
 const iconClassName = 'size-3.5 text-muted-foreground';
 
+// The mailbox that last mailed each lead; the messages carry it, the lead does not.
+const sentFrom = Object.fromEntries(
+    mockLeads.map((lead) => {
+        const last = mockMessages.filter((m) => m.lead_id === lead.id).at(-1);
+
+        return [
+            lead.id,
+            mockMailboxes.find((mailbox) => mailbox.id === last?.mailbox_id)
+                ?.address,
+        ];
+    }),
+);
+
 export default function LeadsIndex() {
     const [statuses, setStatuses] = useState<string[]>([]);
     const [sources, setSources] = useState<string[]>([]);
     const [niches, setNiches] = useState<string[]>([]);
     const [cities, setCities] = useState<string[]>([]);
     const [selected, setSelected] = useState<Lead | null>(null);
+    const compact = selected !== null;
+    const hiddenActive = niches.length + cities.length + sources.length;
     // Keeps the last lead while the panel slides shut.
     const [panelLead, setPanelLead] = useState<Lead | null>(null);
 
@@ -63,6 +83,34 @@ export default function LeadsIndex() {
             (sources.length === 0 || sources.includes(lead.source)) &&
             (niches.length === 0 || niches.includes(String(lead.niche_id))) &&
             (cities.length === 0 || (lead.city && cities.includes(lead.city))),
+    );
+
+    const moreFilters = (
+        <>
+            <FilterCombobox
+                label="Niche"
+                icon={<Target className={iconClassName} />}
+                options={nicheOptions}
+                selected={niches}
+                onChange={setNiches}
+                searchPlaceholder="Search niches…"
+            />
+            <FilterCombobox
+                label="City"
+                icon={<MapPin className={iconClassName} />}
+                options={cityOptions}
+                selected={cities}
+                onChange={setCities}
+                searchPlaceholder="Search cities…"
+            />
+            <FilterMenu
+                label="Source"
+                icon={<Database className={iconClassName} />}
+                options={sourceOptions}
+                selected={sources}
+                onChange={setSources}
+            />
+        </>
     );
 
     return (
@@ -84,33 +132,35 @@ export default function LeadsIndex() {
                             selected={statuses}
                             onChange={setStatuses}
                         />
-                        <FilterCombobox
-                            label="Niche"
-                            icon={<Target className={iconClassName} />}
-                            options={nicheOptions}
-                            selected={niches}
-                            onChange={setNiches}
-                            searchPlaceholder="Search niches…"
-                        />
-                        <FilterCombobox
-                            label="City"
-                            icon={<MapPin className={iconClassName} />}
-                            options={cityOptions}
-                            selected={cities}
-                            onChange={setCities}
-                            searchPlaceholder="Search cities…"
-                        />
-                        <FilterMenu
-                            label="Source"
-                            icon={<Database className={iconClassName} />}
-                            options={sourceOptions}
-                            selected={sources}
-                            onChange={setSources}
-                        />
+                        {/* With the panel open there is no room for four filters: the rest live in a popover. */}
+                        {compact ? (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-dashed border-border px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground"
+                                    >
+                                        <Plus className="size-3.5" />
+                                        More
+                                        {hiddenActive > 0 && (
+                                            <span className="rounded-full bg-accent px-1.5 text-[10px] text-foreground tabular-nums">
+                                                {hiddenActive}
+                                            </span>
+                                        )}
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" className="flex w-auto flex-col gap-2 p-2">
+                                    {moreFilters}
+                                </PopoverContent>
+                            </Popover>
+                        ) : (
+                            moreFilters
+                        )}
                     </div>
                     <LeadsTable
                         leads={leads}
                         niches={mockNiches}
+                        sentFrom={sentFrom}
                         selectedId={selected?.id ?? null}
                         onSelect={(lead) => {
                             setSelected(lead);

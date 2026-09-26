@@ -10,6 +10,7 @@ import {
     MessageSquare,
     Phone,
     Radar,
+    Send,
     StickyNote,
     Tag,
     Target,
@@ -186,6 +187,13 @@ export function LeadPanel({
                                 </Row>
                                 <Row icon={Database} label="Source">
                                     {sourceLabels[lead.source]}
+                                </Row>
+                                <Row icon={Send} label="Sent from">
+                                    {mailboxes.find(
+                                        (mailbox) =>
+                                            mailbox.id ===
+                                            messages.at(-1)?.mailbox_id,
+                                    )?.address ?? <Empty>Not mailed yet</Empty>}
                                 </Row>
                                 <Row icon={Calendar} label="Last contact">
                                     {formatDate(lead.last_contact_at) ?? (

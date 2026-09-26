@@ -52,7 +52,7 @@ export function LeadMessages({
                         <button
                             type="button"
                             onClick={() => setOpenId(open ? null : message.id)}
-                            className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm transition-colors hover:bg-accent/40"
+                            className="flex w-full items-center gap-3 px-5 py-2.5 text-left text-sm transition-colors hover:bg-accent/40"
                         >
                             <ChevronRight
                                 className={cn(
@@ -63,8 +63,14 @@ export function LeadMessages({
                             <span className="w-12 shrink-0 text-xs text-muted-foreground">
                                 Step {message.step}
                             </span>
-                            <span className="min-w-0 flex-1 truncate font-medium">
-                                {message.subject}
+                            <span className="flex min-w-0 flex-1 flex-col">
+                                <span className="truncate font-medium">
+                                    {message.subject}
+                                </span>
+                                {/* Which mailbox sent it; matters once several are connected. */}
+                                <span className="truncate text-xs text-muted-foreground">
+                                    via {mailbox?.address ?? 'unknown mailbox'}
+                                </span>
                             </span>
                             <span
                                 className={cn(
@@ -83,9 +89,6 @@ export function LeadMessages({
 
                         {open && (
                             <div className="flex flex-col gap-3 px-5 pb-4 pl-12">
-                                <div className="text-xs text-muted-foreground">
-                                    From {mailbox?.address ?? 'unknown mailbox'}
-                                </div>
                                 <p className="text-sm whitespace-pre-line text-foreground/80">
                                     {message.body}
                                 </p>
