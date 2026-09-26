@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Plus, SlidersHorizontal, Tag, Target } from 'lucide-react';
+import { SlidersHorizontal, Tag, Target } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FilterCombobox } from '@/components/filters/filter-combobox';
 import { FilterMenu } from '@/components/filters/filter-menu';
@@ -7,7 +7,7 @@ import type { FilterOption } from '@/components/filters/filter-trigger';
 import { OfferPanel } from '@/components/offer-panel';
 import { offerStatuses } from '@/components/offer-status-badge';
 import { OffersTable, type OfferCounts } from '@/components/offers-table';
-import { Button } from '@/components/ui/button';
+import { NewOfferDialog } from '@/components/new-offer-dialog';
 import { mockLeads } from '@/mock/leads';
 import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
@@ -134,10 +134,5 @@ export default function OffersIndex() {
 
 OffersIndex.layout = {
     breadcrumbs: [{ title: 'Offers', href: offersIndex(), icon: Tag }],
-    actions: (
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Plus />
-            Offer
-        </Button>
-    ),
+    actions: <NewOfferDialog niches={mockNiches} />,
 };
