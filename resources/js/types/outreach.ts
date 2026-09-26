@@ -117,5 +117,7 @@ export type PlacesUsage = {
     sku: string;
     used: number;
     free_limit: number;
+    /** USD per 1,000 requests once the free volume is used up. */
+    price_per_1000: number;
     resets_at: string;
 };

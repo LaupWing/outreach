@@ -1,10 +1,10 @@
 import { Head } from '@inertiajs/react';
-import { Plus, Radar } from 'lucide-react';
+import { Radar } from 'lucide-react';
 import { useState } from 'react';
+import { NewScrapeDialog } from '@/components/new-scrape-dialog';
 import { PlacesUsageCard } from '@/components/places-usage';
 import { ScrapeRunPanel } from '@/components/scrape-run-panel';
 import { ScrapeRunsTable } from '@/components/scrape-runs-table';
-import { Button } from '@/components/ui/button';
 import { mockLeads } from '@/mock/leads';
 import { mockNiches } from '@/mock/niches';
 import { mockPlacesUsage, mockScrapeRuns } from '@/mock/scrape-runs';
@@ -51,10 +51,5 @@ export default function ScrapeIndex() {
 
 ScrapeIndex.layout = {
     breadcrumbs: [{ title: 'Scrape', href: scrapeIndex(), icon: Radar }],
-    actions: (
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Plus />
-            New scrape
-        </Button>
-    ),
+    actions: <NewScrapeDialog niches={mockNiches} usage={mockPlacesUsage} />,
 };

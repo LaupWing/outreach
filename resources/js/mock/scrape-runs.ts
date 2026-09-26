@@ -4,6 +4,7 @@ export const mockPlacesUsage: PlacesUsage = {
     sku: 'Text Search Enterprise',
     used: 214,
     free_limit: 1000,
+    price_per_1000: 35,
     resets_at: '2026-10-01T00:00:00Z',
 };
 
