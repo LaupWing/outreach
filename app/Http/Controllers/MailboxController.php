@@ -7,6 +7,7 @@ use App\Enums\MailboxType;
 use App\Http\Requests\Mailboxes\StoreMailboxRequest;
 use App\Http\Requests\Mailboxes\UpdateMailboxRequest;
 use App\Models\Mailbox;
+use App\Support\MailboxConnection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -36,13 +37,13 @@ class MailboxController extends Controller
      * Add a sending address with its IMAP/SMTP credentials. The password is
      * stored encrypted; "Test connection" proves it works.
      */
-    public function store(StoreMailboxRequest $request): RedirectResponse
+    public function store(StoreMailboxRequest $request, MailboxConnection $connection): RedirectResponse
     {
         $user = $request->user();
 
         $warmUp = $request->boolean('warm_up');
 
-        $user->mailboxes()->create([
+        $mailbox = $user->mailboxes()->create([
             ...$request->safe()->only(['address', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'password', 'daily_limit']),
             'type' => MailboxType::Imap,
             'username' => $request->string('username')->toString() ?: $request->string('address')->toString(),
@@ -50,7 +51,13 @@ class MailboxController extends Controller
             'warm_up_started_at' => $warmUp ? now() : null,
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Mailbox added.')]);
+        // Prove the credentials straight away, so a typo shows up here and not on the first send.
+        $error = $connection->check($mailbox);
+        $mailbox->forceFill(['connection_checked_at' => now(), 'connection_error' => $error])->save();
+
+        Inertia::flash('toast', $error === null
+            ? ['type' => 'success', 'message' => __('Mailbox added and connected.')]
+            : ['type' => 'error', 'message' => __('Mailbox added, but it does not log in: :error', ['error' => $error])]);
 
         return back();
     }

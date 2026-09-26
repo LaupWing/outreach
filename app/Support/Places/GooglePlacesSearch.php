@@ -59,6 +59,24 @@ class GooglePlacesSearch implements PlacesSearch
     }
 
     /**
+     * A search that asks for ids only: that SKU is free, so the check costs nothing.
+     */
+    public function check(string $apiKey): ?string
+    {
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders(['X-Goog-Api-Key' => $apiKey, 'X-Goog-FieldMask' => 'places.id'])
+                ->post(self::ENDPOINT, ['textQuery' => 'tandarts in Haarlem', 'pageSize' => 1]);
+        } catch (ConnectionException $exception) {
+            return 'Google Places could not be reached: '.$exception->getMessage();
+        }
+
+        return $response->successful()
+            ? null
+            : sprintf('Google refused the key (%d): %s', $response->status(), $response->json('error.message', 'no details'));
+    }
+
+    /**
      * @param  list<array{types?: list<string>, longText?: string}>  $components
      */
     private function city(array $components): ?string

@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Support\MailboxConnection;
+use App\Support\Places\PlacesPage;
+use App\Support\Places\PlacesSearch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,6 +25,15 @@ pest()->extend(TestCase::class)
         // guest tests log out first, tenancy tests switch accounts.
         // Inertia responses render the root view; the built assets are not part of the test.
         $this->withoutVite();
+
+        // Nothing talks to Google or a mail server in a test unless a test says otherwise.
+        $this->instance(PlacesSearch::class, tap(Mockery::mock(PlacesSearch::class), function ($fake): void {
+            $fake->shouldReceive('check')->andReturn(null)->byDefault();
+            $fake->shouldReceive('search')->andReturn(new PlacesPage([], null))->byDefault();
+        }));
+        $this->instance(MailboxConnection::class, tap(Mockery::mock(MailboxConnection::class), function ($fake): void {
+            $fake->shouldReceive('check')->andReturn(null)->byDefault();
+        }));
 
         $this->user = User::factory()->onboarded()->create();
         $this->actingAs($this->user);

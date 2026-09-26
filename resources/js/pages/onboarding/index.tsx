@@ -13,7 +13,7 @@ import type { Mailbox } from '@/types';
 
 type PageProps = {
     hasKey: boolean;
-    mailboxes: Pick<Mailbox, 'id' | 'address' | 'status' | 'daily_limit' | 'connection_error'>[];
+    mailboxes: Pick<Mailbox, 'id' | 'address' | 'status' | 'daily_limit' | 'connection_error' | 'connection_checked_at'>[];
 };
 
 /**
@@ -29,7 +29,9 @@ export default function Onboarding() {
         form.post(storeKey.url(), { preserveScroll: true, onSuccess: () => form.reset() });
     };
 
-    const done = hasKey && mailboxes.length > 0;
+    // Both steps have to actually work: a key Google accepts, and a box that logs in.
+    const working = mailboxes.filter((mailbox) => mailbox.connection_checked_at !== null && mailbox.connection_error === null);
+    const done = hasKey && working.length > 0;
 
     return (
         <div className="flex min-h-svh flex-col items-center px-4 py-12">
@@ -75,7 +77,7 @@ export default function Onboarding() {
                     )}
                 </Step>
 
-                <Step number={2} title="A mailbox to send from" done={mailboxes.length > 0} icon={MailboxIcon}>
+                <Step number={2} title="A mailbox to send from" done={working.length > 0} icon={MailboxIcon}>
                     <div className="flex flex-col gap-3">
                         {mailboxes.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
@@ -85,7 +87,19 @@ export default function Onboarding() {
                             <ul className="flex flex-col divide-y divide-border rounded-md border border-border">
                                 {mailboxes.map((mailbox) => (
                                     <li key={mailbox.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                                        <span className="min-w-0 flex-1 truncate">{mailbox.address}</span>
+                                        <span className="flex min-w-0 flex-1 flex-col">
+                                            <span className="truncate">{mailbox.address}</span>
+                                            <span
+                                                className={cn(
+                                                    'truncate text-xs',
+                                                    mailbox.connection_error
+                                                        ? 'text-red-600 dark:text-red-400'
+                                                        : 'text-green-600 dark:text-green-400',
+                                                )}
+                                            >
+                                                {mailbox.connection_error ?? 'Logs in over SMTP and IMAP'}
+                                            </span>
+                                        </span>
                                         <span className="text-xs text-muted-foreground tabular-nums">
                                             {mailbox.daily_limit} a day
                                         </span>

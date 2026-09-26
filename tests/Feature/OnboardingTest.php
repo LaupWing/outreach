@@ -3,6 +3,7 @@
 use App\Models\Mailbox;
 use App\Models\User;
 use App\Support\MailboxConnection;
+use App\Support\Places\PlacesSearch;
 use Inertia\Support\SessionKey;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -105,7 +106,7 @@ test('editing a mailbox keeps the password when none is typed and forgets the la
 test('testing a connection records the outcome on the mailbox', function () {
     $mailbox = Mailbox::factory()->create();
 
-    $this->mock(MailboxConnection::class)->shouldReceive('check')->once()->andReturn('SMTP: 535 bad credentials');
+    app(MailboxConnection::class)->shouldReceive('check')->once()->andReturn('SMTP: 535 bad credentials');
 
     $this->actingAs($this->user)
         ->post(route('mailboxes.test', $mailbox))
@@ -129,4 +130,34 @@ test('the google settings page saves a new key', function () {
         ->assertSessionHasNoErrors();
 
     expect($user->fresh()->google_places_key)->toEndWith('dddd');
+});
+
+test('a places key google refuses is not saved and the reason is shown', function () {
+    $user = User::factory()->create();
+
+    app(PlacesSearch::class)->shouldReceive('check')->once()->andReturn('Google refused the key (403): API key not valid');
+
+    $this->actingAs($user)
+        ->post(route('onboarding.key'), ['google_places_key' => 'AIza'.str_repeat('e', 35)])
+        ->assertSessionHasErrors(['google_places_key' => 'Google refused the key (403): API key not valid']);
+
+    expect($user->fresh()->google_places_key)->toBeNull();
+});
+
+test('a new mailbox is tested right away and keeps the outcome', function () {
+    app(MailboxConnection::class)->shouldReceive('check')->once()->andReturn('SMTP: 535 bad credentials');
+
+    $this->actingAs($this->user)
+        ->post(route('mailboxes.store'), [
+            'address' => 'typo@snelstack.io',
+            'imap_host' => 'imap.gmail.com', 'imap_port' => 993,
+            'smtp_host' => 'smtp.gmail.com', 'smtp_port' => 587,
+            'password' => 'wrong', 'daily_limit' => 10, 'warm_up' => false,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $mailbox = Mailbox::query()->where('address', 'typo@snelstack.io')->sole();
+
+    expect($mailbox->connection_error)->toBe('SMTP: 535 bad credentials')
+        ->and(session(SessionKey::FLASH_DATA)['toast']['type'])->toBe('error');
 });
