@@ -12,3 +12,9 @@ export type NavItem = {
     icon?: LucideIcon | null;
     isActive?: boolean;
 };
+
+export type NavGroup = {
+    label?: string;
+    /** Items without an href are planned pages and render disabled. */
+    items: (Omit<NavItem, 'href'> & { href?: NavItem['href'] })[];
+};
