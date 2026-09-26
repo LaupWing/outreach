@@ -120,7 +120,8 @@ export function LeadsTable({
                 </table>
             </div>
 
-            <div className="flex h-11 shrink-0 items-center border-t border-border px-4 text-sm text-muted-foreground">
+            {/* Filled band, same height as the sidebar footer. */}
+            <div className="flex h-14 shrink-0 items-center border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground">
                 Total: {leads.length} leads
             </div>
         </div>

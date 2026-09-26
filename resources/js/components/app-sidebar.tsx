@@ -87,7 +87,8 @@ export function AppSidebar() {
                 <NavMain groups={mainNavGroups} />
             </SidebarContent>
 
-            <SidebarFooter className="border-t border-sidebar-border">
+            {/* Same height and fill as the table footer on the right, so the two line up. */}
+            <SidebarFooter className="h-14 justify-center border-t border-sidebar-border bg-sidebar-accent/40 p-2">
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
