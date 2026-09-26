@@ -43,7 +43,7 @@ export function FilterTrigger({
         <button
             type="button"
             className={cn(
-                'flex h-8 items-center gap-1.5 rounded-md border border-(--raised-border) bg-background px-2.5 text-xs shadow-(--raised-shadow) transition-colors hover:bg-accent data-[state=open]:bg-accent',
+                'flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-(--raised-border) bg-background px-2.5 text-xs shadow-(--raised-shadow) transition-colors hover:bg-accent data-[state=open]:bg-accent',
                 className,
             )}
             {...props}

@@ -13,10 +13,12 @@ import { FilterCombobox } from '@/components/filters/filter-combobox';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { leadStatuses } from '@/components/lead-status-badge';
+import { LeadPanel } from '@/components/lead-panel';
 import { LeadsTable } from '@/components/leads-table';
 import { Button } from '@/components/ui/button';
 import { mockLeads } from '@/mock/leads';
 import { mockNiches } from '@/mock/niches';
+import { mockOffers } from '@/mock/offers';
 import { index as leadsIndex } from '@/routes/leads';
 import type { Lead, LeadSource, LeadStatus } from '@/types';
 
@@ -49,6 +51,8 @@ export default function LeadsIndex() {
     const [niches, setNiches] = useState<string[]>([]);
     const [cities, setCities] = useState<string[]>([]);
     const [selected, setSelected] = useState<Lead | null>(null);
+    // Keeps the last lead while the panel slides shut.
+    const [panelLead, setPanelLead] = useState<Lead | null>(null);
 
     // Client-side for now; these become query parameters once the leads come from Laravel.
     const leads = mockLeads.filter(
@@ -63,49 +67,63 @@ export default function LeadsIndex() {
         <>
             <Head title="Leads" />
 
-            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-                <span className="mr-1 flex items-center gap-2 text-sm text-muted-foreground">
-                    <SlidersHorizontal className="size-4" />
-                    Filters:
-                </span>
-                <FilterMenu
-                    label="Status"
-                    icon={<Tag className={iconClassName} />}
-                    options={statusOptions}
-                    selected={statuses}
-                    onChange={setStatuses}
-                />
-                <FilterCombobox
-                    label="Niche"
-                    icon={<Target className={iconClassName} />}
-                    options={nicheOptions}
-                    selected={niches}
-                    onChange={setNiches}
-                    searchPlaceholder="Search niches…"
-                />
-                <FilterCombobox
-                    label="City"
-                    icon={<MapPin className={iconClassName} />}
-                    options={cityOptions}
-                    selected={cities}
-                    onChange={setCities}
-                    searchPlaceholder="Search cities…"
-                />
-                <FilterMenu
-                    label="Source"
-                    icon={<Database className={iconClassName} />}
-                    options={sourceOptions}
-                    selected={sources}
-                    onChange={setSources}
+            {/* The panel spans the filter bar and the table, like the card in the reference. */}
+            <div className="flex min-h-0 flex-1">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                        <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
+                            <SlidersHorizontal className="size-4" />
+                            Filters:
+                        </span>
+                        <FilterMenu
+                            label="Status"
+                            icon={<Tag className={iconClassName} />}
+                            options={statusOptions}
+                            selected={statuses}
+                            onChange={setStatuses}
+                        />
+                        <FilterCombobox
+                            label="Niche"
+                            icon={<Target className={iconClassName} />}
+                            options={nicheOptions}
+                            selected={niches}
+                            onChange={setNiches}
+                            searchPlaceholder="Search niches…"
+                        />
+                        <FilterCombobox
+                            label="City"
+                            icon={<MapPin className={iconClassName} />}
+                            options={cityOptions}
+                            selected={cities}
+                            onChange={setCities}
+                            searchPlaceholder="Search cities…"
+                        />
+                        <FilterMenu
+                            label="Source"
+                            icon={<Database className={iconClassName} />}
+                            options={sourceOptions}
+                            selected={sources}
+                            onChange={setSources}
+                        />
+                    </div>
+                    <LeadsTable
+                        leads={leads}
+                        niches={mockNiches}
+                        selectedId={selected?.id ?? null}
+                        onSelect={(lead) => {
+                            setSelected(lead);
+                            setPanelLead(lead);
+                        }}
+                    />
+                </div>
+                <LeadPanel
+                    lead={panelLead}
+                    niche={mockNiches.find((niche) => niche.id === panelLead?.niche_id)}
+                    offer={mockOffers.find((offer) => offer.id === panelLead?.offer_id)}
+                    open={selected !== null}
+                    onClose={() => setSelected(null)}
                 />
             </div>
-
-            <LeadsTable
-                leads={leads}
-                niches={mockNiches}
-                selectedId={selected?.id ?? null}
-                onSelect={setSelected}
-            />
         </>
     );
 }

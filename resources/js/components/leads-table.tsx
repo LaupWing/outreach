@@ -5,13 +5,14 @@ import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { cn } from '@/lib/utils';
 import type { Lead, Niche } from '@/types';
 
-const columns: { title: string; icon: typeof Mail; className?: string }[] = [
-    { title: 'Company', icon: Building2, className: 'w-[28%]' },
-    { title: 'Email', icon: Mail, className: 'w-[24%]' },
-    { title: 'City', icon: MapPin },
-    { title: 'Niche', icon: Target },
-    { title: 'Status', icon: Tag },
-    { title: 'Next action', icon: Calendar },
+// Fixed widths in px, so a column never gets narrower than its header; the table scrolls instead.
+const columns: { title: string; icon: typeof Mail; className: string }[] = [
+    { title: 'Company', icon: Building2, className: 'w-64' },
+    { title: 'Email', icon: Mail, className: 'w-64' },
+    { title: 'City', icon: MapPin, className: 'w-36' },
+    { title: 'Niche', icon: Target, className: 'w-40' },
+    { title: 'Status', icon: Tag, className: 'w-36' },
+    { title: 'Next action', icon: Calendar, className: 'w-36' },
 ];
 
 const shortDate = new Intl.DateTimeFormat('en-GB', {
@@ -29,7 +30,7 @@ function Cell({
     return (
         <td
             className={cn(
-                'h-11 truncate border-r border-border px-4 text-sm last:border-r-0',
+                'h-11 truncate border-r border-b border-border px-4 text-sm last:border-r-0',
                 className,
             )}
         >
@@ -53,22 +54,22 @@ export function LeadsTable({
         niches.find((niche) => niche.id === id)?.name ?? '—';
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full table-fixed border-collapse">
-                    <thead className="sticky top-0 z-10 bg-background">
-                        <tr className="border-b border-border">
+                <table className="w-full min-w-[1100px] table-fixed border-separate border-spacing-0">
+                    <thead>
+                        <tr>
                             {columns.map((column) => (
                                 <th
                                     key={column.title}
                                     scope="col"
                                     className={cn(
-                                        'h-11 border-r border-border px-4 text-left text-sm font-normal text-muted-foreground last:border-r-0',
+                                        'sticky top-0 z-10 h-11 border-r border-b border-border bg-background px-4 text-left text-sm font-normal text-muted-foreground last:border-r-0',
                                         column.className,
                                     )}
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <column.icon className="size-4" />
+                                    <span className="flex items-center gap-2 whitespace-nowrap">
+                                        <column.icon className="size-4 shrink-0" />
                                         {column.title}
                                     </span>
                                 </th>
@@ -81,7 +82,7 @@ export function LeadsTable({
                                 key={lead.id}
                                 onClick={() => onSelect(lead)}
                                 aria-selected={lead.id === selectedId}
-                                className="cursor-pointer border-b border-border transition-colors hover:bg-accent/60 aria-selected:bg-accent"
+                                className="cursor-pointer transition-colors hover:bg-accent/60 aria-selected:bg-accent"
                             >
                                 <Cell>
                                     <span className="flex items-center gap-2.5">
