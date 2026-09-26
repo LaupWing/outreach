@@ -12,9 +12,9 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
 import type { NavGroup } from '@/types';
 
-// The active item is raised: hairline border, top highlight and a soft outer edge.
+// Only the active item is white and raised: hairline border, top highlight and a soft outer edge.
 const menuButtonClassName =
-    'h-9 border border-transparent font-medium data-[active=true]:border-(--sidebar-active-border) data-[active=true]:shadow-(--sidebar-active-shadow)';
+    'h-9 border border-transparent font-medium text-muted-foreground hover:text-foreground data-[active=true]:border-(--raised-border) data-[active=true]:text-foreground data-[active=true]:shadow-(--raised-shadow)';
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
     const { isCurrentUrl } = useCurrentUrl();

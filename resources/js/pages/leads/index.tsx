@@ -1,50 +1,103 @@
 import { Head } from '@inertiajs/react';
-import { Plus, SlidersHorizontal, Users } from 'lucide-react';
+import {
+    Database,
+    MapPin,
+    Plus,
+    SlidersHorizontal,
+    Tag,
+    Target,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
+import { FilterCombobox } from '@/components/filters/filter-combobox';
+import { FilterMenu } from '@/components/filters/filter-menu';
+import type { FilterOption } from '@/components/filters/filter-trigger';
 import { leadStatuses } from '@/components/lead-status-badge';
 import { LeadsTable } from '@/components/leads-table';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { mockLeads } from '@/mock/leads';
 import { mockNiches } from '@/mock/niches';
 import { index as leadsIndex } from '@/routes/leads';
-import type { Lead, LeadStatus } from '@/types';
+import type { Lead, LeadSource, LeadStatus } from '@/types';
+
+const statusOptions: FilterOption[] = (
+    Object.keys(leadStatuses) as LeadStatus[]
+).map((value) => ({ value, label: leadStatuses[value].label }));
+
+const sourceOptions: { value: LeadSource; label: string }[] = [
+    { value: 'places', label: 'Google Places' },
+    { value: 'register', label: 'Register' },
+    { value: 'manual', label: 'Manual' },
+];
+
+const nicheOptions: FilterOption[] = mockNiches.map((niche) => ({
+    value: String(niche.id),
+    label: niche.name,
+}));
+
+const cityOptions: FilterOption[] = [
+    ...new Set(mockLeads.flatMap((lead) => (lead.city ? [lead.city] : []))),
+]
+    .sort()
+    .map((city) => ({ value: city, label: city }));
+
+const iconClassName = 'size-3.5 text-muted-foreground';
 
 export default function LeadsIndex() {
-    const [status, setStatus] = useState<LeadStatus | null>(null);
+    const [statuses, setStatuses] = useState<string[]>([]);
+    const [sources, setSources] = useState<string[]>([]);
+    const [niches, setNiches] = useState<string[]>([]);
+    const [cities, setCities] = useState<string[]>([]);
     const [selected, setSelected] = useState<Lead | null>(null);
 
-    const leads = status
-        ? mockLeads.filter((lead) => lead.status === status)
-        : mockLeads;
+    // Client-side for now; these become query parameters once the leads come from Laravel.
+    const leads = mockLeads.filter(
+        (lead) =>
+            (statuses.length === 0 || statuses.includes(lead.status)) &&
+            (sources.length === 0 || sources.includes(lead.source)) &&
+            (niches.length === 0 || niches.includes(String(lead.niche_id))) &&
+            (cities.length === 0 || (lead.city && cities.includes(lead.city))),
+    );
 
     return (
         <>
             <Head title="Leads" />
 
-            {/* Filter bar, like the reference: a label and a row of chips. */}
             <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="mr-1 flex items-center gap-2 text-sm text-muted-foreground">
                     <SlidersHorizontal className="size-4" />
                     Filters:
                 </span>
-                <div className="flex items-center gap-1">
-                    <FilterChip
-                        active={status === null}
-                        onClick={() => setStatus(null)}
-                    >
-                        All
-                    </FilterChip>
-                    {(Object.keys(leadStatuses) as LeadStatus[]).map((key) => (
-                        <FilterChip
-                            key={key}
-                            active={status === key}
-                            onClick={() => setStatus(key)}
-                        >
-                            {leadStatuses[key].label}
-                        </FilterChip>
-                    ))}
-                </div>
+                <FilterMenu
+                    label="Status"
+                    icon={<Tag className={iconClassName} />}
+                    options={statusOptions}
+                    selected={statuses}
+                    onChange={setStatuses}
+                />
+                <FilterCombobox
+                    label="Niche"
+                    icon={<Target className={iconClassName} />}
+                    options={nicheOptions}
+                    selected={niches}
+                    onChange={setNiches}
+                    searchPlaceholder="Search niches…"
+                />
+                <FilterCombobox
+                    label="City"
+                    icon={<MapPin className={iconClassName} />}
+                    options={cityOptions}
+                    selected={cities}
+                    onChange={setCities}
+                    searchPlaceholder="Search cities…"
+                />
+                <FilterMenu
+                    label="Source"
+                    icon={<Database className={iconClassName} />}
+                    options={sourceOptions}
+                    selected={sources}
+                    onChange={setSources}
+                />
             </div>
 
             <LeadsTable
@@ -54,31 +107,6 @@ export default function LeadsIndex() {
                 onSelect={setSelected}
             />
         </>
-    );
-}
-
-function FilterChip({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: string;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={cn(
-                'rounded-md border px-2 py-1 text-xs transition-colors',
-                active
-                    ? 'border-border bg-accent text-foreground'
-                    : 'border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-            )}
-        >
-            {children}
-        </button>
     );
 }
 
