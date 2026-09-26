@@ -1,0 +1,114 @@
+import { ChevronRight, Reply } from 'lucide-react';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import type { Mailbox, Message, MessageStatus } from '@/types';
+
+const statusTones: Record<MessageStatus, { label: string; className: string }> = {
+    draft: { label: 'Draft', className: 'text-muted-foreground' },
+    sent: { label: 'Sent', className: 'text-sky-600 dark:text-sky-400' },
+    bounced: { label: 'Bounced', className: 'text-red-600 dark:text-red-400' },
+    replied: { label: 'Replied', className: 'text-amber-600 dark:text-amber-400' },
+};
+
+const dateTime = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+});
+
+/** The mails sent to one lead, one per sequence step, with the reply underneath when there is one. */
+export function LeadMessages({
+    messages,
+    mailboxes,
+}: {
+    messages: Message[];
+    mailboxes: Mailbox[];
+}) {
+    // The newest is the one you want to read first, so it starts open.
+    const [openId, setOpenId] = useState<number | null>(
+        messages.at(-1)?.id ?? null,
+    );
+
+    if (messages.length === 0) {
+        return (
+            <p className="p-5 text-sm text-muted-foreground">
+                No messages yet.
+            </p>
+        );
+    }
+
+    return (
+        <div className="flex flex-col">
+            {messages.map((message) => {
+                const open = message.id === openId;
+                const mailbox = mailboxes.find(
+                    (item) => item.id === message.mailbox_id,
+                );
+                const tone = statusTones[message.status];
+
+                return (
+                    <div key={message.id} className="border-b border-border">
+                        <button
+                            type="button"
+                            onClick={() => setOpenId(open ? null : message.id)}
+                            className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm transition-colors hover:bg-accent/40"
+                        >
+                            <ChevronRight
+                                className={cn(
+                                    'size-4 shrink-0 text-muted-foreground transition-transform',
+                                    open && 'rotate-90',
+                                )}
+                            />
+                            <span className="w-12 shrink-0 text-xs text-muted-foreground">
+                                Step {message.step}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate font-medium">
+                                {message.subject}
+                            </span>
+                            <span
+                                className={cn(
+                                    'shrink-0 text-xs',
+                                    tone.className,
+                                )}
+                            >
+                                {tone.label}
+                            </span>
+                            <span className="w-24 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                                {message.sent_at
+                                    ? dateTime.format(new Date(message.sent_at))
+                                    : '—'}
+                            </span>
+                        </button>
+
+                        {open && (
+                            <div className="flex flex-col gap-3 px-5 pb-4 pl-12">
+                                <div className="text-xs text-muted-foreground">
+                                    From {mailbox?.address ?? 'unknown mailbox'}
+                                </div>
+                                <p className="text-sm whitespace-pre-line text-foreground/80">
+                                    {message.body}
+                                </p>
+
+                                {message.reply && (
+                                    <div className="rounded-lg border border-(--raised-border) bg-accent/40 p-3 shadow-(--raised-shadow)">
+                                        <div className="mb-1.5 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                                            <Reply className="size-3.5" />
+                                            Reply,{' '}
+                                            {dateTime.format(
+                                                new Date(message.reply.received_at),
+                                            )}
+                                        </div>
+                                        <p className="text-sm whitespace-pre-line">
+                                            {message.reply.body}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}

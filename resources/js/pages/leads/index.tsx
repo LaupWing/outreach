@@ -17,6 +17,8 @@ import { LeadPanel } from '@/components/lead-panel';
 import { LeadsTable } from '@/components/leads-table';
 import { Button } from '@/components/ui/button';
 import { mockLeads } from '@/mock/leads';
+import { mockMailboxes } from '@/mock/mailboxes';
+import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
 import { mockOffers } from '@/mock/offers';
 import { index as leadsIndex } from '@/routes/leads';
@@ -120,6 +122,8 @@ export default function LeadsIndex() {
                     lead={panelLead}
                     niche={mockNiches.find((niche) => niche.id === panelLead?.niche_id)}
                     offer={mockOffers.find((offer) => offer.id === panelLead?.offer_id)}
+                    messages={mockMessages.filter((message) => message.lead_id === panelLead?.id)}
+                    mailboxes={mockMailboxes}
                     open={selected !== null}
                     onClose={() => setSelected(null)}
                 />

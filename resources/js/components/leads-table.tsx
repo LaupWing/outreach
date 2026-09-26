@@ -94,7 +94,7 @@ export function LeadsTable({
                                 </Cell>
                                 <Cell className="text-muted-foreground">
                                     {lead.email ?? (
-                                        <span className="text-neutral-600">
+                                        <span className="text-muted-foreground/60">
                                             No email found
                                         </span>
                                     )}

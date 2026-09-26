@@ -17,10 +17,12 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
+import { LeadActivity } from '@/components/lead-activity';
+import { LeadMessages } from '@/components/lead-messages';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Lead, Niche, Offer } from '@/types';
+import type { Lead, Mailbox, Message, Niche, Offer } from '@/types';
 
 const tabs = [
     { key: 'details', label: 'Details', icon: FileText },
@@ -54,12 +56,16 @@ export function LeadPanel({
     lead,
     niche,
     offer,
+    messages,
+    mailboxes,
     open,
     onClose,
 }: {
     lead: Lead | null;
     niche: Niche | undefined;
     offer: Offer | undefined;
+    messages: Message[];
+    mailboxes: Mailbox[];
     open: boolean;
     onClose: () => void;
 }) {
@@ -148,6 +154,11 @@ export function LeadPanel({
                             >
                                 <item.icon className="size-4 shrink-0" />
                                 {item.label}
+                                {item.key === 'messages' && messages.length > 0 && (
+                                    <span className="rounded-full bg-accent px-1.5 text-[10px] text-muted-foreground tabular-nums">
+                                        {messages.length}
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -192,11 +203,14 @@ export function LeadPanel({
                         {tab === 'signals' && <Signals lead={lead} />}
 
                         {tab === 'messages' && (
-                            <Placeholder>No messages yet.</Placeholder>
+                            <LeadMessages
+                                messages={messages}
+                                mailboxes={mailboxes}
+                            />
                         )}
 
                         {tab === 'activity' && (
-                            <Placeholder>No activity yet.</Placeholder>
+                            <LeadActivity lead={lead} messages={messages} />
                         )}
                     </div>
                 </aside>
@@ -225,7 +239,7 @@ function Signals({ lead }: { lead: Lead }) {
             </div>
 
             {(signals.blocked || signals.javascript_only) && (
-                <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
                     {signals.blocked
                         ? 'This site blocked the scraper.'
                         : 'This site renders with JavaScript; only the basics were read.'}
@@ -242,7 +256,7 @@ function Signals({ lead }: { lead: Lead }) {
                     ) : signals.viewport ? (
                         'Yes'
                     ) : (
-                        <span className="text-amber-400">Missing</span>
+                        <span className="text-amber-600 dark:text-amber-400">Missing</span>
                     )}
                 </Row>
                 <Row icon={Database} label="Software">
@@ -281,7 +295,7 @@ function Row({
 }
 
 function Empty({ children = '—' }: { children?: ReactNode }) {
-    return <span className="text-neutral-600">{children}</span>;
+    return <span className="text-muted-foreground/60">{children}</span>;
 }
 
 function Placeholder({ children }: { children: ReactNode }) {

@@ -62,3 +62,32 @@ export type Lead = {
     next_action_at: string | null;
     created_at: string;
 };
+
+export type MailboxType = 'gmail' | 'imap';
+
+export type MailboxStatus = 'active' | 'warming_up' | 'paused';
+
+export type Mailbox = {
+    id: number;
+    address: string;
+    type: MailboxType;
+    daily_limit: number;
+    sent_today: number;
+    status: MailboxStatus;
+};
+
+export type MessageStatus = 'draft' | 'sent' | 'bounced' | 'replied';
+
+export type Message = {
+    id: number;
+    lead_id: number;
+    mailbox_id: number;
+    step: number;
+    subject: string;
+    body: string;
+    sent_at: string | null;
+    status: MessageStatus;
+    thread_id: string | null;
+    /** The reply text, once one came in. Lives on the message for now; the inbox check fills it. */
+    reply: { body: string; received_at: string } | null;
+};
