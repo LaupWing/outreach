@@ -91,3 +91,29 @@ export type Message = {
     /** The reply text, once one came in. Lives on the message for now; the inbox check fills it. */
     reply: { body: string; received_at: string } | null;
 };
+
+export type ScrapeRunStatus = 'queued' | 'running' | 'done' | 'failed';
+
+/** One Google Places search: what was asked, what it cost and what came out. */
+export type ScrapeRun = {
+    id: number;
+    query: string;
+    place: string;
+    niche_id: number;
+    status: ScrapeRunStatus;
+    /** Places API requests spent; every page of 20 results is one. */
+    requests: number;
+    found: number;
+    with_email: number;
+    blocked: number;
+    started_at: string;
+    finished_at: string | null;
+};
+
+/** Free-tier usage of the Places SKU we call, per calendar month. */
+export type PlacesUsage = {
+    sku: string;
+    used: number;
+    free_limit: number;
+    resets_at: string;
+};

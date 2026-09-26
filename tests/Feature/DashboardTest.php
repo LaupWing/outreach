@@ -11,3 +11,9 @@ test('the leads page is open while it runs on mock data', function () {
 
     $response->assertOk();
 });
+
+test('the scrape page is open while it runs on mock data', function () {
+    $response = $this->get(route('scrape.index'));
+
+    $response->assertOk();
+});

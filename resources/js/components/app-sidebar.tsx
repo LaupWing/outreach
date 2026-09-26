@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/tooltip';
 import { dashboard } from '@/routes';
 import { index as leadsIndex } from '@/routes/leads';
+import { index as scrapeIndex } from '@/routes/scrape';
 import type { NavGroup } from '@/types';
 
 const mainNavGroups: NavGroup[] = [
@@ -41,7 +42,7 @@ const mainNavGroups: NavGroup[] = [
     {
         label: 'Outreach',
         items: [
-            { title: 'Scrape', icon: Radar },
+            { title: 'Scrape', href: scrapeIndex(), icon: Radar },
             { title: 'Leads', href: leadsIndex(), icon: Users },
             { title: 'Niches', icon: Target },
             { title: 'Offers', icon: Tag },
