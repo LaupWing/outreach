@@ -11,6 +11,7 @@ beforeEach(function () {
 });
 
 test('email verification screen can be rendered', function () {
+    auth()->logout();
     $user = User::factory()->unverified()->create();
 
     $response = $this->actingAs($user)->get(route('verification.notice'));

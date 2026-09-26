@@ -18,8 +18,10 @@ class MessageReplyController extends Controller
      */
     public function store(StoreMessageReplyRequest $request, Message $message): RedirectResponse
     {
-        DB::transaction(function () use ($request, $message): void {
-            Message::query()->create([
+        $user = $request->user();
+
+        DB::transaction(function () use ($request, $message, $user): void {
+            $user->messages()->create([
                 'lead_id' => $message->lead_id,
                 'mailbox_id' => $message->mailbox_id,
                 'step' => $message->step,

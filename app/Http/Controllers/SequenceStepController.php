@@ -25,6 +25,7 @@ class SequenceStepController extends Controller
     public function store(StoreSequenceStepRequest $request, Offer $offer): RedirectResponse
     {
         $offer->steps()->create([
+            'user_id' => $offer->user_id,
             'days_after_previous' => 0,
             ...$request->validated(),
             'step' => ((int) $offer->steps()->max('step')) + 1,

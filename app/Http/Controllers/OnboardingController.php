@@ -25,7 +25,7 @@ class OnboardingController extends Controller
 
         return Inertia::render('onboarding/index', [
             'hasKey' => $user->google_places_key !== null,
-            'mailboxes' => Mailbox::query()->orderBy('id')->get(['id', 'address', 'status', 'daily_limit', 'connection_error']),
+            'mailboxes' => $user->mailboxes()->orderBy('id')->get(['id', 'address', 'status', 'daily_limit', 'connection_error']),
         ]);
     }
 

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('sequence_steps', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('offer_id')->constrained()->cascadeOnDelete();
             $table->unsignedSmallInteger('step');
             $table->unsignedSmallInteger('days_after_previous')->default(0);

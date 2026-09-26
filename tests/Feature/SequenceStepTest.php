@@ -2,7 +2,6 @@
 
 use App\Models\Offer;
 use App\Models\SequenceStep;
-use App\Models\User;
 
 /**
  * An offer with a three-mail sequence; returns [offer, steps keyed by step number].
@@ -21,6 +20,7 @@ function sequenceOfThree(): array
 }
 
 test('guests are redirected to the login page', function () {
+    auth()->logout();
     $offer = Offer::factory()->create();
 
     $this->post(route('offers.steps.store', $offer), ['subject' => 'Hi', 'body' => 'There'])
@@ -30,7 +30,7 @@ test('guests are redirected to the login page', function () {
 test('a step is appended as the next number', function () {
     [$offer] = sequenceOfThree();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->from(route('offers.index'))
         ->post(route('offers.steps.store', $offer), [
             'subject' => 'Re: {{hook_subject}}',
@@ -50,7 +50,7 @@ test('a step is appended as the next number', function () {
 test('a step needs a subject and a body', function () {
     $offer = Offer::factory()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('offers.steps.store', $offer), ['subject' => '', 'body' => ''])
         ->assertSessionHasErrors(['subject', 'body']);
 
@@ -60,7 +60,7 @@ test('a step needs a subject and a body', function () {
 test('a step can be updated', function () {
     [, $steps] = sequenceOfThree();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->patch(route('steps.update', $steps[2]), [
             'subject' => 'New subject',
             'body' => 'New body',
@@ -79,7 +79,7 @@ test('a step can be updated', function () {
 test('deleting a step renumbers the ones after it', function () {
     [$offer, $steps] = sequenceOfThree();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->delete(route('steps.destroy', $steps[1]))
         ->assertSessionHasNoErrors();
 
@@ -94,7 +94,7 @@ test('deleting a step renumbers the ones after it', function () {
 test('steps can be reordered', function () {
     [$offer, $steps] = sequenceOfThree();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->put(route('offers.steps.reorder', $offer), [
             'order' => [$steps[3]->id, $steps[1]->id, $steps[2]->id],
         ])
@@ -108,7 +108,7 @@ test('a reorder must list every step of the offer exactly once', function () {
     [$offer, $steps] = sequenceOfThree();
     $foreign = SequenceStep::factory()->create();
 
-    $user = User::factory()->onboarded()->create();
+    $user = $this->user;
 
     $this->actingAs($user)
         ->put(route('offers.steps.reorder', $offer), ['order' => [$steps[1]->id, $steps[2]->id]])

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Leads;
 
-use App\Models\LeadNote;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -13,7 +12,7 @@ class StoreLeadNoteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('create', LeadNote::class) ?? false;
+        return $this->user()?->can('update', $this->route('lead')) ?? false;
     }
 
     /**

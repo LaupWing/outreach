@@ -3,10 +3,10 @@
 use App\Enums\LeadStatus;
 use App\Models\Lead;
 use App\Models\Message;
-use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are sent to the login page', function () {
+    auth()->logout();
     $this->get(route('inbox.index'))->assertRedirect(route('login'));
 });
 
@@ -18,7 +18,7 @@ test('the inbox sorts leads into replies, due follow-ups and bounces', function 
     Lead::factory()->emailed()->create(['next_action_at' => now()->addDays(2)]);
     Lead::factory()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->get(route('inbox.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page

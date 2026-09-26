@@ -4,7 +4,6 @@ namespace App\Http\Requests\Messages;
 
 use App\Enums\MailboxStatus;
 use App\Models\Mailbox;
-use App\Models\Message;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,7 +16,7 @@ class StoreLeadMessageRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Message::class) ?? false;
+        return $this->user()?->can('update', $this->route('lead')) ?? false;
     }
 
     /**
@@ -33,7 +32,7 @@ class StoreLeadMessageRequest extends FormRequest
         return [
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:20000'],
-            'mailbox_id' => ['nullable', 'integer', Rule::exists(Mailbox::class, 'id')],
+            'mailbox_id' => ['nullable', 'integer', Rule::exists(Mailbox::class, 'id')->where('user_id', $this->user()?->id)],
             'step' => ['nullable', 'integer', 'min:1', 'max:20'],
         ];
     }
@@ -68,7 +67,7 @@ class StoreLeadMessageRequest extends FormRequest
      */
     public function mailbox(): ?Mailbox
     {
-        return Mailbox::query()
+        return $this->user()->mailboxes()
             ->when($this->filled('mailbox_id'), fn ($query) => $query->whereKey($this->integer('mailbox_id')))
             ->where('status', '!=', MailboxStatus::Paused)
             ->whereColumn('sent_today', '<', 'daily_limit')

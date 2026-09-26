@@ -6,9 +6,7 @@ use App\Enums\MailboxStatus;
 use App\Enums\MailboxType;
 use App\Http\Requests\Mailboxes\StoreMailboxRequest;
 use App\Http\Requests\Mailboxes\UpdateMailboxRequest;
-use App\Models\Lead;
 use App\Models\Mailbox;
-use App\Models\Message;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -21,16 +19,16 @@ class MailboxController extends Controller
      */
     public function index(): Response
     {
-        Gate::authorize('viewAny', Mailbox::class);
+        $user = request()->user();
 
         return Inertia::render('mailboxes/index', [
-            'mailboxes' => Mailbox::query()->orderBy('id')->get(),
-            'messages' => Message::query()
+            'mailboxes' => $user->mailboxes()->orderBy('id')->get(),
+            'messages' => $user->messages()
                 ->select(['id', 'lead_id', 'mailbox_id', 'step', 'subject', 'status', 'sent_at', 'reply_body', 'reply_received_at'])
                 ->orderByDesc('sent_at')
                 ->get()
                 ->makeHidden('reply_body'),
-            'leads' => Lead::query()->select(['id', 'company'])->get(),
+            'leads' => $user->leads()->select(['id', 'company'])->get(),
         ]);
     }
 
@@ -40,9 +38,11 @@ class MailboxController extends Controller
      */
     public function store(StoreMailboxRequest $request): RedirectResponse
     {
+        $user = $request->user();
+
         $warmUp = $request->boolean('warm_up');
 
-        Mailbox::query()->create([
+        $user->mailboxes()->create([
             ...$request->safe()->only(['address', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'password', 'daily_limit']),
             'type' => MailboxType::Imap,
             'username' => $request->string('username')->toString() ?: $request->string('address')->toString(),

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\LeadFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ use Illuminate\Support\Carbon;
  * A business we reach out to.
  *
  * @property int $id
+ * @property int $user_id
  * @property int $niche_id
  * @property int|null $offer_id
  * @property int|null $scrape_run_id
@@ -33,11 +35,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['niche_id', 'offer_id', 'scrape_run_id', 'company', 'email', 'phone', 'website', 'city', 'status', 'source', 'hook', 'signals', 'last_contact_at', 'next_action_at'])]
+#[Fillable(['user_id', 'niche_id', 'offer_id', 'scrape_run_id', 'company', 'email', 'phone', 'website', 'city', 'status', 'source', 'hook', 'signals', 'last_contact_at', 'next_action_at'])]
 class Lead extends Model
 {
     /** @use HasFactory<LeadFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * The model's default values for attributes.

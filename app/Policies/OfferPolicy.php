@@ -6,8 +6,7 @@ use App\Models\Offer;
 use App\Models\User;
 
 /**
- * Single-tenant for now: anyone who can sign in owns everything. The policy exists
- * so every action already has an authorization boundary when accounts get scoped.
+ * Every row belongs to one account; only that account can see or touch it.
  */
 class OfferPolicy
 {
@@ -18,7 +17,7 @@ class OfferPolicy
 
     public function view(User $user, Offer $offer): bool
     {
-        return true;
+        return $offer->isOwnedBy($user);
     }
 
     public function create(User $user): bool
@@ -28,11 +27,11 @@ class OfferPolicy
 
     public function update(User $user, Offer $offer): bool
     {
-        return true;
+        return $offer->isOwnedBy($user);
     }
 
     public function delete(User $user, Offer $offer): bool
     {
-        return true;
+        return $offer->isOwnedBy($user);
     }
 }

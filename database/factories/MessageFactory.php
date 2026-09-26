@@ -6,7 +6,9 @@ use App\Enums\MessageStatus;
 use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @extends Factory<Message>
@@ -21,8 +23,10 @@ class MessageFactory extends Factory
     public function definition(): array
     {
         return [
-            'lead_id' => Lead::factory(),
-            'mailbox_id' => Mailbox::factory(),
+            // Belongs to whoever is signed in (tests act as the owner first), else a fresh account.
+            'user_id' => fn () => Auth::id() ?? User::factory(),
+            'lead_id' => fn (array $attributes) => Lead::factory()->state(['user_id' => $attributes['user_id']]),
+            'mailbox_id' => fn (array $attributes) => Mailbox::factory()->state(['user_id' => $attributes['user_id']]),
             'step' => 1,
             'subject' => fake()->sentence(4),
             'body' => fake()->paragraph(),

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\SequenceSteps;
 
-use App\Models\SequenceStep;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -13,7 +12,7 @@ class StoreSequenceStepRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('create', SequenceStep::class) ?? false;
+        return $this->user()?->can('update', $this->route('offer')) ?? false;
     }
 
     /**

@@ -5,7 +5,9 @@ namespace Database\Factories;
 use App\Enums\OfferStatus;
 use App\Models\Niche;
 use App\Models\Offer;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @extends Factory<Offer>
@@ -20,7 +22,9 @@ class OfferFactory extends Factory
     public function definition(): array
     {
         return [
-            'niche_id' => Niche::factory(),
+            // Belongs to whoever is signed in (tests act as the owner first), else a fresh account.
+            'user_id' => fn () => Auth::id() ?? User::factory(),
+            'niche_id' => fn (array $attributes) => Niche::factory()->state(['user_id' => $attributes['user_id']]),
             'name' => fake()->randomElement(['Nieuwe website in 2 weken', 'Gratis snelheidscheck', 'Menukaart online + reserveren']),
             'description' => fake()->sentence(),
             'status' => OfferStatus::Idea,

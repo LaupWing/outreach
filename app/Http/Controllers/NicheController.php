@@ -4,10 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Niches\StoreNicheRequest;
 use App\Http\Requests\Niches\UpdateNicheRequest;
-use App\Models\Lead;
-use App\Models\Message;
 use App\Models\Niche;
-use App\Models\Offer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -20,20 +17,20 @@ class NicheController extends Controller
      */
     public function index(): Response
     {
-        Gate::authorize('viewAny', Niche::class);
+        $user = request()->user();
 
         return Inertia::render('niches/index', [
-            'niches' => Niche::query()
+            'niches' => $user->niches()
                 ->select(['id', 'name', 'status', 'why', 'findings'])
                 ->orderBy('name')
                 ->get(),
-            'leads' => Lead::query()
+            'leads' => $user->leads()
                 ->select(['id', 'company', 'email', 'niche_id', 'offer_id', 'status'])
                 ->get(),
-            'messages' => Message::query()
+            'messages' => $user->messages()
                 ->select(['id', 'lead_id', 'sent_at'])
                 ->get(),
-            'offers' => Offer::query()
+            'offers' => $user->offers()
                 ->select(['id', 'name', 'niche_id', 'description', 'status'])
                 ->get(),
         ]);
@@ -41,7 +38,9 @@ class NicheController extends Controller
 
     public function store(StoreNicheRequest $request): RedirectResponse
     {
-        Niche::create($request->validated());
+        $user = $request->user();
+
+        $user->niches()->create($request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Niche added.']);
 

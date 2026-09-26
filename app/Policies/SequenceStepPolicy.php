@@ -6,8 +6,7 @@ use App\Models\SequenceStep;
 use App\Models\User;
 
 /**
- * Single-tenant for now: anyone who can sign in owns everything. The policy exists
- * so every action already has an authorization boundary when accounts get scoped.
+ * Every row belongs to one account; only that account can see or touch it.
  */
 class SequenceStepPolicy
 {
@@ -18,7 +17,7 @@ class SequenceStepPolicy
 
     public function view(User $user, SequenceStep $sequenceStep): bool
     {
-        return true;
+        return $sequenceStep->isOwnedBy($user);
     }
 
     public function create(User $user): bool
@@ -28,11 +27,11 @@ class SequenceStepPolicy
 
     public function update(User $user, SequenceStep $sequenceStep): bool
     {
-        return true;
+        return $sequenceStep->isOwnedBy($user);
     }
 
     public function delete(User $user, SequenceStep $sequenceStep): bool
     {
-        return true;
+        return $sequenceStep->isOwnedBy($user);
     }
 }

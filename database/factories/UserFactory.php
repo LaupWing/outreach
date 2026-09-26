@@ -41,9 +41,10 @@ class UserFactory extends Factory
     {
         return $this
             ->state(fn (array $attributes) => ['google_places_key' => 'AIza'.str_repeat('a', 35)])
-            ->afterCreating(function (): void {
-                if (! Mailbox::query()->exists()) {
-                    Mailbox::factory()->create();
+            ->afterCreating(function (User $user): void {
+                // Paused, so it never gets picked by the sender in a test that counts on its own boxes.
+                if (! $user->mailboxes()->exists()) {
+                    Mailbox::factory()->paused()->create(['user_id' => $user->id, 'address' => 'owner-'.$user->id.'@example.com']);
                 }
             });
     }

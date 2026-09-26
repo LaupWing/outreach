@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('mailboxes', function (Blueprint $table) {
             $table->id();
-            $table->string('address')->unique();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('address');
             $table->string('type');
             $table->string('imap_host');
             $table->unsignedSmallInteger('imap_port')->default(993);
@@ -29,6 +30,8 @@ return new class extends Migration
             $table->date('sent_today_on')->nullable();
             $table->timestamp('warm_up_started_at')->nullable();
             $table->timestamps();
+
+            $table->unique(['user_id', 'address']);
         });
     }
 

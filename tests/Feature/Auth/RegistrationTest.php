@@ -7,6 +7,7 @@ beforeEach(function () {
 });
 
 test('registration screen can be rendered', function () {
+    auth()->logout();
     $response = $this->get(route('register'));
 
     $response->assertOk();

@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\NicheStatus;
 use App\Http\Requests\Offers\StoreOfferRequest;
 use App\Http\Requests\Offers\UpdateOfferRequest;
-use App\Models\Lead;
-use App\Models\Message;
 use App\Models\Niche;
 use App\Models\Offer;
-use App\Models\SequenceStep;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -23,24 +21,24 @@ class OfferController extends Controller
      */
     public function index(): Response
     {
-        Gate::authorize('viewAny', Offer::class);
+        $user = request()->user();
 
         return Inertia::render('offers/index', [
-            'offers' => Offer::query()
+            'offers' => $user->offers()
                 ->select(['id', 'name', 'niche_id', 'description', 'status'])
                 ->orderBy('name')
                 ->get(),
-            'niches' => Niche::query()
+            'niches' => $user->niches()
                 ->select(['id', 'name', 'status', 'why', 'findings'])
                 ->orderBy('name')
                 ->get(),
-            'leads' => Lead::query()
+            'leads' => $user->leads()
                 ->select(['id', 'company', 'email', 'niche_id', 'offer_id', 'status'])
                 ->get(),
-            'messages' => Message::query()
+            'messages' => $user->messages()
                 ->select(['id', 'lead_id', 'sent_at'])
                 ->get(),
-            'steps' => SequenceStep::query()
+            'steps' => $user->sequenceSteps()
                 ->select(['id', 'offer_id', 'step', 'days_after_previous', 'subject', 'body'])
                 ->orderBy('offer_id')
                 ->orderBy('step')
@@ -50,14 +48,17 @@ class OfferController extends Controller
 
     public function store(StoreOfferRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request): void {
-            $offer = Offer::create([
+        $user = $request->user();
+
+        DB::transaction(function () use ($request, $user): void {
+            $offer = $user->offers()->create([
                 ...$request->safe()->only(['name', 'description', 'status']),
-                'niche_id' => $this->resolveNicheId($request->validated()),
+                'niche_id' => $this->resolveNicheId($user, $request->validated()),
             ]);
 
             if ($request->has('first_step')) {
                 $offer->steps()->create([
+                    'user_id' => $offer->user_id,
                     'step' => 1,
                     'days_after_previous' => 0,
                     ...$request->validated('first_step'),
@@ -76,7 +77,7 @@ class OfferController extends Controller
         $attributes = $request->safe()->only(['name', 'description', 'status']);
 
         if (($validated['niche_id'] ?? null) !== null || ($validated['new_niche'] ?? null) !== null) {
-            $attributes['niche_id'] = $this->resolveNicheId($validated);
+            $attributes['niche_id'] = $this->resolveNicheId($request->user(), $validated);
         }
 
         $offer->update($attributes);
@@ -102,13 +103,13 @@ class OfferController extends Controller
      *
      * @param  array{niche_id?: int|string|null, new_niche?: string|null}  $validated
      */
-    private function resolveNicheId(array $validated): int
+    private function resolveNicheId(User $user, array $validated): int
     {
         if (($validated['niche_id'] ?? null) !== null) {
             return (int) $validated['niche_id'];
         }
 
-        return Niche::create([
+        return $user->niches()->create([
             'name' => $validated['new_niche'],
             'status' => NicheStatus::Idea,
         ])->id;

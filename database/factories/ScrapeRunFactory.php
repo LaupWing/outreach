@@ -5,7 +5,9 @@ namespace Database\Factories;
 use App\Enums\ScrapeRunStatus;
 use App\Models\Niche;
 use App\Models\ScrapeRun;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @extends Factory<ScrapeRun>
@@ -22,7 +24,9 @@ class ScrapeRunFactory extends Factory
         $found = fake()->numberBetween(20, 60);
 
         return [
-            'niche_id' => Niche::factory(),
+            // Belongs to whoever is signed in (tests act as the owner first), else a fresh account.
+            'user_id' => fn () => Auth::id() ?? User::factory(),
+            'niche_id' => fn (array $attributes) => Niche::factory()->state(['user_id' => $attributes['user_id']]),
             'query' => fake()->randomElement(['tandarts', 'fysiotherapie', 'restaurant', 'advocaat']),
             'place' => fake()->randomElement(['Amsterdam', 'Utrecht', 'Rotterdam', 'Haarlem', 'Den Haag']),
             'status' => ScrapeRunStatus::Done,

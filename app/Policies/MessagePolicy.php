@@ -6,8 +6,7 @@ use App\Models\Message;
 use App\Models\User;
 
 /**
- * Single-tenant for now: anyone who can sign in owns everything. The policy exists
- * so every action already has an authorization boundary when accounts get scoped.
+ * Every row belongs to one account; only that account can see or touch it.
  */
 class MessagePolicy
 {
@@ -18,7 +17,7 @@ class MessagePolicy
 
     public function view(User $user, Message $message): bool
     {
-        return true;
+        return $message->isOwnedBy($user);
     }
 
     public function create(User $user): bool
@@ -28,11 +27,11 @@ class MessagePolicy
 
     public function update(User $user, Message $message): bool
     {
-        return true;
+        return $message->isOwnedBy($user);
     }
 
     public function delete(User $user, Message $message): bool
     {
-        return true;
+        return $message->isOwnedBy($user);
     }
 }

@@ -47,13 +47,13 @@ class UpdateLeadRequest extends FormRequest
 
         return [
             'company' => ['sometimes', 'required', 'string', 'max:255'],
-            'niche_id' => ['sometimes', 'required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')],
+            'niche_id' => ['sometimes', 'required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')->where('user_id', $this->user()?->id)],
             'new_niche' => ['sometimes', 'nullable', 'string', 'max:255'],
             'offer_id' => [
                 'sometimes',
                 'nullable',
                 'integer',
-                Rule::exists(Offer::class, 'id')->where('niche_id', $nicheId),
+                Rule::exists(Offer::class, 'id')->where('user_id', $this->user()?->id)->where('niche_id', $nicheId),
             ],
             'email' => ['sometimes', 'nullable', 'string', 'email', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:255'],

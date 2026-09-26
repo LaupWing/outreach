@@ -2,12 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Lead;
-use App\Models\Mailbox;
-use App\Models\Message;
-use App\Models\Niche;
-use App\Models\Offer;
-use App\Models\ScrapeRun;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +16,8 @@ class SearchController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         $words = collect(explode(' ', $request->string('q')->trim()->lower()->toString()))
             ->filter()
             ->take(5)
@@ -44,30 +40,30 @@ class SearchController extends Controller
         });
 
         return response()->json([
-            'leads' => Lead::query()
+            'leads' => $user->leads()
                 ->with('niche:id,name')
                 ->tap($matching(['company', 'email', 'city', 'website']))
                 ->limit(self::LIMIT)
                 ->get(['id', 'company', 'city', 'status', 'niche_id']),
-            'niches' => Niche::query()
+            'niches' => $user->niches()
                 ->tap($matching(['name', 'status']))
                 ->limit(self::LIMIT)
                 ->get(['id', 'name']),
-            'offers' => Offer::query()
+            'offers' => $user->offers()
                 ->with('niche:id,name')
                 ->tap($matching(['name']))
                 ->limit(self::LIMIT)
                 ->get(['id', 'name', 'niche_id']),
-            'mailboxes' => Mailbox::query()
+            'mailboxes' => $user->mailboxes()
                 ->tap($matching(['address', 'type']))
                 ->limit(self::LIMIT)
                 ->get(['id', 'address']),
-            'messages' => Message::query()
+            'messages' => $user->messages()
                 ->with('lead:id,company')
                 ->tap($matching(['subject', 'reply_body']))
                 ->limit(self::LIMIT)
                 ->get(['id', 'subject', 'lead_id']),
-            'runs' => ScrapeRun::query()
+            'runs' => $user->scrapeRuns()
                 ->tap($matching(['query', 'place']))
                 ->limit(self::LIMIT)
                 ->get(['id', 'query', 'place']),

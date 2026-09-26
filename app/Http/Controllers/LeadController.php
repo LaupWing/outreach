@@ -6,12 +6,7 @@ use App\Enums\LeadSource;
 use App\Http\Requests\Leads\StoreLeadRequest;
 use App\Http\Requests\Leads\UpdateLeadRequest;
 use App\Models\Lead;
-use App\Models\Mailbox;
-use App\Models\Message;
 use App\Models\Niche;
-use App\Models\Offer;
-use App\Models\ScrapeRun;
-use App\Models\SequenceStep;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -25,19 +20,19 @@ class LeadController extends Controller
      */
     public function index(): Response
     {
-        Gate::authorize('viewAny', Lead::class);
+        $user = request()->user();
 
         return Inertia::render('leads/index', [
-            'leads' => Lead::query()->with('notes')->latest()->orderByDesc('id')->get(),
-            'niches' => Niche::query()->orderBy('name')->get(),
-            'offers' => Offer::query()->orderBy('name')->get(),
-            'mailboxes' => Mailbox::query()
+            'leads' => $user->leads()->with('notes')->latest()->orderByDesc('id')->get(),
+            'niches' => $user->niches()->orderBy('name')->get(),
+            'offers' => $user->offers()->orderBy('name')->get(),
+            'mailboxes' => $user->mailboxes()
                 ->select(['id', 'address', 'type', 'daily_limit', 'sent_today', 'status'])
                 ->orderBy('id')
                 ->get(),
-            'messages' => Message::query()->orderBy('sent_at')->orderBy('id')->get(),
-            'steps' => SequenceStep::query()->orderBy('offer_id')->orderBy('step')->get(),
-            'scrapeRuns' => ScrapeRun::query()->select(['id', 'query', 'place'])->get(),
+            'messages' => $user->messages()->orderBy('sent_at')->orderBy('id')->get(),
+            'steps' => $user->sequenceSteps()->orderBy('offer_id')->orderBy('step')->get(),
+            'scrapeRuns' => $user->scrapeRuns()->select(['id', 'query', 'place'])->get(),
         ]);
     }
 
@@ -46,11 +41,13 @@ class LeadController extends Controller
      */
     public function store(StoreLeadRequest $request): RedirectResponse
     {
+        $user = $request->user();
+
         $nicheId = $request->filled('new_niche')
-            ? Niche::query()->create(['name' => $request->string('new_niche')->trim()->toString()])->id
+            ? $user->niches()->create(['name' => $request->string('new_niche')->trim()->toString()])->id
             : $request->integer('niche_id');
 
-        Lead::query()->create([
+        $user->leads()->create([
             ...$request->safe()->only(['company', 'email', 'phone', 'website', 'city', 'offer_id', 'status', 'hook']),
             'niche_id' => $nicheId,
             'source' => LeadSource::Manual,
@@ -66,10 +63,12 @@ class LeadController extends Controller
      */
     public function update(UpdateLeadRequest $request, Lead $lead): RedirectResponse
     {
+        $user = $request->user();
+
         $lead->fill($request->safe()->only(['company', 'email', 'phone', 'website', 'city', 'niche_id', 'offer_id', 'status', 'hook']));
 
         if ($request->filled('new_niche')) {
-            $lead->niche_id = Niche::query()->create(['name' => $request->string('new_niche')->trim()->toString()])->id;
+            $lead->niche_id = $user->niches()->create(['name' => $request->string('new_niche')->trim()->toString()])->id;
             $lead->offer_id = null;
         }
 

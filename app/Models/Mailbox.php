@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\MailboxStatus;
 use App\Enums\MailboxType;
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\MailboxFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -17,6 +18,7 @@ use Illuminate\Support\Carbon;
  * box still has room today.
  *
  * @property int $id
+ * @property int $user_id
  * @property string $address
  * @property MailboxType $type
  * @property MailboxStatus $status
@@ -35,12 +37,12 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['address', 'type', 'status', 'daily_limit', 'sent_today', 'sent_today_on', 'warm_up_started_at', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password', 'connection_checked_at', 'connection_error'])]
+#[Fillable(['user_id', 'address', 'type', 'status', 'daily_limit', 'sent_today', 'sent_today_on', 'warm_up_started_at', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password', 'connection_checked_at', 'connection_error'])]
 #[Hidden(['password'])]
 class Mailbox extends Model
 {
     /** @use HasFactory<MailboxFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * The model's default values for attributes.

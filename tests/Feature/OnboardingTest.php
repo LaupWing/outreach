@@ -9,9 +9,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 /** A user who did both steps. */
 function onboardedUser(): User
 {
-    Mailbox::factory()->create();
-
-    return User::factory()->create(['google_places_key' => 'AIza'.str_repeat('a', 35)]);
+    return User::factory()->onboarded()->create();
 }
 
 test('a fresh account is sent to onboarding before the dashboard', function () {
@@ -52,7 +50,7 @@ test('finishing needs both steps and then opens the dashboard', function () {
     $this->actingAs($user)->post(route('onboarding.finish'))->assertRedirect();
     expect(session(SessionKey::FLASH_DATA))->toBeNull();
 
-    Mailbox::factory()->create();
+    Mailbox::factory()->create(['user_id' => $user->id]);
 
     $this->actingAs($user)
         ->post(route('onboarding.finish'))
@@ -64,7 +62,7 @@ test('an onboarded account skips onboarding', function () {
         ->get(route('onboarding.show'))
         ->assertRedirect(route('dashboard'));
 
-    $this->actingAs(User::query()->first())->get(route('dashboard'))->assertOk();
+    $this->actingAs($this->user)->get(route('dashboard'))->assertOk();
 });
 
 test('a mailbox stores its imap and smtp credentials with the password encrypted', function () {
@@ -93,7 +91,7 @@ test('a mailbox stores its imap and smtp credentials with the password encrypted
 test('editing a mailbox keeps the password when none is typed and forgets the last check', function () {
     $mailbox = Mailbox::factory()->create(['password' => 'keep-me', 'connection_checked_at' => now()]);
 
-    $this->actingAs(onboardedUser())
+    $this->actingAs($this->user)
         ->patch(route('mailboxes.update', $mailbox), ['smtp_host' => 'smtp.other.com', 'password' => ''])
         ->assertSessionHasNoErrors();
 
@@ -109,7 +107,7 @@ test('testing a connection records the outcome on the mailbox', function () {
 
     $this->mock(MailboxConnection::class)->shouldReceive('check')->once()->andReturn('SMTP: 535 bad credentials');
 
-    $this->actingAs(onboardedUser())
+    $this->actingAs($this->user)
         ->post(route('mailboxes.test', $mailbox))
         ->assertRedirect();
 

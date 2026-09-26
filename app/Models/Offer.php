@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OfferStatus;
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\OfferFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,7 @@ use Illuminate\Support\Carbon;
  * What we propose to a niche; every mail a lead gets comes from its sequence.
  *
  * @property int $id
+ * @property int $user_id
  * @property int $niche_id
  * @property string $name
  * @property string|null $description
@@ -22,11 +24,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['niche_id', 'name', 'description', 'status'])]
+#[Fillable(['user_id', 'niche_id', 'name', 'description', 'status'])]
 class Offer extends Model
 {
     /** @use HasFactory<OfferFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * The model's default values for attributes.

@@ -10,6 +10,7 @@ beforeEach(function () {
 });
 
 test('reset password link screen can be rendered', function () {
+    auth()->logout();
     $response = $this->get(route('password.request'));
 
     $response->assertOk();
@@ -26,6 +27,7 @@ test('reset password link can be requested', function () {
 });
 
 test('reset password screen can be rendered', function () {
+    auth()->logout();
     Notification::fake();
 
     $user = User::factory()->create();

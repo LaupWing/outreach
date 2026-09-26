@@ -6,7 +6,6 @@ use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
 use App\Http\Requests\Messages\StoreLeadMessageRequest;
 use App\Models\Lead;
-use App\Models\SequenceStep;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +32,7 @@ class LeadMessageController extends Controller
 
         DB::transaction(function () use ($request, $lead, $mailbox, $step): void {
             $lead->messages()->create([
+                'user_id' => $lead->user_id,
                 ...$request->safe()->only(['subject', 'body']),
                 'mailbox_id' => $mailbox->id,
                 'step' => $step ?? 0,
@@ -66,7 +66,9 @@ class LeadMessageController extends Controller
      */
     private function followUpAt(Lead $lead, int $step): ?CarbonInterface
     {
-        $next = SequenceStep::query()
+        $user = request()->user();
+
+        $next = $user->sequenceSteps()
             ->where('offer_id', $lead->offer_id)
             ->where('step', $step + 1)
             ->first();

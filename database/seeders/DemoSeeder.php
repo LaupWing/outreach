@@ -17,6 +17,7 @@ use App\Models\Niche;
 use App\Models\Offer;
 use App\Models\ScrapeRun;
 use App\Models\SequenceStep;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -28,11 +29,16 @@ class DemoSeeder extends Seeder
 {
     use WithoutModelEvents;
 
+    private int $userId;
+
     /**
-     * Seed the demo data.
+     * Seed the demo data for one account; without one, the first user gets it.
      */
-    public function run(): void
+    public function run(?User $user = null): void
     {
+        $owner = $user ?? User::query()->firstOrFail();
+        $this->userId = $owner->id;
+
         $niches = $this->niches();
         $offers = $this->offers($niches);
         $this->steps($offers);
@@ -57,7 +63,7 @@ class DemoSeeder extends Seeder
         $niches = [];
 
         foreach ($rows as $key => [$name, $status, $why, $findings]) {
-            $niches[$key] = Niche::query()->create(['name' => $name, 'status' => $status, 'why' => $why, 'findings' => $findings]);
+            $niches[$key] = Niche::query()->create(['user_id' => $this->userId, 'name' => $name, 'status' => $status, 'why' => $why, 'findings' => $findings]);
         }
 
         return $niches;
@@ -70,19 +76,19 @@ class DemoSeeder extends Seeder
     private function offers(array $niches): array
     {
         return [
-            'website' => Offer::query()->create([
+            'website' => Offer::query()->create(['user_id' => $this->userId,
                 'niche_id' => $niches['dentists']->id,
                 'name' => 'Nieuwe website in 2 weken',
                 'description' => 'Snelle, mobiele praktijksite met online afspraken. Vaste prijs.',
                 'status' => OfferStatus::Active,
             ]),
-            'speedcheck' => Offer::query()->create([
+            'speedcheck' => Offer::query()->create(['user_id' => $this->userId,
                 'niche_id' => $niches['physio']->id,
                 'name' => 'Gratis snelheidscheck',
                 'description' => 'Rapport over laadtijd en mobiel gebruik, met een aanbod erachter.',
                 'status' => OfferStatus::Active,
             ]),
-            'menu' => Offer::query()->create([
+            'menu' => Offer::query()->create(['user_id' => $this->userId,
                 'niche_id' => $niches['restaurants']->id,
                 'name' => 'Menukaart online + reserveren',
                 'description' => null,
@@ -105,7 +111,7 @@ class DemoSeeder extends Seeder
         ];
 
         foreach ($rows as [$offer, $step, $days, $subject, $body]) {
-            SequenceStep::query()->create([
+            SequenceStep::query()->create(['user_id' => $this->userId,
                 'offer_id' => $offer->id,
                 'step' => $step,
                 'days_after_previous' => $days,
@@ -134,7 +140,7 @@ class DemoSeeder extends Seeder
         $runs = [];
 
         foreach ($rows as $key => [$niche, $query, $place, $status, $requests, $found, $withEmail, $blocked, $startedAt, $finishedAt]) {
-            $runs[$key] = ScrapeRun::query()->create([
+            $runs[$key] = ScrapeRun::query()->create(['user_id' => $this->userId,
                 'niche_id' => $niche->id,
                 'query' => $query,
                 'place' => $place,
@@ -187,7 +193,7 @@ class DemoSeeder extends Seeder
         $leads = [];
 
         foreach ($rows as $key => [$company, $email, $phone, $website, $city, $niche, $offer, $status, $source, $run, $hook, $leadSignals, $lastContact, $nextAction, $createdAt]) {
-            $leads[$key] = Lead::query()->create([
+            $leads[$key] = Lead::query()->create(['user_id' => $this->userId,
                 'niche_id' => $niches[$niche]->id,
                 'offer_id' => $offer === null ? null : $offers[$offer]->id,
                 'scrape_run_id' => $run === null ? null : $runs[$run]->id,
@@ -216,9 +222,9 @@ class DemoSeeder extends Seeder
     private function mailboxes(): array
     {
         return [
-            'com' => Mailbox::query()->create([...$this->gmail('loc@snelstack.com'), 'status' => MailboxStatus::Active, 'daily_limit' => 40, 'sent_today' => 12, 'sent_today_on' => today()]),
-            'nl' => Mailbox::query()->create([...$this->gmail('loc@snelstack.nl'), 'status' => MailboxStatus::WarmingUp, 'daily_limit' => 20, 'sent_today' => 3, 'sent_today_on' => today(), 'warm_up_started_at' => now()->subDays(3)]),
-            'io' => Mailbox::query()->create([...$this->gmail('hallo@snelstack.io'), 'status' => MailboxStatus::Paused, 'daily_limit' => 30]),
+            'com' => Mailbox::query()->create(['user_id' => $this->userId, ...$this->gmail('loc@snelstack.com'), 'status' => MailboxStatus::Active, 'daily_limit' => 40, 'sent_today' => 12, 'sent_today_on' => today()]),
+            'nl' => Mailbox::query()->create(['user_id' => $this->userId, ...$this->gmail('loc@snelstack.nl'), 'status' => MailboxStatus::WarmingUp, 'daily_limit' => 20, 'sent_today' => 3, 'sent_today_on' => today(), 'warm_up_started_at' => now()->subDays(3)]),
+            'io' => Mailbox::query()->create(['user_id' => $this->userId, ...$this->gmail('hallo@snelstack.io'), 'status' => MailboxStatus::Paused, 'daily_limit' => 30]),
         ];
     }
 
@@ -261,7 +267,7 @@ class DemoSeeder extends Seeder
         ];
 
         foreach ($rows as [$lead, $mailbox, $step, $subject, $body, $sentAt, $status, $thread, $replyBody, $replyAt]) {
-            Message::query()->create([
+            Message::query()->create(['user_id' => $this->userId,
                 'lead_id' => $leads[$lead]->id,
                 'mailbox_id' => $mailboxes[$mailbox]->id,
                 'step' => $step,

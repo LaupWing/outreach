@@ -5,7 +5,9 @@ namespace Database\Factories;
 use App\Enums\MailboxStatus;
 use App\Enums\MailboxType;
 use App\Models\Mailbox;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @extends Factory<Mailbox>
@@ -20,6 +22,8 @@ class MailboxFactory extends Factory
     public function definition(): array
     {
         return [
+            // Belongs to whoever is signed in (tests act as the owner first), else a fresh account.
+            'user_id' => fn () => Auth::id() ?? User::factory(),
             'address' => fake()->unique()->safeEmail(),
             'type' => MailboxType::Imap,
             'imap_host' => 'imap.gmail.com',

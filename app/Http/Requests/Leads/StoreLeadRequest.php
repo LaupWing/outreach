@@ -42,12 +42,12 @@ class StoreLeadRequest extends FormRequest
     {
         return [
             'company' => ['required', 'string', 'max:255'],
-            'niche_id' => ['required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')],
+            'niche_id' => ['required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')->where('user_id', $this->user()?->id)],
             'new_niche' => ['required_without:niche_id', 'nullable', 'string', 'max:255'],
             'offer_id' => [
                 'nullable',
                 'integer',
-                Rule::exists(Offer::class, 'id')->where('niche_id', $this->input('niche_id')),
+                Rule::exists(Offer::class, 'id')->where('user_id', $this->user()?->id)->where('niche_id', $this->input('niche_id')),
             ],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],

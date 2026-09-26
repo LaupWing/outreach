@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\LeadNoteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,16 +14,17 @@ use Illuminate\Support\Carbon;
  * A note typed on a lead: context the mails do not carry.
  *
  * @property int $id
+ * @property int $user_id
  * @property int $lead_id
  * @property string $body
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['lead_id', 'body'])]
+#[Fillable(['user_id', 'lead_id', 'body'])]
 class LeadNote extends Model
 {
     /** @use HasFactory<LeadNoteFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * @return BelongsTo<Lead, $this>

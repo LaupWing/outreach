@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Messages;
 
-use App\Models\Message;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -13,7 +12,7 @@ class StoreMessageReplyRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Message::class) ?? false;
+        return $this->user()?->can('update', $this->route('message')) ?? false;
     }
 
     /**

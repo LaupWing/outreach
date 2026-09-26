@@ -18,7 +18,7 @@ test('the demo seeder fills every table the screens read', function () {
         ->and(SequenceStep::query()->count())->toBe(5)
         ->and(ScrapeRun::query()->count())->toBe(7)
         ->and(Lead::query()->count())->toBe(12)
-        ->and(Mailbox::query()->count())->toBe(3)
+        ->and(Mailbox::query()->count())->toBe(4)
         ->and(Message::query()->count())->toBe(10);
 });
 

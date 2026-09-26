@@ -16,12 +16,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // A placeholder key so the demo account skips onboarding; replace it in Settings → Google.
-        User::factory()->create([
+        $user = User::factory()->create([
             'name' => 'Loc Nguyen',
             'email' => 'loc@snelstack.com',
             'google_places_key' => 'AIza'.str_repeat('x', 35),
         ]);
 
-        $this->call(DemoSeeder::class);
+        $this->callWith(DemoSeeder::class, ['user' => $user]);
     }
 }

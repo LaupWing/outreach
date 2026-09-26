@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\SequenceStepFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,6 +14,7 @@ use Illuminate\Support\Carbon;
  * One mail in an offer's sequence; the body carries {{placeholders}} for the hook.
  *
  * @property int $id
+ * @property int $user_id
  * @property int $offer_id
  * @property int $step
  * @property int $days_after_previous
@@ -21,11 +23,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['offer_id', 'step', 'days_after_previous', 'subject', 'body'])]
+#[Fillable(['user_id', 'offer_id', 'step', 'days_after_previous', 'subject', 'body'])]
 class SequenceStep extends Model
 {
     /** @use HasFactory<SequenceStepFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * Get the attributes that should be cast.

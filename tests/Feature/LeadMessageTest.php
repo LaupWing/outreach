@@ -7,7 +7,6 @@ use App\Models\Mailbox;
 use App\Models\Message;
 use App\Models\Offer;
 use App\Models\SequenceStep;
-use App\Models\User;
 use Illuminate\Support\Carbon;
 
 test('sending a step picks a mailbox with room and plans the next step', function () {
@@ -22,7 +21,7 @@ test('sending a step picks a mailbox with room and plans the next step', functio
     $paused = Mailbox::factory()->paused()->create();
     $open = Mailbox::factory()->create(['daily_limit' => 40, 'sent_today' => 12]);
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('leads.messages.store', $lead), [
             'subject' => 'Jullie site op een telefoon',
             'body' => 'Hoi,',
@@ -57,7 +56,7 @@ test('a later step marks the lead as followed up and ends the plan after the las
     $lead = Lead::factory()->for($offer->niche)->for($offer)->emailed()->create();
     $mailbox = Mailbox::factory()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('leads.messages.store', $lead), [
             'subject' => 'Re: Jullie site',
             'body' => 'Nog even hierop terugkomen.',
@@ -77,7 +76,7 @@ test('a free-form mail only records the contact', function () {
     $lead = Lead::factory()->create();
     Mailbox::factory()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('leads.messages.store', $lead), [
             'subject' => 'Even iets anders',
             'body' => 'Hoi,',
@@ -99,7 +98,7 @@ test('sending fails when every mailbox is full or paused', function () {
     Mailbox::factory()->create(['daily_limit' => 5, 'sent_today' => 5]);
     Mailbox::factory()->paused()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('leads.messages.store', $lead), [
             'subject' => 'Hoi',
             'body' => 'Hoi,',
@@ -116,7 +115,7 @@ test('a subject and body are required', function () {
     $lead = Lead::factory()->create();
     Mailbox::factory()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('leads.messages.store', $lead), ['subject' => '', 'body' => ''])
         ->assertSessionHasErrors(['subject', 'body']);
 });
@@ -126,7 +125,7 @@ test('a reply lands in the same thread from the same mailbox', function () {
 
     $original = Message::factory()->replied()->create(['subject' => 'Wix en laadtijd', 'step' => 2]);
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('messages.reply.store', $original), ['body' => 'Komt eraan.'])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
@@ -147,7 +146,7 @@ test('a reply lands in the same thread from the same mailbox', function () {
 test('an empty reply is refused', function () {
     $original = Message::factory()->replied()->create();
 
-    $this->actingAs(User::factory()->onboarded()->create())
+    $this->actingAs($this->user)
         ->post(route('messages.reply.store', $original), ['body' => ''])
         ->assertSessionHasErrors('body');
 

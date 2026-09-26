@@ -25,7 +25,7 @@ class StoreMailboxRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'address' => ['required', 'string', 'email', 'max:255', Rule::unique(Mailbox::class)],
+            'address' => ['required', 'string', 'email', 'max:255', Rule::unique(Mailbox::class)->where('user_id', $this->user()?->id)],
             'imap_host' => ['required', 'string', 'max:255'],
             'imap_port' => ['required', 'integer', 'min:1', 'max:65535'],
             'smtp_host' => ['required', 'string', 'max:255'],

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NicheStatus;
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\NicheFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,7 @@ use Illuminate\Support\Carbon;
  * A market we test offers on.
  *
  * @property int $id
+ * @property int $user_id
  * @property string $name
  * @property NicheStatus $status
  * @property string|null $why
@@ -21,11 +23,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'status', 'why', 'findings'])]
+#[Fillable(['user_id', 'name', 'status', 'why', 'findings'])]
 class Niche extends Model
 {
     /** @use HasFactory<NicheFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * The model's default values for attributes.

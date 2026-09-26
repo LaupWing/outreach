@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MessageStatus;
+use App\Models\Concerns\BelongsToUser;
 use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,6 +16,7 @@ use Illuminate\Support\Carbon;
  * One mail to a lead, with the reply on the same row once one comes in.
  *
  * @property int $id
+ * @property int $user_id
  * @property int $lead_id
  * @property int $mailbox_id
  * @property int $step
@@ -29,11 +31,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read array{body: string, received_at: string}|null $reply
  */
-#[Fillable(['lead_id', 'mailbox_id', 'step', 'subject', 'body', 'status', 'thread_id', 'sent_at', 'reply_body', 'reply_received_at'])]
+#[Fillable(['user_id', 'lead_id', 'mailbox_id', 'step', 'subject', 'body', 'status', 'thread_id', 'sent_at', 'reply_body', 'reply_received_at'])]
 class Message extends Model
 {
     /** @use HasFactory<MessageFactory> */
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
     /**
      * The accessors to append to the model's array form.

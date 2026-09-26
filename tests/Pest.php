@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +17,16 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(function (): void {
+        // Rows belong to whoever is signed in, so every test starts as an onboarded owner;
+        // guest tests log out first, tenancy tests switch accounts.
+        $this->user = User::factory()->onboarded()->create();
+        $this->actingAs($this->user);
+    })
     ->in('Feature');
+
+// The auth and settings flows test the sign-in itself, so they start as a guest.
+pest()->beforeEach(fn () => auth()->logout())->in('Feature/Auth', 'Feature/Settings');
 
 /*
 |--------------------------------------------------------------------------

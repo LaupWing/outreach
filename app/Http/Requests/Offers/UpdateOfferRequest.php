@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Offers;
 
 use App\Enums\OfferStatus;
+use App\Models\Niche;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,7 +31,7 @@ class UpdateOfferRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'niche_id' => ['sometimes', 'nullable', 'integer', Rule::exists('niches', 'id')],
+            'niche_id' => ['sometimes', 'nullable', 'integer', Rule::exists(Niche::class, 'id')->where('user_id', $this->user()?->id)],
             'new_niche' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'status' => ['sometimes', Rule::enum(OfferStatus::class)],

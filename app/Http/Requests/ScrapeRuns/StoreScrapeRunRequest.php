@@ -34,7 +34,7 @@ class StoreScrapeRunRequest extends FormRequest
         return [
             'query' => ['required', 'string', 'max:255'],
             'place' => ['required', 'string', 'max:255'],
-            'niche_id' => ['required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')],
+            'niche_id' => ['required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')->where('user_id', $this->user()?->id)],
             'new_niche' => ['required_without:niche_id', 'nullable', 'string', 'max:255'],
             'pages' => ['required', 'integer', 'min:1', 'max:3'],
         ];
@@ -53,7 +53,7 @@ class StoreScrapeRunRequest extends FormRequest
                     return;
                 }
 
-                $left = PlacesBudget::left();
+                $left = PlacesBudget::left($this->user());
 
                 if ($this->integer('pages') > $left) {
                     $validator->errors()->add('pages', __('Only :left free requests left this month.', ['left' => $left]));

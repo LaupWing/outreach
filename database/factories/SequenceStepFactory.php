@@ -4,7 +4,9 @@ namespace Database\Factories;
 
 use App\Models\Offer;
 use App\Models\SequenceStep;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @extends Factory<SequenceStep>
@@ -19,7 +21,9 @@ class SequenceStepFactory extends Factory
     public function definition(): array
     {
         return [
-            'offer_id' => Offer::factory(),
+            // Belongs to whoever is signed in (tests act as the owner first), else a fresh account.
+            'user_id' => fn () => Auth::id() ?? User::factory(),
+            'offer_id' => fn (array $attributes) => Offer::factory()->state(['user_id' => $attributes['user_id']]),
             'step' => 1,
             'days_after_previous' => 0,
             'subject' => '{{hook_subject}}',

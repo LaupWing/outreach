@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Offers;
 
 use App\Enums\OfferStatus;
+use App\Models\Niche;
 use App\Models\Offer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -31,7 +32,7 @@ class StoreOfferRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'niche_id' => ['required_without:new_niche', 'nullable', 'integer', Rule::exists('niches', 'id')],
+            'niche_id' => ['required_without:new_niche', 'nullable', 'integer', Rule::exists(Niche::class, 'id')->where('user_id', $this->user()?->id)],
             'new_niche' => ['required_without:niche_id', 'nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'status' => ['sometimes', Rule::enum(OfferStatus::class)],

@@ -4,13 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\LeadStatus;
 use App\Models\Lead;
-use App\Models\Mailbox;
-use App\Models\Message;
-use App\Models\Niche;
-use App\Models\Offer;
-use App\Models\SequenceStep;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,10 +15,10 @@ class InboxController extends Controller
      */
     public function __invoke(): Response
     {
-        Gate::authorize('viewAny', Lead::class);
+        $user = request()->user();
 
         /** @var Collection<int, Lead> $leads */
-        $leads = Lead::query()
+        $leads = $user->leads()
             ->with('notes')
             ->where(fn ($query) => $query
                 ->whereIn('status', [LeadStatus::Replied, LeadStatus::Undeliverable])
@@ -39,18 +33,18 @@ class InboxController extends Controller
                 'due' => $leads->filter(fn (Lead $lead) => $lead->next_action_at?->lte(now()) ?? false)->values(),
                 'bounces' => $leads->where('status', LeadStatus::Undeliverable)->values(),
             ],
-            'messages' => Message::query()
+            'messages' => $user->messages()
                 ->whereIn('lead_id', $leads->modelKeys())
                 ->orderBy('sent_at')
                 ->orderBy('id')
                 ->get(),
-            'mailboxes' => Mailbox::query()
+            'mailboxes' => $user->mailboxes()
                 ->select(['id', 'address', 'type', 'daily_limit', 'sent_today', 'status'])
                 ->orderBy('id')
                 ->get(),
-            'niches' => Niche::query()->orderBy('name')->get(),
-            'offers' => Offer::query()->orderBy('name')->get(),
-            'steps' => SequenceStep::query()->orderBy('offer_id')->orderBy('step')->get(),
+            'niches' => $user->niches()->orderBy('name')->get(),
+            'offers' => $user->offers()->orderBy('name')->get(),
+            'steps' => $user->sequenceSteps()->orderBy('offer_id')->orderBy('step')->get(),
         ]);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Models\ScrapeRun;
+use App\Models\User;
 
 /**
  * The free monthly volume of the Google Places SKU we call. One request is one
@@ -13,11 +13,11 @@ class PlacesBudget
     /**
      * @return array{sku: string, used: int, free_limit: int, price_per_1000: int, resets_at: string}
      */
-    public static function current(): array
+    public static function current(User $user): array
     {
         return [
             'sku' => 'Text Search Enterprise',
-            'used' => (int) ScrapeRun::query()
+            'used' => (int) $user->scrapeRuns()
                 ->where('started_at', '>=', now()->startOfMonth())
                 ->sum('requests'),
             'free_limit' => (int) config('services.google.places.free_requests'),
@@ -29,9 +29,9 @@ class PlacesBudget
     /**
      * Requests still free this month.
      */
-    public static function left(): int
+    public static function left(User $user): int
     {
-        $usage = self::current();
+        $usage = self::current($user);
 
         return max($usage['free_limit'] - $usage['used'], 0);
     }
