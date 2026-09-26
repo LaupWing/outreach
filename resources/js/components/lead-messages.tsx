@@ -1,5 +1,6 @@
-import { ChevronRight, Reply } from 'lucide-react';
+import { ChevronRight, Reply, Send } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Mailbox, Message, MessageStatus } from '@/types';
 
@@ -29,6 +30,9 @@ export function LeadMessages({
     const [openId, setOpenId] = useState<number | null>(
         messages.at(-1)?.id ?? null,
     );
+    // Which message has the reply box open, and what is typed in it.
+    const [replyTo, setReplyTo] = useState<number | null>(null);
+    const [draft, setDraft] = useState('');
 
     if (messages.length === 0) {
         return (
@@ -105,6 +109,63 @@ export function LeadMessages({
                                         <p className="text-sm whitespace-pre-line">
                                             {message.reply.body}
                                         </p>
+
+                                        {/* Answering stays in the same thread and box, so it lands where they wrote from. */}
+                                        {replyTo === message.id ? (
+                                            <form
+                                                className="mt-3 flex flex-col gap-2"
+                                                onSubmit={(event) => {
+                                                    event.preventDefault();
+                                                    setReplyTo(null);
+                                                    setDraft('');
+                                                }}
+                                            >
+                                                <textarea
+                                                    value={draft}
+                                                    onChange={(event) => setDraft(event.target.value)}
+                                                    autoFocus
+                                                    placeholder={`Hoi,\n\n`}
+                                                    aria-label="Reply"
+                                                    className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-muted-foreground">
+                                                        From {mailbox?.address ?? 'the thread mailbox'}, in this thread.
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="ml-auto"
+                                                        onClick={() => {
+                                                            setReplyTo(null);
+                                                            setDraft('');
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        type="submit"
+                                                        size="sm"
+                                                        disabled={draft.trim() === ''}
+                                                    >
+                                                        <Send />
+                                                        Send reply
+                                                    </Button>
+                                                </div>
+                                            </form>
+                                        ) : (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="mt-3"
+                                                onClick={() => setReplyTo(message.id)}
+                                            >
+                                                <Reply />
+                                                Reply
+                                            </Button>
+                                        )}
                                     </div>
                                 )}
                             </div>

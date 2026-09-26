@@ -306,6 +306,7 @@ export function NewMailboxDialog() {
                         {step === 0 ? (
                             <>
                                 <Button
+                                    key="cancel"
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setOpen(false)}
@@ -313,6 +314,7 @@ export function NewMailboxDialog() {
                                     Cancel
                                 </Button>
                                 <Button
+                                    key="next"
                                     type="button"
                                     disabled={type === null}
                                     onClick={() => setStep(1)}
@@ -324,6 +326,7 @@ export function NewMailboxDialog() {
                         ) : (
                             <>
                                 <Button
+                                    key="back"
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setStep(0)}
@@ -331,7 +334,7 @@ export function NewMailboxDialog() {
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button type="submit" disabled={!ready}>
+                                <Button key="submit" type="submit" disabled={!ready}>
                                     <Plus />
                                     Add mailbox
                                 </Button>

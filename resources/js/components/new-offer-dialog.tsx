@@ -240,6 +240,7 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
                         {step === 0 ? (
                             <>
                                 <Button
+                                    key="cancel"
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setOpen(false)}
@@ -247,6 +248,7 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
                                     Cancel
                                 </Button>
                                 <Button
+                                    key="next"
                                     type="button"
                                     disabled={!basicsReady}
                                     onClick={() => setStep(1)}
@@ -258,6 +260,7 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
                         ) : (
                             <>
                                 <Button
+                                    key="back"
                                     type="button"
                                     variant="ghost"
                                     onClick={() => setStep(0)}
@@ -265,7 +268,7 @@ export function NewOfferDialog({ niches }: { niches: Niche[] }) {
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button type="submit" disabled={!ready}>
+                                <Button key="submit" type="submit" disabled={!ready}>
                                     <Plus />
                                     {withFirstMail ? 'Add offer and mail' : 'Add offer'}
                                 </Button>
