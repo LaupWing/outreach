@@ -4,6 +4,8 @@ import type { LucideIcon } from 'lucide-react';
 export type BreadcrumbItem = {
     title: string;
     href: NonNullable<InertiaLinkProps['href']>;
+    /** Shown in front of the title in the page header, like the sidebar icon of the page. */
+    icon?: LucideIcon;
 };
 
 export type NavItem = {

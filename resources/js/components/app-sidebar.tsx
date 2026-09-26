@@ -20,7 +20,14 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarTrigger,
+    useSidebar,
 } from '@/components/ui/sidebar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { dashboard } from '@/routes';
 import type { NavGroup } from '@/types';
 
@@ -50,16 +57,27 @@ const mainNavGroups: NavGroup[] = [
 ];
 
 export function AppSidebar() {
+    const { toggleSidebar } = useSidebar();
+
     return (
         <Sidebar collapsible="icon" variant="sidebar">
-            <SidebarHeader className="h-14 justify-center border-b border-sidebar-border px-3 group-data-[collapsible=icon]:px-2">
+            <SidebarHeader className="h-14 justify-center border-b border-sidebar-border px-3 transition-[height] ease-linear group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:px-2">
                 <SidebarMenu>
-                    <SidebarMenuItem>
+                    <SidebarMenuItem className="flex items-center gap-1">
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
+                        {/* Collapsing happens here; expanding through the chevron in the page header. */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <SidebarTrigger className="text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                                Collapse sidebar
+                            </TooltipContent>
+                        </Tooltip>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>

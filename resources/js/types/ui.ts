@@ -4,6 +4,8 @@ import type { BreadcrumbItem } from '@/types/navigation';
 export type AppLayoutProps = {
     children: ReactNode;
     breadcrumbs?: BreadcrumbItem[];
+    /** Page-specific buttons for the right side of the topbar. */
+    actions?: ReactNode;
 };
 
 export type AppVariant = 'header' | 'sidebar';

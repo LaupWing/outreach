@@ -1,13 +1,20 @@
 import { Link } from '@inertiajs/react';
+import { Fragment } from 'react';
 import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { cn } from '@/lib/utils';
 import type { NavGroup } from '@/types';
+
+// The active item is raised: hairline border, top highlight and a soft outer edge.
+const menuButtonClassName =
+    'h-9 border border-transparent font-medium data-[active=true]:border-(--sidebar-active-border) data-[active=true]:shadow-(--sidebar-active-shadow)';
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
     const { isCurrentUrl } = useCurrentUrl();
@@ -15,38 +22,48 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
     return (
         <>
             {groups.map((group, index) => (
-                <SidebarGroup key={group.label ?? index} className="px-2">
-                    {group.label && (
-                        <SidebarGroupLabel className="text-xs text-muted-foreground">
-                            {group.label}
-                        </SidebarGroupLabel>
+                <Fragment key={group.label ?? index}>
+                    {/* Collapsed, the group labels are gone, so a line keeps the groups apart. */}
+                    {index > 0 && (
+                        <SidebarSeparator className="mx-0 hidden group-data-[collapsible=icon]:block" />
                     )}
-                    <SidebarMenu>
-                        {group.items.map((item) => (
-                            <SidebarMenuItem key={item.title}>
-                                {item.href ? (
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={isCurrentUrl(item.href)}
-                                        tooltip={{ children: item.title }}
-                                    >
-                                        <Link href={item.href} prefetch>
+                    <SidebarGroup className="px-2">
+                        {group.label && (
+                            <SidebarGroupLabel className="text-xs text-muted-foreground">
+                                {group.label}
+                            </SidebarGroupLabel>
+                        )}
+                        <SidebarMenu>
+                            {group.items.map((item) => (
+                                <SidebarMenuItem key={item.title}>
+                                    {item.href ? (
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={isCurrentUrl(item.href)}
+                                            tooltip={{ children: item.title }}
+                                            className={menuButtonClassName}
+                                        >
+                                            <Link href={item.href} prefetch>
+                                                <NavItemContent item={item} />
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    ) : (
+                                        <SidebarMenuButton
+                                            aria-disabled
+                                            tooltip={{ children: item.title }}
+                                            className={cn(
+                                                menuButtonClassName,
+                                                'opacity-50',
+                                            )}
+                                        >
                                             <NavItemContent item={item} />
-                                        </Link>
-                                    </SidebarMenuButton>
-                                ) : (
-                                    <SidebarMenuButton
-                                        aria-disabled
-                                        tooltip={{ children: item.title }}
-                                        className="opacity-50"
-                                    >
-                                        <NavItemContent item={item} />
-                                    </SidebarMenuButton>
-                                )}
-                            </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
-                </SidebarGroup>
+                                        </SidebarMenuButton>
+                                    )}
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroup>
+                </Fragment>
             ))}
         </>
     );

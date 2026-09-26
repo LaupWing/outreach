@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { House } from 'lucide-react';
 import { dashboard } from '@/routes';
 
 export default function Dashboard() {
@@ -15,6 +16,7 @@ Dashboard.layout = {
         {
             title: 'Home',
             href: dashboard(),
+            icon: House,
         },
     ],
 };
