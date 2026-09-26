@@ -37,7 +37,8 @@ const tabs = [
     { key: 'activity', label: 'Activity', icon: Activity },
 ] as const;
 
-type Tab = (typeof tabs)[number]['key'];
+export type LeadPanelTab = (typeof tabs)[number]['key'];
+type Tab = LeadPanelTab;
 
 const sourceLabels = {
     places: 'Google Places',
@@ -63,6 +64,7 @@ export function LeadPanel({
     mailboxes,
     open,
     onClose,
+    initialTab = 'details',
 }: {
     lead: Lead | null;
     niche: Niche | undefined;
@@ -71,8 +73,10 @@ export function LeadPanel({
     mailboxes: Mailbox[];
     open: boolean;
     onClose: () => void;
+    /** The inbox opens straight on the thread, the leads page on the details. */
+    initialTab?: Tab;
 }) {
-    const [tab, setTab] = useState<Tab>('details');
+    const [tab, setTab] = useState<Tab>(initialTab);
 
     return (
         <SidePanel open={open}>

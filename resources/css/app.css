@@ -148,6 +148,12 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Tailwind v4 dropped the pointer on buttons; everything clickable here should show one. */
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
 }
 
 /*

@@ -27,6 +27,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { dashboard } from '@/routes';
+import { index as inboxIndex } from '@/routes/inbox';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as mailboxesIndex } from '@/routes/mailboxes';
 import { index as messagesIndex } from '@/routes/messages';
@@ -39,7 +40,7 @@ const mainNavGroups: NavGroup[] = [
     {
         items: [
             { title: 'Home', href: dashboard(), icon: House },
-            { title: 'Inbox', icon: Inbox },
+            { title: 'Inbox', href: inboxIndex(), icon: Inbox },
             { title: 'Search', icon: Search },
         ],
     },
