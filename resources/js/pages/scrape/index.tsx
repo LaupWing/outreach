@@ -53,6 +53,8 @@ export default function ScrapeIndex() {
                 <ScrapeRunPanel
                     run={panelRun}
                     niche={mockNiches.find((niche) => niche.id === panelRun?.niche_id)}
+                    niches={mockNiches}
+                    usage={mockPlacesUsage}
                     leads={mockLeads.filter((lead) => lead.scrape_run_id === panelRun?.id)}
                     open={selected !== null}
                     onClose={() => setSelected(null)}

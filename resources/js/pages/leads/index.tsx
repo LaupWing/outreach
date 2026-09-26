@@ -1,12 +1,14 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Database,
     MapPin,
     Plus,
+    Radar,
     SlidersHorizontal,
     Tag,
     Target,
     Users,
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FilterCombobox } from '@/components/filters/filter-combobox';
@@ -26,6 +28,7 @@ import { mockMailboxes } from '@/mock/mailboxes';
 import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
 import { mockOffers } from '@/mock/offers';
+import { mockScrapeRuns } from '@/mock/scrape-runs';
 import { mockSequenceSteps } from '@/mock/sequence-steps';
 import { index as leadsIndex } from '@/routes/leads';
 import type { Lead, LeadSource, LeadStatus } from '@/types';
@@ -74,7 +77,11 @@ const sentFrom = Object.fromEntries(
 export default function LeadsIndex() {
     // Search and other pages deep-link to a lead with ?lead=ID.
     const { url } = usePage();
-    const linked = new URLSearchParams(url.split('?')[1] ?? '').get('lead');
+    const params = new URLSearchParams(url.split('?')[1] ?? '');
+    const linked = params.get('lead');
+    // A scrape run's "Open in leads" narrows the list to what that run found.
+    const runId = params.get('run');
+    const run = mockScrapeRuns.find((item) => String(item.id) === runId) ?? null;
     const linkedLead =
         mockLeads.find((lead) => String(lead.id) === linked) ?? null;
 
@@ -105,7 +112,8 @@ export default function LeadsIndex() {
             (sources.length === 0 || sources.includes(lead.source)) &&
             (niches.length === 0 || niches.includes(String(lead.niche_id))) &&
             (offers.length === 0 || offers.includes(String(lead.offer_id))) &&
-            (cities.length === 0 || (lead.city && cities.includes(lead.city))),
+            (cities.length === 0 || (lead.city && cities.includes(lead.city))) &&
+            (run === null || lead.scrape_run_id === run.id),
     );
 
     const moreFilters = (
@@ -156,6 +164,18 @@ export default function LeadsIndex() {
                             <SlidersHorizontal className="size-4" />
                             Filters:
                         </span>
+                        {run && (
+                            <Link
+                                href={leadsIndex()}
+                                className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-(--raised-border) bg-accent px-2.5 text-xs shadow-(--raised-shadow) hover:text-foreground"
+                                aria-label="Show all leads"
+                            >
+                                <Radar className="size-3.5 text-muted-foreground" />
+                                <span className="text-muted-foreground">Scrape</span>
+                                {run.query} in {run.place}
+                                <X className="size-3.5 text-muted-foreground" />
+                            </Link>
+                        )}
                         <FilterMenu
                             label="Status"
                             icon={<Tag className={iconClassName} />}

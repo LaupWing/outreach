@@ -37,14 +37,21 @@ const NEW_NICHE = '__new';
 export function NewScrapeDialog({
     niches,
     usage,
+    prefill,
+    trigger,
 }: {
     niches: Niche[];
     usage: PlacesUsage;
+    /** "Run again" starts from an earlier run's search. */
+    prefill?: { query: string; place: string; niche_id: number };
+    trigger?: ReactNode;
 }) {
     const [open, setOpen] = useState(false);
-    const [query, setQuery] = useState('');
-    const [place, setPlace] = useState('');
-    const [nicheId, setNicheId] = useState('');
+    const [query, setQuery] = useState(prefill?.query ?? '');
+    const [place, setPlace] = useState(prefill?.place ?? '');
+    const [nicheId, setNicheId] = useState(
+        prefill ? String(prefill.niche_id) : '',
+    );
     const [newNiche, setNewNiche] = useState('');
     const [pages, setPages] = useState(MAX_PAGES);
 
@@ -62,14 +69,16 @@ export function NewScrapeDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                >
-                    <Plus />
-                    New scrape
-                </Button>
+                {trigger ?? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                    >
+                        <Plus />
+                        New scrape
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <form onSubmit={submit} className="flex flex-col gap-5">

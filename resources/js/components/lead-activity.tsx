@@ -5,10 +5,14 @@ import {
     Radar,
     Reply,
     Search,
+    StickyNote,
     XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Lead, Message } from '@/types';
+
+/** A note typed on the lead; no table yet, the panel keeps them locally while we mock. */
+export type LeadNote = { body: string; created_at: string };
 
 type Event = {
     at: string;
@@ -29,7 +33,7 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
  * There is no activity table in the briefing; the timeline is read off the lead
  * and its messages. If this earns its place, it becomes a table of its own.
  */
-function eventsFor(lead: Lead, messages: Message[]): Event[] {
+function eventsFor(lead: Lead, messages: Message[], notes: LeadNote[]): Event[] {
     const events: Event[] = [
         {
             at: lead.created_at,
@@ -102,6 +106,16 @@ function eventsFor(lead: Lead, messages: Message[]): Event[] {
         });
     }
 
+    for (const note of notes) {
+        events.push({
+            at: note.created_at,
+            icon: StickyNote,
+            className: 'text-violet-600 dark:text-violet-400',
+            title: 'Note',
+            detail: note.body,
+        });
+    }
+
     // Newest on top.
     return events.sort((a, b) => b.at.localeCompare(a.at));
 }
@@ -109,11 +123,13 @@ function eventsFor(lead: Lead, messages: Message[]): Event[] {
 export function LeadActivity({
     lead,
     messages,
+    notes = [],
 }: {
     lead: Lead;
     messages: Message[];
+    notes?: LeadNote[];
 }) {
-    const events = eventsFor(lead, messages);
+    const events = eventsFor(lead, messages, notes);
 
     return (
         <ol className="flex flex-col p-5">

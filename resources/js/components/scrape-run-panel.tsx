@@ -15,6 +15,7 @@ import {
 import { useState, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
+import { NewScrapeDialog } from '@/components/new-scrape-dialog';
 import {
     SidePanel,
     SidePanelEmpty,
@@ -26,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { index as leadsIndex } from '@/routes/leads';
-import type { Lead, Niche, ScrapeRun } from '@/types';
+import type { Lead, Niche, PlacesUsage, ScrapeRun } from '@/types';
 
 const tabs = [
     { key: 'overview', label: 'Overview', icon: FileText },
@@ -60,12 +61,16 @@ function duration(run: ScrapeRun): string | null {
 export function ScrapeRunPanel({
     run,
     niche,
+    niches,
+    usage,
     leads,
     open,
     onClose,
 }: {
     run: ScrapeRun | null;
     niche: Niche | undefined;
+    niches: Niche[];
+    usage: PlacesUsage;
     leads: Lead[];
     open: boolean;
     onClose: () => void;
@@ -127,17 +132,25 @@ export function ScrapeRunPanel({
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" asChild>
                                 <Link
-                                    href={leadsIndex()}
+                                    href={leadsIndex({ query: { run: run.id } })}
                                     prefetch
                                 >
                                     <Users />
                                     Open in leads
                                 </Link>
                             </Button>
-                            <Button variant="outline" size="sm">
-                                <Search />
-                                Run again
-                            </Button>
+                            <NewScrapeDialog
+                                key={run.id}
+                                niches={niches}
+                                usage={usage}
+                                prefill={{ query: run.query, place: run.place, niche_id: run.niche_id }}
+                                trigger={
+                                    <Button variant="outline" size="sm">
+                                        <Search />
+                                        Run again
+                                    </Button>
+                                }
+                            />
                         </div>
                     </div>
 
