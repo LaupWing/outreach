@@ -23,5 +23,11 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->callWith(DemoSeeder::class, ['user' => $user]);
+
+        // An empty, verified account to walk through onboarding with: test@example.com / password.
+        User::factory()->create([
+            'name' => 'Test',
+            'email' => 'test@example.com',
+        ]);
     }
 }
