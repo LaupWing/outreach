@@ -56,6 +56,8 @@ export type Lead = {
     offer_id: number | null;
     status: LeadStatus;
     source: LeadSource;
+    /** The run that found it, when the source is places. */
+    scrape_run_id: number | null;
     hook: string | null;
     signals: LeadSignals | null;
     last_contact_at: string | null;

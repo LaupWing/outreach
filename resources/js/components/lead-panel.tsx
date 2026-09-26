@@ -3,8 +3,8 @@ import {
     Calendar,
     Database,
     FileText,
+    ExternalLink,
     Globe,
-    Link2,
     Mail,
     MapPin,
     MessageSquare,
@@ -14,15 +14,20 @@ import {
     StickyNote,
     Tag,
     Target,
-    X,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadActivity } from '@/components/lead-activity';
 import { LeadMessages } from '@/components/lead-messages';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
+import {
+    SidePanel,
+    SidePanelEmpty,
+    SidePanelHeader,
+    SidePanelRow,
+    SidePanelTabs,
+} from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { Lead, Mailbox, Message, Niche, Offer } from '@/types';
 
 const tabs = [
@@ -49,10 +54,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', {
 const formatDate = (value: string | null) =>
     value ? longDate.format(new Date(value)) : null;
 
-/**
- * The detail panel on the right, like the customer card in the reference.
- * It stays mounted and slides open and closed, so the table's width eases with it.
- */
+/** The lead card on the right: header, actions and the tabs below. */
 export function LeadPanel({
     lead,
     niche,
@@ -73,35 +75,14 @@ export function LeadPanel({
     const [tab, setTab] = useState<Tab>('details');
 
     return (
-        <div
-            className={cn(
-                'shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
-                open ? 'w-120' : 'w-0',
-            )}
-            aria-hidden={!open}
-        >
-            {/* The last lead stays rendered while closing, so the content does not blink away. */}
+        <SidePanel open={open}>
             {lead && (
-                <aside
-                    className={cn(
-                        'flex h-full w-120 flex-col border-l border-border bg-background transition-transform duration-300 ease-out',
-                        open ? 'translate-x-0' : 'translate-x-full',
-                    )}
-                >
-                    <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4 text-sm">
-                        <span className="shrink-0 text-muted-foreground">Leads</span>
-                        <span className="shrink-0 text-muted-foreground">/</span>
-                        <span className="truncate">{lead.company}</span>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="ml-auto size-7 shrink-0 text-muted-foreground"
-                            onClick={onClose}
-                            aria-label="Close"
-                        >
-                            <X className="size-4" />
-                        </Button>
-                    </div>
+                <>
+                    <SidePanelHeader
+                        parent="Leads"
+                        title={lead.company}
+                        onClose={onClose}
+                    />
 
                     <div className="flex flex-col gap-4 px-5 pt-5 pb-4">
                         <div className="flex items-center gap-3">
@@ -120,8 +101,8 @@ export function LeadPanel({
                                         rel="noreferrer"
                                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                                     >
-                                        <Link2 className="size-3.5" />
                                         {lead.website}
+                                        <ExternalLink className="size-3.5" />
                                     </a>
                                 )}
                             </div>
@@ -140,71 +121,68 @@ export function LeadPanel({
                         </div>
                     </div>
 
-                    <div className="flex shrink-0 gap-1 border-b border-border px-3">
-                        {tabs.map((item) => (
-                            <button
-                                key={item.key}
-                                type="button"
-                                onClick={() => setTab(item.key)}
-                                className={cn(
-                                    '-mb-px flex items-center gap-1.5 border-b-2 px-2 py-2.5 text-sm transition-colors',
-                                    tab === item.key
-                                        ? 'border-foreground text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground',
-                                )}
-                            >
-                                <item.icon className="size-4 shrink-0" />
-                                {item.label}
-                                {item.key === 'messages' && messages.length > 0 && (
-                                    <span className="rounded-full bg-accent px-1.5 text-[10px] text-muted-foreground tabular-nums">
-                                        {messages.length}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
+                    <SidePanelTabs
+                        tabs={tabs.map((item) => ({
+                            ...item,
+                            badge: item.key === 'messages' ? messages.length : undefined,
+                        }))}
+                        value={tab}
+                        onChange={setTab}
+                    />
 
                     <div className="min-h-0 flex-1 overflow-auto">
                         {tab === 'details' && (
                             <dl className="flex flex-col py-2">
-                                <Row icon={Mail} label="Email">
-                                    {lead.email ?? <Empty>No email found</Empty>}
-                                </Row>
-                                <Row icon={Phone} label="Phone">
-                                    {lead.phone ?? <Empty />}
-                                </Row>
-                                <Row icon={Globe} label="Website">
-                                    {lead.website ?? <Empty />}
-                                </Row>
-                                <Row icon={MapPin} label="City">
-                                    {lead.city ?? <Empty />}
-                                </Row>
-                                <Row icon={Target} label="Niche">
-                                    {niche?.name ?? <Empty />}
-                                </Row>
-                                <Row icon={Tag} label="Offer">
-                                    {offer?.name ?? <Empty>No offer yet</Empty>}
-                                </Row>
-                                <Row icon={Database} label="Source">
+                                <SidePanelRow icon={Mail} label="Email">
+                                    {lead.email ?? <SidePanelEmpty>No email found</SidePanelEmpty>}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Phone} label="Phone">
+                                    {lead.phone ?? <SidePanelEmpty />}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Globe} label="Website">
+                                    {lead.website ? (
+                                        <a
+                                            href={`https://${lead.website}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 hover:underline"
+                                        >
+                                            {lead.website}
+                                            <ExternalLink className="size-3.5 text-muted-foreground" />
+                                        </a>
+                                    ) : (
+                                        <SidePanelEmpty />
+                                    )}
+                                </SidePanelRow>
+                                <SidePanelRow icon={MapPin} label="City">
+                                    {lead.city ?? <SidePanelEmpty />}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Target} label="Niche">
+                                    {niche?.name ?? <SidePanelEmpty />}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Tag} label="Offer">
+                                    {offer?.name ?? <SidePanelEmpty>No offer yet</SidePanelEmpty>}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Database} label="Source">
                                     {sourceLabels[lead.source]}
-                                </Row>
-                                <Row icon={Send} label="Sent from">
+                                </SidePanelRow>
+                                <SidePanelRow icon={Send} label="Sent from">
                                     {mailboxes.find(
                                         (mailbox) =>
                                             mailbox.id ===
                                             messages.at(-1)?.mailbox_id,
-                                    )?.address ?? <Empty>Not mailed yet</Empty>}
-                                </Row>
-                                <Row icon={Calendar} label="Last contact">
+                                    )?.address ?? <SidePanelEmpty>Not mailed yet</SidePanelEmpty>}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Calendar} label="Last contact">
                                     {formatDate(lead.last_contact_at) ?? (
-                                        <Empty>Not contacted</Empty>
+                                        <SidePanelEmpty>Not contacted</SidePanelEmpty>
                                     )}
-                                </Row>
-                                <Row icon={Calendar} label="Next action">
+                                </SidePanelRow>
+                                <SidePanelRow icon={Calendar} label="Next action">
                                     {formatDate(lead.next_action_at) ?? (
-                                        <Empty>Nothing planned</Empty>
+                                        <SidePanelEmpty>Nothing planned</SidePanelEmpty>
                                     )}
-                                </Row>
+                                </SidePanelRow>
                             </dl>
                         )}
 
@@ -221,9 +199,9 @@ export function LeadPanel({
                             <LeadActivity lead={lead} messages={messages} />
                         )}
                     </div>
-                </aside>
+                </>
             )}
-        </div>
+        </SidePanel>
     );
 }
 
@@ -242,7 +220,7 @@ function Signals({ lead }: { lead: Lead }) {
                     Hook
                 </div>
                 <p className="text-sm">
-                    {lead.hook ?? <Empty>No hook written yet</Empty>}
+                    {lead.hook ?? <SidePanelEmpty>No hook written yet</SidePanelEmpty>}
                 </p>
             </div>
 
@@ -255,55 +233,31 @@ function Signals({ lead }: { lead: Lead }) {
             )}
 
             <dl className="-mx-5 flex flex-col">
-                <Row icon={Calendar} label="Copyright year">
-                    {signals.copyright_year ?? <Empty />}
-                </Row>
-                <Row icon={Globe} label="Mobile viewport">
+                <SidePanelRow icon={Calendar} label="Copyright year">
+                    {signals.copyright_year ?? <SidePanelEmpty />}
+                </SidePanelRow>
+                <SidePanelRow icon={Globe} label="Mobile viewport">
                     {signals.viewport === null ? (
-                        <Empty />
+                        <SidePanelEmpty />
                     ) : signals.viewport ? (
                         'Yes'
                     ) : (
                         <span className="text-amber-600 dark:text-amber-400">Missing</span>
                     )}
-                </Row>
-                <Row icon={Database} label="Software">
+                </SidePanelRow>
+                <SidePanelRow icon={Database} label="Software">
                     {signals.software.length > 0 ? (
                         signals.software.join(', ')
                     ) : (
-                        <Empty />
+                        <SidePanelEmpty />
                     )}
-                </Row>
-                <Row icon={FileText} label="Last news">
-                    {formatDate(signals.last_news_at) ?? <Empty>No news found</Empty>}
-                </Row>
+                </SidePanelRow>
+                <SidePanelRow icon={FileText} label="Last news">
+                    {formatDate(signals.last_news_at) ?? <SidePanelEmpty>No news found</SidePanelEmpty>}
+                </SidePanelRow>
             </dl>
         </div>
     );
-}
-
-function Row({
-    icon: Icon,
-    label,
-    children,
-}: {
-    icon: typeof Mail;
-    label: string;
-    children: ReactNode;
-}) {
-    return (
-        <div className="flex items-center gap-3 px-5 py-2.5 text-sm">
-            <dt className="flex w-32 shrink-0 items-center gap-2 text-muted-foreground">
-                <Icon className="size-4 shrink-0" />
-                {label}
-            </dt>
-            <dd className="min-w-0 truncate">{children}</dd>
-        </div>
-    );
-}
-
-function Empty({ children = '—' }: { children?: ReactNode }) {
-    return <span className="text-muted-foreground/60">{children}</span>;
 }
 
 function Placeholder({ children }: { children: ReactNode }) {

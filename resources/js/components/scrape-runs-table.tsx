@@ -77,9 +77,13 @@ function Cell({
 export function ScrapeRunsTable({
     runs,
     niches,
+    selectedId,
+    onSelect,
 }: {
     runs: ScrapeRun[];
     niches: Niche[];
+    selectedId: number | null;
+    onSelect: (run: ScrapeRun) => void;
 }) {
     const nicheName = (id: number) =>
         niches.find((niche) => niche.id === id)?.name ?? '—';
@@ -114,7 +118,9 @@ export function ScrapeRunsTable({
                             return (
                                 <tr
                                     key={run.id}
-                                    className="cursor-pointer transition-colors hover:bg-accent/60"
+                                    onClick={() => onSelect(run)}
+                                    aria-selected={run.id === selectedId}
+                                    className="cursor-pointer transition-colors hover:bg-accent/60 aria-selected:bg-accent"
                                 >
                                     <Cell className="font-medium">
                                         {run.query}
