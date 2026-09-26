@@ -1,6 +1,7 @@
 import {
     Activity,
     Calendar,
+    ChevronDown,
     Database,
     FileText,
     ExternalLink,
@@ -16,13 +17,14 @@ import {
     Tag,
     Target,
 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { ComposeEmailDialog } from '@/components/compose-email-dialog';
-import { LeadActivity } from '@/components/lead-activity';
+import { AddNoteDialog } from '@/components/add-note-dialog';
+import { LeadActivity, type LeadNote } from '@/components/lead-activity';
 import { LeadDialog } from '@/components/lead-dialog';
 import { LeadMessages } from '@/components/lead-messages';
-import { LeadStatusBadge } from '@/components/lead-status-badge';
+import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
 import {
     SidePanel,
     SidePanelEmpty,
@@ -31,7 +33,14 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import type { Lead, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import type { Lead, LeadStatus, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
 
 const tabs = [
     { key: 'details', label: 'Details', icon: FileText },
@@ -88,6 +97,24 @@ export function LeadPanel({
     initialTab?: Tab;
 }) {
     const [tab, setTab] = useState<Tab>(initialTab);
+    // Mock state: the header dropdowns change a local copy until there is a backend.
+    const [status, setStatus] = useState<LeadStatus>(lead?.status ?? 'new');
+    // Notes live here until they get a table; they show up in Activity.
+    const [notes, setNotes] = useState<LeadNote[]>([]);
+    const [offerId, setOfferId] = useState<number | null>(lead?.offer_id ?? null);
+
+    useEffect(() => {
+        setNotes([]);
+        setStatus(lead?.status ?? 'new');
+        setOfferId(lead?.offer_id ?? null);
+    }, [lead?.id, lead?.status, lead?.offer_id]);
+
+    const nicheOffers = offers.filter((item) => item.niche_id === lead?.niche_id);
+    // The pages that pass no `offers` list still pass the matched `offer`.
+    const currentOffer =
+        offers.length > 0
+            ? offers.find((item) => item.id === offerId)
+            : offer;
 
     return (
         <SidePanel open={open}>
@@ -117,18 +144,76 @@ export function LeadPanel({
                                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                                     >
                                         {lead.website}
-                                        <ExternalLink className="size-3.5" />
+                                        <ExternalLink className="size-3.5 shrink-0" />
                                     </a>
                                 )}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                                        >
+                                            {currentOffer
+                                                ? `Offer: ${currentOffer.name}`
+                                                : 'No offer yet'}
+                                            <ChevronDown className="size-3.5 shrink-0" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        <DropdownMenuRadioGroup
+                                            value={offerId === null ? '' : String(offerId)}
+                                            onValueChange={(value) =>
+                                                setOfferId(value === '' ? null : Number(value))
+                                            }
+                                        >
+                                            {nicheOffers.map((item) => (
+                                                <DropdownMenuRadioItem
+                                                    key={item.id}
+                                                    value={String(item.id)}
+                                                >
+                                                    {item.name}
+                                                </DropdownMenuRadioItem>
+                                            ))}
+                                            <DropdownMenuRadioItem
+                                                value=""
+                                                className="text-muted-foreground"
+                                            >
+                                                No offer
+                                            </DropdownMenuRadioItem>
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
-                            <LeadStatusBadge status={lead.status} className="ml-auto shrink-0" />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="ml-auto flex shrink-0 cursor-pointer items-center gap-1"
+                                    >
+                                        <LeadStatusBadge status={status} />
+                                        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuRadioGroup
+                                        value={status}
+                                        onValueChange={(value) => setStatus(value as LeadStatus)}
+                                    >
+                                        {(Object.keys(leadStatuses) as LeadStatus[]).map((item) => (
+                                            <DropdownMenuRadioItem key={item} value={item}>
+                                                <LeadStatusBadge status={item} />
+                                            </DropdownMenuRadioItem>
+                                        ))}
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <ComposeEmailDialog
                                 lead={lead}
-                                offer={offer}
-                                steps={steps.filter((step) => step.offer_id === lead.offer_id)}
+                                offer={currentOffer}
+                                steps={steps.filter((step) => step.offer_id === offerId)}
                                 messages={messages}
                                 mailboxes={mailboxes}
                                 trigger={
@@ -138,10 +223,21 @@ export function LeadPanel({
                                     </Button>
                                 }
                             />
-                            <Button variant="outline" size="sm">
-                                <StickyNote />
-                                Add note
-                            </Button>
+                            <AddNoteDialog
+                                company={lead.company}
+                                onAdd={(body) =>
+                                    setNotes([
+                                        ...notes,
+                                        { body, created_at: new Date().toISOString() },
+                                    ])
+                                }
+                                trigger={
+                                    <Button variant="outline" size="sm">
+                                        <StickyNote />
+                                        Add note
+                                    </Button>
+                                }
+                            />
                             <LeadDialog
                                 lead={lead}
                                 niches={niches}
@@ -196,7 +292,7 @@ export function LeadPanel({
                                     {niche?.name ?? <SidePanelEmpty />}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Tag} label="Offer">
-                                    {offer?.name ?? <SidePanelEmpty>No offer yet</SidePanelEmpty>}
+                                    {currentOffer?.name ?? <SidePanelEmpty>No offer yet</SidePanelEmpty>}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Database} label="Source">
                                     {sourceLabels[lead.source]}
@@ -231,7 +327,7 @@ export function LeadPanel({
                         )}
 
                         {tab === 'activity' && (
-                            <LeadActivity lead={lead} messages={messages} />
+                            <LeadActivity lead={lead} messages={messages} notes={notes} />
                         )}
                     </div>
                 </>

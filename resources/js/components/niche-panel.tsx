@@ -2,11 +2,12 @@ import {
     Check,
     FileText,
     Pencil,
+    RotateCcw,
     Tag,
     Users,
     XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
 import { NicheDialog } from '@/components/niche-dialog';
@@ -21,7 +22,7 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import type { Lead, LeadStatus, Niche, Offer } from '@/types';
+import type { Lead, LeadStatus, Niche, NicheStatus, Offer } from '@/types';
 
 const tabs = [
     { key: 'overview', label: 'Overview', icon: FileText },
@@ -49,6 +50,12 @@ export function NichePanel({
     onClose: () => void;
 }) {
     const [tab, setTab] = useState<Tab>('overview');
+    // Mock state: the buttons change a local copy until there is a backend.
+    const [status, setStatus] = useState<NicheStatus>(niche?.status ?? 'idea');
+
+    useEffect(() => {
+        setStatus(niche?.status ?? 'idea');
+    }, [niche?.id, niche?.status]);
 
     const replied = leads.filter((lead) => lead.status === 'replied').length;
     const perStatus = (Object.keys(leadStatuses) as LeadStatus[])
@@ -78,7 +85,7 @@ export function NichePanel({
                                 <h2 className="truncate text-lg font-semibold tracking-tight">
                                     {niche.name}
                                 </h2>
-                                <NicheStatusBadge status={niche.status} />
+                                <NicheStatusBadge status={status} />
                             </div>
                         </div>
 
@@ -106,17 +113,32 @@ export function NichePanel({
                                     </Button>
                                 }
                             />
-                            {niche.status !== 'proven' && (
-                                <Button variant="outline" size="sm">
+                            {status !== 'proven' && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setStatus('proven')}
+                                >
                                     <Check />
                                     Mark proven
                                 </Button>
                             )}
-                            {niche.status !== 'dropped' && (
+                            {status === 'dropped' ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     className="text-muted-foreground"
+                                    onClick={() => setStatus('idea')}
+                                >
+                                    <RotateCcw />
+                                    Reopen as idea
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-muted-foreground"
+                                    onClick={() => setStatus('dropped')}
                                 >
                                     <XCircle />
                                     Drop
@@ -149,7 +171,7 @@ export function NichePanel({
 
                                 <dl className="flex flex-col py-2">
                                     <SidePanelRow icon={Tag} label="Status">
-                                        {nicheStatuses[niche.status].label}
+                                        {nicheStatuses[status].label}
                                     </SidePanelRow>
                                     {perStatus.length === 0 ? (
                                         <SidePanelRow icon={Users} label="Leads">

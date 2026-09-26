@@ -13,7 +13,7 @@ import {
     Tag,
     Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { MailboxDialog } from '@/components/mailbox-dialog';
 import type { MailboxCounts } from '@/components/mailboxes-table';
@@ -29,7 +29,7 @@ import {
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Lead, Mailbox, Message, MessageStatus } from '@/types';
+import type { Lead, Mailbox, MailboxStatus, Message, MessageStatus } from '@/types';
 
 const tabs = [
     { key: 'overview', label: 'Overview', icon: FileText },
@@ -69,6 +69,21 @@ export function MailboxPanel({
     onClose: () => void;
 }) {
     const [tab, setTab] = useState<Tab>('overview');
+    // Mock state: pause keeps the previous status so resume can put a warming box back to warming.
+    const [status, setStatus] = useState<MailboxStatus>(mailbox?.status ?? 'active');
+    const [beforePause, setBeforePause] = useState<MailboxStatus>('active');
+
+    useEffect(() => {
+        setStatus(mailbox?.status ?? 'active');
+        setBeforePause('active');
+    }, [mailbox?.id, mailbox?.status]);
+
+    const pause = () => {
+        setBeforePause(status);
+        setStatus('paused');
+    };
+    const resume = () =>
+        setStatus(beforePause === 'warming_up' ? 'warming_up' : 'active');
 
     const sent = counts?.sent ?? 0;
     const rate = (count: number) =>
@@ -104,7 +119,7 @@ export function MailboxPanel({
                                 </span>
                             </div>
                             <MailboxStatusBadge
-                                status={mailbox.status}
+                                status={status}
                                 className="ml-auto shrink-0"
                             />
                         </div>
@@ -176,13 +191,13 @@ export function MailboxPanel({
                                     </Button>
                                 }
                             />
-                            {mailbox.status === 'paused' ? (
-                                <Button variant="outline" size="sm">
+                            {status === 'paused' ? (
+                                <Button variant="outline" size="sm" onClick={resume}>
                                     <Play />
                                     Resume
                                 </Button>
                             ) : (
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={pause}>
                                     <Pause />
                                     Pause
                                 </Button>
@@ -218,7 +233,7 @@ export function MailboxPanel({
                                         : 'IMAP and SMTP'}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Tag} label="Status">
-                                    <MailboxStatusBadge status={mailbox.status} />
+                                    <MailboxStatusBadge status={status} />
                                 </SidePanelRow>
                                 <SidePanelRow icon={Gauge} label="Daily limit">
                                     {mailbox.daily_limit} mails
