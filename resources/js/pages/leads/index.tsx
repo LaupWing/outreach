@@ -44,6 +44,11 @@ const nicheOptions: FilterOption[] = mockNiches.map((niche) => ({
     label: niche.name,
 }));
 
+const offerOptions: FilterOption[] = mockOffers.map((offer) => ({
+    value: String(offer.id),
+    label: offer.name,
+}));
+
 const cityOptions: FilterOption[] = [
     ...new Set(mockLeads.flatMap((lead) => (lead.city ? [lead.city] : []))),
 ]
@@ -69,10 +74,12 @@ export default function LeadsIndex() {
     const [statuses, setStatuses] = useState<string[]>([]);
     const [sources, setSources] = useState<string[]>([]);
     const [niches, setNiches] = useState<string[]>([]);
+    const [offers, setOffers] = useState<string[]>([]);
     const [cities, setCities] = useState<string[]>([]);
     const [selected, setSelected] = useState<Lead | null>(null);
     const compact = selected !== null;
-    const hiddenActive = niches.length + cities.length + sources.length;
+    const hiddenActive =
+        niches.length + offers.length + cities.length + sources.length;
     // Keeps the last lead while the panel slides shut.
     const [panelLead, setPanelLead] = useState<Lead | null>(null);
 
@@ -82,6 +89,7 @@ export default function LeadsIndex() {
             (statuses.length === 0 || statuses.includes(lead.status)) &&
             (sources.length === 0 || sources.includes(lead.source)) &&
             (niches.length === 0 || niches.includes(String(lead.niche_id))) &&
+            (offers.length === 0 || offers.includes(String(lead.offer_id))) &&
             (cities.length === 0 || (lead.city && cities.includes(lead.city))),
     );
 
@@ -94,6 +102,14 @@ export default function LeadsIndex() {
                 selected={niches}
                 onChange={setNiches}
                 searchPlaceholder="Search niches…"
+            />
+            <FilterCombobox
+                label="Offer"
+                icon={<Tag className={iconClassName} />}
+                options={offerOptions}
+                selected={offers}
+                onChange={setOffers}
+                searchPlaceholder="Search offers…"
             />
             <FilterCombobox
                 label="City"
@@ -160,6 +176,7 @@ export default function LeadsIndex() {
                     <LeadsTable
                         leads={leads}
                         niches={mockNiches}
+                        offers={mockOffers}
                         sentFrom={sentFrom}
                         selectedId={selected?.id ?? null}
                         onSelect={(lead) => {

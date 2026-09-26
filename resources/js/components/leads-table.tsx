@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { cn } from '@/lib/utils';
-import type { Lead, Niche } from '@/types';
+import type { Lead, Niche, Offer } from '@/types';
 
 // Fixed widths in px, so a column never gets narrower than its header; the table scrolls instead.
 const columns: { title: string; icon: typeof Mail; className: string }[] = [
@@ -19,6 +19,7 @@ const columns: { title: string; icon: typeof Mail; className: string }[] = [
     { title: 'Email', icon: Mail, className: 'w-64' },
     { title: 'City', icon: MapPin, className: 'w-36' },
     { title: 'Niche', icon: Target, className: 'w-40' },
+    { title: 'Offer', icon: Tag, className: 'w-56' },
     { title: 'Status', icon: Tag, className: 'w-36' },
     { title: 'Sent from', icon: Send, className: 'w-48' },
     { title: 'Next action', icon: Calendar, className: 'w-36' },
@@ -51,12 +52,14 @@ function Cell({
 export function LeadsTable({
     leads,
     niches,
+    offers,
     sentFrom,
     selectedId,
     onSelect,
 }: {
     leads: Lead[];
     niches: Niche[];
+    offers: Offer[];
     /** Address of the mailbox that last mailed each lead, by lead id. */
     sentFrom: Record<number, string | undefined>;
     selectedId: number | null;
@@ -64,11 +67,13 @@ export function LeadsTable({
 }) {
     const nicheName = (id: number) =>
         niches.find((niche) => niche.id === id)?.name ?? '—';
+    const offerName = (id: number | null) =>
+        offers.find((offer) => offer.id === id)?.name;
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[1300px] table-fixed border-separate border-spacing-0">
+                <table className="w-full min-w-[1500px] table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr>
                             {columns.map((column) => (
@@ -116,6 +121,13 @@ export function LeadsTable({
                                 </Cell>
                                 <Cell className="text-muted-foreground">
                                     {nicheName(lead.niche_id)}
+                                </Cell>
+                                <Cell className="text-muted-foreground">
+                                    {offerName(lead.offer_id) ?? (
+                                        <span className="text-muted-foreground/60">
+                                            No offer yet
+                                        </span>
+                                    )}
                                 </Cell>
                                 <Cell>
                                     <LeadStatusBadge status={lead.status} />
