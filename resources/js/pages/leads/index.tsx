@@ -8,7 +8,7 @@ import {
     Target,
     Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FilterCombobox } from '@/components/filters/filter-combobox';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
@@ -82,12 +82,20 @@ export default function LeadsIndex() {
     const [niches, setNiches] = useState<string[]>([]);
     const [offers, setOffers] = useState<string[]>([]);
     const [cities, setCities] = useState<string[]>([]);
-    const [selected, setSelected] = useState<Lead | null>(null);
+    const [selected, setSelected] = useState<Lead | null>(linkedLead);
     const compact = selected !== null;
     const hiddenActive =
         niches.length + offers.length + cities.length + sources.length;
     // Keeps the last lead while the panel slides shut.
-    const [panelLead, setPanelLead] = useState<Lead | null>(null);
+    const [panelLead, setPanelLead] = useState<Lead | null>(linkedLead);
+
+    // Same page, new ?lead: the component stays mounted, so follow the link by hand.
+    useEffect(() => {
+        if (linkedLead) {
+            setSelected(linkedLead);
+            setPanelLead(linkedLead);
+        }
+    }, [linked]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Client-side for now; these become query parameters once the leads come from Laravel.
     const leads = mockLeads.filter(

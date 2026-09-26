@@ -144,7 +144,7 @@ export function SearchCommand() {
                 <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
                 <DialogPrimitive.Content
                     aria-describedby={undefined}
-                    className="fixed top-[18vh] left-1/2 z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-(--raised-border) bg-popover shadow-2xl shadow-black/40 outline-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+                    className="fixed top-[18vh] left-1/2 z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-(--raised-border) bg-background shadow-2xl shadow-black/40 outline-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
                 >
                     <DialogPrimitive.Title className="sr-only">
                         Search
@@ -216,7 +216,9 @@ export function SearchCommand() {
                                     <CommandItem
                                         key={niche.id}
                                         value={`niche ${niche.name} ${niche.status}`}
-                                        onSelect={() => go(nichesIndex().url)}
+                                        onSelect={() =>
+                                            go(nichesIndex({ query: { niche: niche.id } }).url)
+                                        }
                                     >
                                         <Target />
                                         {niche.name}
@@ -231,7 +233,9 @@ export function SearchCommand() {
                                     <CommandItem
                                         key={offer.id}
                                         value={`offer ${offer.name} ${nicheName(offer.niche_id) ?? ''}`}
-                                        onSelect={() => go(offersIndex().url)}
+                                        onSelect={() =>
+                                            go(offersIndex({ query: { offer: offer.id } }).url)
+                                        }
                                     >
                                         <Tag />
                                         <span className="min-w-0 flex-1 truncate">
@@ -252,7 +256,9 @@ export function SearchCommand() {
                                     <CommandItem
                                         key={mailbox.id}
                                         value={`mailbox ${mailbox.address} ${mailbox.type}`}
-                                        onSelect={() => go(mailboxesIndex().url)}
+                                        onSelect={() =>
+                                            go(mailboxesIndex({ query: { mailbox: mailbox.id } }).url)
+                                        }
                                     >
                                         <Mailbox />
                                         {mailbox.address}
@@ -267,7 +273,9 @@ export function SearchCommand() {
                                     <CommandItem
                                         key={message.id}
                                         value={`message ${message.subject} ${companyOf(message.lead_id)} ${message.reply?.body ?? ''}`}
-                                        onSelect={() => go(messagesIndex().url)}
+                                        onSelect={() =>
+                                            go(messagesIndex({ query: { message: message.id } }).url)
+                                        }
                                     >
                                         <Mail />
                                         <span className="min-w-0 flex-1 truncate">
@@ -288,7 +296,9 @@ export function SearchCommand() {
                                     <CommandItem
                                         key={run.id}
                                         value={`scrape ${run.query} ${run.place}`}
-                                        onSelect={() => go(scrapeIndex().url)}
+                                        onSelect={() =>
+                                            go(scrapeIndex({ query: { run: run.id } }).url)
+                                        }
                                     >
                                         <Radar />
                                         <span className="min-w-0 flex-1 truncate">

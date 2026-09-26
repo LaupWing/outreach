@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Mailbox as MailboxIcon, Plus, SlidersHorizontal, Tag } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { MailboxPanel } from '@/components/mailbox-panel';
@@ -41,9 +41,22 @@ const counts: Record<number, MailboxCounts> = Object.fromEntries(
 
 export default function MailboxesIndex() {
     const [statuses, setStatuses] = useState<string[]>([]);
-    const [selected, setSelected] = useState<Mailbox | null>(null);
+    // Search deep-links here with ?mailbox=ID.
+    const { url } = usePage();
+    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('mailbox');
+    const linked = mockMailboxes.find((item) => String(item.id) === linkedId) ?? null;
+
+    const [selected, setSelected] = useState<Mailbox | null>(linked);
+
+    // Same page, new ?id: the component stays mounted, so follow the link by hand.
+    useEffect(() => {
+        if (linked) {
+            setSelected(linked);
+            setSelected(linked);
+        }
+    }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last mailbox while the panel slides shut.
-    const [panelMailbox, setPanelMailbox] = useState<Mailbox | null>(null);
+    const [panelMailbox, setPanelMailbox] = useState<Mailbox | null>(linked);
 
     const mailboxes = mockMailboxes.filter(
         (mailbox) =>

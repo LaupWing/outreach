@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { MessageSquare, Send, SlidersHorizontal, Tag } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { MessagePanel } from '@/components/message-panel';
@@ -31,9 +31,22 @@ const iconClassName = 'size-3.5 text-muted-foreground';
 export default function MessagesIndex() {
     const [statuses, setStatuses] = useState<string[]>([]);
     const [mailboxes, setMailboxes] = useState<string[]>([]);
-    const [selected, setSelected] = useState<Message | null>(null);
+    // Search deep-links here with ?message=ID.
+    const { url } = usePage();
+    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('message');
+    const linked = mockMessages.find((item) => String(item.id) === linkedId) ?? null;
+
+    const [selected, setSelected] = useState<Message | null>(linked);
+
+    // Same page, new ?id: the component stays mounted, so follow the link by hand.
+    useEffect(() => {
+        if (linked) {
+            setSelected(linked);
+            setSelected(linked);
+        }
+    }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last message while the panel slides shut.
-    const [panelMessage, setPanelMessage] = useState<Message | null>(null);
+    const [panelMessage, setPanelMessage] = useState<Message | null>(linked);
 
     const messages = sorted.filter(
         (message) =>

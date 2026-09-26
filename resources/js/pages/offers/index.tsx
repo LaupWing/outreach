@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Plus, SlidersHorizontal, Tag, Target } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FilterCombobox } from '@/components/filters/filter-combobox';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
@@ -57,9 +57,22 @@ const iconClassName = 'size-3.5 text-muted-foreground';
 export default function OffersIndex() {
     const [statuses, setStatuses] = useState<string[]>([]);
     const [niches, setNiches] = useState<string[]>([]);
-    const [selected, setSelected] = useState<Offer | null>(null);
+    // Search deep-links here with ?offer=ID.
+    const { url } = usePage();
+    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('offer');
+    const linked = mockOffers.find((item) => String(item.id) === linkedId) ?? null;
+
+    const [selected, setSelected] = useState<Offer | null>(linked);
+
+    // Same page, new ?id: the component stays mounted, so follow the link by hand.
+    useEffect(() => {
+        if (linked) {
+            setSelected(linked);
+            setSelected(linked);
+        }
+    }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last offer while the panel slides shut.
-    const [panelOffer, setPanelOffer] = useState<Offer | null>(null);
+    const [panelOffer, setPanelOffer] = useState<Offer | null>(linked);
 
     const offers = mockOffers.filter(
         (offer) =>

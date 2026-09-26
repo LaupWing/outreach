@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Radar } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NewScrapeDialog } from '@/components/new-scrape-dialog';
 import { PlacesUsageCard } from '@/components/places-usage';
 import { ScrapeRunPanel } from '@/components/scrape-run-panel';
@@ -12,9 +12,22 @@ import { index as scrapeIndex } from '@/routes/scrape';
 import type { ScrapeRun } from '@/types';
 
 export default function ScrapeIndex() {
-    const [selected, setSelected] = useState<ScrapeRun | null>(null);
+    // Search deep-links here with ?run=ID.
+    const { url } = usePage();
+    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('run');
+    const linked = mockScrapeRuns.find((item) => String(item.id) === linkedId) ?? null;
+
+    const [selected, setSelected] = useState<ScrapeRun | null>(linked);
+
+    // Same page, new ?id: the component stays mounted, so follow the link by hand.
+    useEffect(() => {
+        if (linked) {
+            setSelected(linked);
+            setSelected(linked);
+        }
+    }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last run while the panel slides shut.
-    const [panelRun, setPanelRun] = useState<ScrapeRun | null>(null);
+    const [panelRun, setPanelRun] = useState<ScrapeRun | null>(linked);
 
     return (
         <>

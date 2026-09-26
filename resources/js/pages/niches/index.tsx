@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Plus, SlidersHorizontal, Tag, Target } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { NichePanel } from '@/components/niche-panel';
@@ -47,9 +47,22 @@ const counts: Record<number, NicheCounts> = Object.fromEntries(
 
 export default function NichesIndex() {
     const [statuses, setStatuses] = useState<string[]>([]);
-    const [selected, setSelected] = useState<Niche | null>(null);
+    // Search deep-links here with ?niche=ID.
+    const { url } = usePage();
+    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('niche');
+    const linked = mockNiches.find((item) => String(item.id) === linkedId) ?? null;
+
+    const [selected, setSelected] = useState<Niche | null>(linked);
+
+    // Same page, new ?id: the component stays mounted, so follow the link by hand.
+    useEffect(() => {
+        if (linked) {
+            setSelected(linked);
+            setSelected(linked);
+        }
+    }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last niche while the panel slides shut.
-    const [panelNiche, setPanelNiche] = useState<Niche | null>(null);
+    const [panelNiche, setPanelNiche] = useState<Niche | null>(linked);
 
     const niches = mockNiches.filter(
         (niche) => statuses.length === 0 || statuses.includes(niche.status),
