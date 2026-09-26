@@ -23,3 +23,9 @@ test('the niches page is open while it runs on mock data', function () {
 
     $response->assertOk();
 });
+
+test('the offers page is open while it runs on mock data', function () {
+    $response = $this->get(route('offers.index'));
+
+    $response->assertOk();
+});

@@ -29,6 +29,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as nichesIndex } from '@/routes/niches';
+import { index as offersIndex } from '@/routes/offers';
 import { index as scrapeIndex } from '@/routes/scrape';
 import type { NavGroup } from '@/types';
 
@@ -46,7 +47,7 @@ const mainNavGroups: NavGroup[] = [
             { title: 'Scrape', href: scrapeIndex(), icon: Radar },
             { title: 'Leads', href: leadsIndex(), icon: Users },
             { title: 'Niches', href: nichesIndex(), icon: Target },
-            { title: 'Offers', icon: Tag },
+            { title: 'Offers', href: offersIndex(), icon: Tag },
         ],
     },
     {

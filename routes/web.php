@@ -9,5 +9,6 @@ Route::inertia('dashboard', 'dashboard')->name('dashboard');
 Route::inertia('leads', 'leads/index')->name('leads.index');
 Route::inertia('scrape', 'scrape/index')->name('scrape.index');
 Route::inertia('niches', 'niches/index')->name('niches.index');
+Route::inertia('offers', 'offers/index')->name('offers.index');
 
 require __DIR__.'/settings.php';

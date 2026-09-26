@@ -121,3 +121,13 @@ export type PlacesUsage = {
     price_per_1000: number;
     resets_at: string;
 };
+
+/** One mail in an offer's sequence; the body carries placeholders for the hook. */
+export type SequenceStep = {
+    id: number;
+    offer_id: number;
+    step: number;
+    days_after_previous: number;
+    subject: string;
+    body: string;
+};

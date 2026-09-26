@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
 import { NicheStatusBadge, nicheStatuses } from '@/components/niche-status-badge';
+import { OfferStatusBadge } from '@/components/offer-status-badge';
 import {
     SidePanel,
     SidePanelEmpty,
@@ -19,8 +20,7 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import type { Lead, LeadStatus, Niche, Offer, OfferStatus } from '@/types';
+import type { Lead, LeadStatus, Niche, Offer } from '@/types';
 
 const tabs = [
     { key: 'overview', label: 'Overview', icon: FileText },
@@ -29,23 +29,6 @@ const tabs = [
 ] as const;
 
 type Tab = (typeof tabs)[number]['key'];
-
-const offerStatuses: Record<OfferStatus, { label: string; className: string }> =
-    {
-        active: {
-            label: 'Active',
-            className:
-                'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-400',
-        },
-        idea: {
-            label: 'Idea',
-            className: 'border-border bg-accent text-foreground/80',
-        },
-        stopped: {
-            label: 'Stopped',
-            className: 'border-border bg-transparent text-muted-foreground',
-        },
-    };
 
 /** The niche card: why we try it, what we learned and the offers and leads under it. */
 export function NichePanel({
@@ -193,8 +176,6 @@ export function NichePanel({
                             ) : (
                                 <ul className="flex flex-col">
                                     {offers.map((offer) => {
-                                        const status = offerStatuses[offer.status];
-
                                         return (
                                             <li
                                                 key={offer.id}
@@ -204,14 +185,10 @@ export function NichePanel({
                                                     <span className="min-w-0 flex-1 truncate font-medium">
                                                         {offer.name}
                                                     </span>
-                                                    <span
-                                                        className={cn(
-                                                            'inline-flex shrink-0 items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap',
-                                                            status.className,
-                                                        )}
-                                                    >
-                                                        {status.label}
-                                                    </span>
+                                                    <OfferStatusBadge
+                                                        status={offer.status}
+                                                        className="shrink-0"
+                                                    />
                                                 </span>
                                                 {offer.description ? (
                                                     <span className="text-xs text-muted-foreground">
