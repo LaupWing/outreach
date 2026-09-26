@@ -73,9 +73,18 @@ export type Mailbox = {
     id: number;
     address: string;
     type: MailboxType;
+    imap_host: string;
+    imap_port: number;
+    smtp_host: string;
+    smtp_port: number;
+    username: string;
     daily_limit: number;
     sent_today: number;
     status: MailboxStatus;
+    warm_up_started_at: string | null;
+    /** When "Test connection" last ran, and what it said if it failed. */
+    connection_checked_at: string | null;
+    connection_error: string | null;
 };
 
 export type MessageStatus = 'draft' | 'sent' | 'bounced' | 'replied';

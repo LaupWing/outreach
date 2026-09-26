@@ -31,7 +31,7 @@ import {
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { destroy, update } from '@/routes/mailboxes';
+import { destroy, test, update } from '@/routes/mailboxes';
 import type { Lead, Mailbox, Message, MessageStatus } from '@/types';
 
 /** What the mailboxes page needs of a message: enough to list it and count it. */
@@ -83,6 +83,7 @@ export function MailboxPanel({
     open: boolean;
     onClose: () => void;
 }) {
+    const [testing, setTesting] = useState(false);
     const [tab, setTab] = useState<Tab>('overview');
     const [confirming, setConfirming] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -265,9 +266,20 @@ export function MailboxPanel({
                                     Pause
                                 </Button>
                             )}
-                            <Button variant="outline" size="sm">
-                                <Zap />
-                                Test connection
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={testing}
+                                onClick={() => {
+                                    setTesting(true);
+                                    router.post(test.url(mailbox.id), {}, {
+                                        preserveScroll: true,
+                                        onFinish: () => setTesting(false),
+                                    });
+                                }}
+                            >
+                                <Zap className={cn(testing && 'animate-pulse')} />
+                                {testing ? 'Testing…' : 'Test connection'}
                             </Button>
                             {/* Two clicks to delete: the first arms it, the second within three seconds does it. */}
                             <Button
@@ -304,10 +316,21 @@ export function MailboxPanel({
                                 <SidePanelRow icon={AtSign} label="Address">
                                     {mailbox.address}
                                 </SidePanelRow>
-                                <SidePanelRow icon={Plug} label="Connection">
-                                    {mailbox.type === 'gmail'
-                                        ? 'Gmail API'
-                                        : 'IMAP and SMTP'}
+                                <SidePanelRow icon={Plug} label="Servers">
+                                    {mailbox.smtp_host}:{mailbox.smtp_port} · {mailbox.imap_host}:{mailbox.imap_port}
+                                </SidePanelRow>
+                                <SidePanelRow icon={Zap} label="Last check">
+                                    {mailbox.connection_checked_at === null ? (
+                                        <SidePanelEmpty>Not tested yet</SidePanelEmpty>
+                                    ) : mailbox.connection_error ? (
+                                        <span className="text-red-600 dark:text-red-400">
+                                            {mailbox.connection_error}
+                                        </span>
+                                    ) : (
+                                        <span className="text-green-600 dark:text-green-400">
+                                            Logs in over SMTP and IMAP
+                                        </span>
+                                    )}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Tag} label="Status">
                                     <MailboxStatusBadge status={mailbox.status} />

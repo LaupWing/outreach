@@ -21,7 +21,7 @@ test('the leads page renders with everything the table and panel read', function
     LeadNote::factory()->for($lead)->create(['body' => 'Belde, terug in oktober.']);
     ScrapeRun::factory()->for($niche)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('leads.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -46,7 +46,7 @@ test('a lead can be added by hand in an existing niche', function () {
     $niche = Niche::factory()->create();
     $offer = Offer::factory()->for($niche)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('leads.index'))
         ->post(route('leads.store'), [
             'company' => 'Tandartspraktijk De Molen',
@@ -68,7 +68,7 @@ test('a lead can be added by hand in an existing niche', function () {
 });
 
 test('a lead can be added with a niche typed on the spot', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('leads.store'), [
             'company' => 'Fysio Noord',
             'new_niche' => 'Fysiotherapeuten',
@@ -87,7 +87,7 @@ test('a new lead needs a company, a niche, a valid email and a starting status',
     $niche = Niche::factory()->create();
     $foreignOffer = Offer::factory()->for($otherNiche)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('leads.store'), [
             'company' => '',
             'niche_id' => $niche->id,
@@ -97,7 +97,7 @@ test('a new lead needs a company, a niche, a valid email and a starting status',
         ])
         ->assertSessionHasErrors(['company', 'offer_id', 'email', 'status']);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('leads.store'), ['company' => 'Zonder niche', 'status' => 'new'])
         ->assertSessionHasErrors(['niche_id', 'new_niche']);
 
@@ -108,7 +108,7 @@ test('a lead can be moved to any status and given an offer of its niche', functi
     $lead = Lead::factory()->create();
     $offer = Offer::factory()->for($lead->niche)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->patch(route('leads.update', $lead), ['status' => 'customer', 'offer_id' => $offer->id])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
@@ -121,7 +121,7 @@ test('a lead cannot take an offer from another niche', function () {
     $lead = Lead::factory()->create();
     $offer = Offer::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->patch(route('leads.update', $lead), ['offer_id' => $offer->id])
         ->assertSessionHasErrors('offer_id');
 
@@ -131,7 +131,7 @@ test('a lead cannot take an offer from another niche', function () {
 test('a lead can be removed', function () {
     $lead = Lead::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->delete(route('leads.destroy', $lead))
         ->assertRedirect();
 

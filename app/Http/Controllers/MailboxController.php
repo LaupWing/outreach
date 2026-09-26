@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\MailboxStatus;
+use App\Enums\MailboxType;
 use App\Http\Requests\Mailboxes\StoreMailboxRequest;
 use App\Http\Requests\Mailboxes\UpdateMailboxRequest;
 use App\Models\Lead;
@@ -34,18 +35,17 @@ class MailboxController extends Controller
     }
 
     /**
-     * Add a sending address.
-     *
-     * Gmail's OAuth connect is mocked for now: the address comes straight from the
-     * form. IMAP hosts and the app password are validated but not stored; the
-     * credentials land with the mail connection work.
+     * Add a sending address with its IMAP/SMTP credentials. The password is
+     * stored encrypted; "Test connection" proves it works.
      */
     public function store(StoreMailboxRequest $request): RedirectResponse
     {
         $warmUp = $request->boolean('warm_up');
 
         Mailbox::query()->create([
-            ...$request->safe()->only(['type', 'address', 'daily_limit']),
+            ...$request->safe()->only(['address', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'password', 'daily_limit']),
+            'type' => MailboxType::Imap,
+            'username' => $request->string('username')->toString() ?: $request->string('address')->toString(),
             'status' => $warmUp ? MailboxStatus::WarmingUp : MailboxStatus::Active,
             'warm_up_started_at' => $warmUp ? now() : null,
         ]);
@@ -60,7 +60,18 @@ class MailboxController extends Controller
      */
     public function update(UpdateMailboxRequest $request, Mailbox $mailbox): RedirectResponse
     {
-        $mailbox->fill($request->safe()->only(['daily_limit']));
+        $mailbox->fill($request->safe()->only(['daily_limit', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username']));
+
+        // A blank password on edit means "keep the one I have".
+        if ($request->filled('password')) {
+            $mailbox->password = $request->string('password')->toString();
+        }
+
+        // New credentials have not been proven yet.
+        if ($request->hasAny(['imap_host', 'smtp_host', 'password', 'username'])) {
+            $mailbox->connection_checked_at = null;
+            $mailbox->connection_error = null;
+        }
 
         if ($request->has('warm_up')) {
             $warmUp = $request->boolean('warm_up');

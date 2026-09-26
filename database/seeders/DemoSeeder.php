@@ -216,9 +216,28 @@ class DemoSeeder extends Seeder
     private function mailboxes(): array
     {
         return [
-            'com' => Mailbox::query()->create(['address' => 'loc@snelstack.com', 'type' => MailboxType::Gmail, 'status' => MailboxStatus::Active, 'daily_limit' => 40, 'sent_today' => 12, 'sent_today_on' => today()]),
-            'nl' => Mailbox::query()->create(['address' => 'loc@snelstack.nl', 'type' => MailboxType::Gmail, 'status' => MailboxStatus::WarmingUp, 'daily_limit' => 20, 'sent_today' => 3, 'sent_today_on' => today(), 'warm_up_started_at' => now()->subDays(3)]),
-            'io' => Mailbox::query()->create(['address' => 'hallo@snelstack.io', 'type' => MailboxType::Imap, 'status' => MailboxStatus::Paused, 'daily_limit' => 30]),
+            'com' => Mailbox::query()->create([...$this->gmail('loc@snelstack.com'), 'status' => MailboxStatus::Active, 'daily_limit' => 40, 'sent_today' => 12, 'sent_today_on' => today()]),
+            'nl' => Mailbox::query()->create([...$this->gmail('loc@snelstack.nl'), 'status' => MailboxStatus::WarmingUp, 'daily_limit' => 20, 'sent_today' => 3, 'sent_today_on' => today(), 'warm_up_started_at' => now()->subDays(3)]),
+            'io' => Mailbox::query()->create([...$this->gmail('hallo@snelstack.io'), 'status' => MailboxStatus::Paused, 'daily_limit' => 30]),
+        ];
+    }
+
+    /**
+     * Gmail over IMAP/SMTP with a placeholder app password; replace it in the UI.
+     *
+     * @return array<string, mixed>
+     */
+    private function gmail(string $address): array
+    {
+        return [
+            'address' => $address,
+            'type' => MailboxType::Imap,
+            'imap_host' => 'imap.gmail.com',
+            'imap_port' => 993,
+            'smtp_host' => 'smtp.gmail.com',
+            'smtp_port' => 587,
+            'username' => $address,
+            'password' => 'replace-me',
         ];
     }
 

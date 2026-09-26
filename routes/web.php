@@ -5,19 +5,32 @@ use App\Http\Controllers\InboxController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LeadMessageController;
 use App\Http\Controllers\LeadNoteController;
+use App\Http\Controllers\MailboxConnectionController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessageReplyController;
 use App\Http\Controllers\NicheController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ScrapeRunController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SequenceStepController;
+use App\Http\Middleware\EnsureOnboarded;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
+// Onboarding and the mailbox endpoints stay reachable before the account is set up.
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('onboarding/key', [OnboardingController::class, 'storeKey'])->name('onboarding.key');
+    Route::post('onboarding/finish', [OnboardingController::class, 'finish'])->name('onboarding.finish');
+
+    Route::resource('mailboxes', MailboxController::class)->only(['store', 'update', 'destroy']);
+    Route::post('mailboxes/{mailbox}/test', MailboxConnectionController::class)->name('mailboxes.test');
+});
+
+Route::middleware(['auth', 'verified', EnsureOnboarded::class])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('inbox', InboxController::class)->name('inbox.index');
     Route::get('search', SearchController::class)->name('search');
@@ -37,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('messages/{message}/reply', [MessageReplyController::class, 'store'])->name('messages.reply.store');
 
-    Route::resource('mailboxes', MailboxController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('mailboxes', MailboxController::class)->only(['index']);
 
     Route::resource('scrape', ScrapeRunController::class)->only(['index', 'store'])->parameters(['scrape' => 'scrapeRun']);
 });

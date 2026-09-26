@@ -18,7 +18,7 @@ test('the inbox sorts leads into replies, due follow-ups and bounces', function 
     Lead::factory()->emailed()->create(['next_action_at' => now()->addDays(2)]);
     Lead::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('inbox.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page

@@ -13,7 +13,7 @@ test('the dashboard shows the numbers home is built from', function () {
     $this->seed(DemoSeeder::class);
     Lead::query()->where('company', 'Tandartspraktijk De Linde')->update(['next_action_at' => now()->subHour()]);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -29,7 +29,7 @@ test('the dashboard shows the numbers home is built from', function () {
 test('the messages page lists every mail newest first', function () {
     $this->seed(DemoSeeder::class);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('messages.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -44,7 +44,7 @@ test('the messages page lists every mail newest first', function () {
 test('search matches every word across the tables and caps each group', function () {
     $this->seed(DemoSeeder::class);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->getJson(route('search', ['q' => 'tandarts haarlem']))
         ->assertOk()
         ->assertJsonPath('runs.0.place', 'Haarlem')
@@ -53,7 +53,7 @@ test('search matches every word across the tables and caps each group', function
 });
 
 test('search with an empty query returns nothing', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->getJson(route('search', ['q' => '  ']))
         ->assertOk()
         ->assertExactJson(['leads' => [], 'niches' => [], 'offers' => [], 'mailboxes' => [], 'messages' => [], 'runs' => []]);

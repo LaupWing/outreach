@@ -6,7 +6,7 @@ use App\Models\User;
 test('a note can be typed on a lead', function () {
     $lead = Lead::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('leads.notes.store', $lead), ['body' => 'Belde: de praktijkmanager beslist.'])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
@@ -17,7 +17,7 @@ test('a note can be typed on a lead', function () {
 test('an empty note is refused', function () {
     $lead = Lead::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('leads.notes.store', $lead), ['body' => ''])
         ->assertSessionHasErrors('body');
 

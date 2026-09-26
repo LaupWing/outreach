@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Mailbox;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +32,20 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * An account past onboarding: a Places key, and a mailbox if none exists yet.
+     */
+    public function onboarded(): static
+    {
+        return $this
+            ->state(fn (array $attributes) => ['google_places_key' => 'AIza'.str_repeat('a', 35)])
+            ->afterCreating(function (): void {
+                if (! Mailbox::query()->exists()) {
+                    Mailbox::factory()->create();
+                }
+            });
     }
 
     /**

@@ -20,7 +20,7 @@ test('the scrape page lists runs newest first and counts only this month against
     ScrapeRun::factory()->for($niche)->create(['requests' => 3, 'started_at' => now()->subMonthNoOverflow()]);
     $lead = Lead::factory()->for($niche)->for($newest)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('scrape.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
@@ -45,7 +45,7 @@ test('a scrape is queued for an existing niche', function () {
     $this->freezeTime();
     $niche = Niche::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('scrape.store'), [
             'query' => 'tandarts',
             'place' => 'Haarlem',
@@ -68,7 +68,7 @@ test('a scrape is queued for an existing niche', function () {
 });
 
 test('a scrape can create its niche on the way', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('scrape.store'), [
             'query' => 'advocaat',
             'place' => 'Utrecht',
@@ -83,7 +83,7 @@ test('a scrape can create its niche on the way', function () {
 });
 
 test('a scrape needs a niche', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('scrape.store'), [
             'query' => 'advocaat',
             'place' => 'Utrecht',
@@ -96,7 +96,7 @@ test('a scrape is refused when it would pass the free budget', function () {
     $niche = Niche::factory()->create();
     ScrapeRun::factory()->for($niche)->create(['requests' => 999, 'started_at' => now()]);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('scrape.store'), [
             'query' => 'tandarts',
             'place' => 'Haarlem',

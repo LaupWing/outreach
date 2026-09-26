@@ -18,7 +18,7 @@ test('the niches page renders the niches with what the counts derive from', func
     $lead = Lead::factory()->for($niche)->for($offer)->create();
     Message::factory()->for($lead)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('niches.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
@@ -36,7 +36,7 @@ test('the niches page renders the niches with what the counts derive from', func
 });
 
 test('a niche can be added', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('niches.index'))
         ->post(route('niches.store'), [
             'name' => 'Tandartsen',
@@ -54,7 +54,7 @@ test('a niche can be added', function () {
 });
 
 test('a niche needs a name', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('niches.store'), ['name' => ''])
         ->assertSessionHasErrors('name');
 
@@ -64,7 +64,7 @@ test('a niche needs a name', function () {
 test('a niche can be updated with only a status', function () {
     $niche = Niche::factory()->create(['name' => 'Kappers']);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('niches.index'))
         ->patch(route('niches.update', $niche), ['status' => 'proven'])
         ->assertSessionHasNoErrors()
@@ -79,7 +79,7 @@ test('a niche can be updated with only a status', function () {
 test('a niche rejects an unknown status', function () {
     $niche = Niche::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->patch(route('niches.update', $niche), ['status' => 'golden'])
         ->assertSessionHasErrors('status');
 });
@@ -87,7 +87,7 @@ test('a niche rejects an unknown status', function () {
 test('a niche can be deleted', function () {
     $niche = Niche::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('niches.index'))
         ->delete(route('niches.destroy', $niche))
         ->assertRedirect(route('niches.index'));

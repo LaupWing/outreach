@@ -15,6 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('address')->unique();
             $table->string('type');
+            $table->string('imap_host');
+            $table->unsignedSmallInteger('imap_port')->default(993);
+            $table->string('smtp_host');
+            $table->unsignedSmallInteger('smtp_port')->default(587);
+            $table->string('username');
+            $table->text('password');
+            $table->timestamp('connection_checked_at')->nullable();
+            $table->string('connection_error')->nullable();
             $table->string('status');
             $table->unsignedSmallInteger('daily_limit');
             $table->unsignedSmallInteger('sent_today')->default(0);

@@ -21,7 +21,7 @@ test('the offers page renders the offers with their steps and what the counts de
     $lead = Lead::factory()->for($offer->niche)->for($offer)->create();
     Message::factory()->for($lead)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->get(route('offers.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
@@ -43,7 +43,7 @@ test('the offers page renders the offers with their steps and what the counts de
 test('an offer can be added to an existing niche with its first mail', function () {
     $niche = Niche::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('offers.index'))
         ->post(route('offers.store'), [
             'name' => 'Nieuwe website in 2 weken',
@@ -64,7 +64,7 @@ test('an offer can be added to an existing niche with its first mail', function 
 });
 
 test('an offer can be added to a new niche without a first mail', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('offers.store'), [
             'name' => 'Gratis snelheidscheck',
             'new_niche' => 'Makelaars',
@@ -79,7 +79,7 @@ test('an offer can be added to a new niche without a first mail', function () {
 });
 
 test('an offer needs a name and a niche', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->post(route('offers.store'), ['name' => ''])
         ->assertSessionHasErrors(['name', 'niche_id', 'new_niche']);
 
@@ -89,7 +89,7 @@ test('an offer needs a name and a niche', function () {
 test('an offer can be updated with only a status', function () {
     $offer = Offer::factory()->create(['name' => 'Menukaart online']);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('offers.index'))
         ->patch(route('offers.update', $offer), ['status' => 'active'])
         ->assertSessionHasNoErrors()
@@ -104,7 +104,7 @@ test('an offer can be updated with only a status', function () {
 test('an offer can be moved to a new niche', function () {
     $offer = Offer::factory()->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->patch(route('offers.update', $offer), ['new_niche' => 'Accountants'])
         ->assertSessionHasNoErrors();
 
@@ -116,7 +116,7 @@ test('an offer can be deleted', function () {
     $offer = Offer::factory()->create();
     $step = SequenceStep::factory()->for($offer)->create();
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->onboarded()->create())
         ->from(route('offers.index'))
         ->delete(route('offers.destroy', $offer))
         ->assertRedirect(route('offers.index'));

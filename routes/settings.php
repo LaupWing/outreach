@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\GoogleController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -24,4 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::get('settings/google', [GoogleController::class, 'edit'])->name('google.edit');
+    Route::patch('settings/google', [GoogleController::class, 'update'])->name('google.update');
 });

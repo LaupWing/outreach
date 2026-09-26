@@ -6,13 +6,15 @@ use App\Enums\MailboxStatus;
 use App\Enums\MailboxType;
 use Database\Factories\MailboxFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * An address we send from. The sender picks whichever box still has room today.
+ * An address we send from over SMTP and read over IMAP. The sender picks whichever
+ * box still has room today.
  *
  * @property int $id
  * @property string $address
@@ -22,10 +24,19 @@ use Illuminate\Support\Carbon;
  * @property int $sent_today
  * @property Carbon|null $sent_today_on
  * @property Carbon|null $warm_up_started_at
+ * @property string $imap_host
+ * @property int $imap_port
+ * @property string $smtp_host
+ * @property int $smtp_port
+ * @property string $username
+ * @property string $password
+ * @property Carbon|null $connection_checked_at
+ * @property string|null $connection_error
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['address', 'type', 'status', 'daily_limit', 'sent_today', 'sent_today_on', 'warm_up_started_at'])]
+#[Fillable(['address', 'type', 'status', 'daily_limit', 'sent_today', 'sent_today_on', 'warm_up_started_at', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password', 'connection_checked_at', 'connection_error'])]
+#[Hidden(['password'])]
 class Mailbox extends Model
 {
     /** @use HasFactory<MailboxFactory> */
@@ -55,6 +66,10 @@ class Mailbox extends Model
             'sent_today' => 'integer',
             'sent_today_on' => 'date',
             'warm_up_started_at' => 'datetime',
+            'imap_port' => 'integer',
+            'smtp_port' => 'integer',
+            'password' => 'encrypted',
+            'connection_checked_at' => 'datetime',
         ];
     }
 

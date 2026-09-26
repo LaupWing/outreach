@@ -20,8 +20,7 @@ class UpdateMailboxRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * Partial: only the fields sent change. New IMAP credentials are validated but
-     * not stored yet; that comes with the mail connection work.
+     * Partial: only the fields sent change. An empty password keeps the current one.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -31,9 +30,12 @@ class UpdateMailboxRequest extends FormRequest
             'status' => ['sometimes', 'required', Rule::enum(MailboxStatus::class)],
             'daily_limit' => ['sometimes', 'required', 'integer', 'min:1', 'max:200'],
             'warm_up' => ['sometimes', 'required', 'boolean'],
-            'imap_host' => ['nullable', 'string', 'max:255'],
-            'smtp_host' => ['nullable', 'string', 'max:255'],
-            'password' => ['nullable', 'string', 'max:255'],
+            'imap_host' => ['sometimes', 'required', 'string', 'max:255'],
+            'imap_port' => ['sometimes', 'required', 'integer', 'min:1', 'max:65535'],
+            'smtp_host' => ['sometimes', 'required', 'string', 'max:255'],
+            'smtp_port' => ['sometimes', 'required', 'integer', 'min:1', 'max:65535'],
+            'username' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'password' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 }

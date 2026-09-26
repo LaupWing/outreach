@@ -21,7 +21,13 @@ class MailboxFactory extends Factory
     {
         return [
             'address' => fake()->unique()->safeEmail(),
-            'type' => MailboxType::Gmail,
+            'type' => MailboxType::Imap,
+            'imap_host' => 'imap.gmail.com',
+            'imap_port' => 993,
+            'smtp_host' => 'smtp.gmail.com',
+            'smtp_port' => 587,
+            'username' => fn (array $attributes) => $attributes['address'],
+            'password' => 'app-password',
             'status' => MailboxStatus::Active,
             'daily_limit' => 40,
             'sent_today' => 0,
