@@ -131,7 +131,8 @@ export default function InboxIndex() {
 
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    {/* Counts double as the filter, like the pipeline in the sidebar of a CRM. */}
+                    {/* Counts double as the filter, like the pipeline in the sidebar of a CRM. Nothing waiting: no bar either. */}
+                    {items.length > 0 && (
                     <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-4">
                         <Chip active={kind === null} onClick={() => setKind(null)}>
                             All ({items.length})
@@ -147,12 +148,12 @@ export default function InboxIndex() {
                             </Chip>
                         ))}
                     </div>
+                    )}
 
                     <div className="min-h-0 flex-1 overflow-auto">
-                        {items.length === 0 && (
+                        {items.length === 0 ? (
                             <Done />
-                        )}
-                        {shown.map((key) => {
+                        ) : shown.map((key) => {
                             const group = items
                                 .filter((item) => item.kind === key)
                                 .sort((a, b) => b.at.localeCompare(a.at));

@@ -6,6 +6,7 @@ import {
     MessageSquare,
     Radar,
     Search,
+    Settings2,
     Tag,
     Target,
     Users,
@@ -27,6 +28,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { setSearchOpen } from '@/hooks/use-search';
+import { setSettingsOpen } from '@/hooks/use-settings-dialog';
 import { dashboard } from '@/routes';
 import { index as inboxIndex } from '@/routes/inbox';
 import { index as leadsIndex } from '@/routes/leads';
@@ -97,6 +99,23 @@ export function AppSidebar() {
 
             <SidebarContent className="gap-0">
                 <NavMain groups={mainNavGroups} />
+            </SidebarContent>
+
+            {/* Settings open as a dialog over the page, so they sit here instead of in the nav. */}
+            <SidebarContent className="mt-auto flex-none gap-0">
+                <NavMain
+                    groups={[
+                        {
+                            items: [
+                                {
+                                    title: 'Settings',
+                                    icon: Settings2,
+                                    onClick: () => setSettingsOpen(true),
+                                },
+                            ],
+                        },
+                    ]}
+                />
             </SidebarContent>
 
             {/* Same height and fill as the table footer on the right, so the two line up. */}

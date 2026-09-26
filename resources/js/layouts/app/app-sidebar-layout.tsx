@@ -3,6 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { SearchCommand } from '@/components/search-command';
+import { SettingsDialog } from '@/components/settings-dialog';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -19,6 +20,7 @@ export default function AppSidebarLayout({
                 {children}
             </AppContent>
             <SearchCommand />
+            <SettingsDialog />
         </AppShell>
     );
 }

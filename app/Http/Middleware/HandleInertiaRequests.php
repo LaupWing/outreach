@@ -40,6 +40,9 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                // What the settings dialog needs without a page of its own.
+                'hasGoogleKey' => $request->user()?->google_places_key !== null,
+                'mailboxCount' => $request->user()?->mailboxes()->count() ?? 0,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

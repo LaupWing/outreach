@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { setSettingsOpen } from '@/hooks/use-settings-dialog';
 import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
 type Props = {
@@ -33,16 +33,15 @@ export function UserMenuContent({ user }: Props) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full cursor-pointer"
-                        href={edit()}
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <Settings className="mr-2" />
-                        Settings
-                    </Link>
+                <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={() => {
+                        cleanup();
+                        setSettingsOpen(true);
+                    }}
+                >
+                    <Settings className="mr-2" />
+                    Settings
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

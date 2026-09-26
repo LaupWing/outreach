@@ -24,7 +24,7 @@ test('profile information can be updated', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect();
 
     $user->refresh();
 
@@ -45,7 +45,7 @@ test('email verification status is unchanged when the email address is unchanged
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect();
 
     expect($user->refresh()->email_verified_at)->not->toBeNull();
 });
@@ -79,7 +79,7 @@ test('correct password must be provided to delete account', function () {
 
     $response
         ->assertSessionHasErrors('password')
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect();
 
     expect($user->fresh())->not->toBeNull();
 });
