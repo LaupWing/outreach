@@ -1,3 +1,4 @@
+import { InfiniteScroll } from '@inertiajs/react';
 import {
     Building2,
     Calendar,
@@ -7,7 +8,7 @@ import {
     Send,
     Tag,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { MessageStatusBadge } from '@/components/message-status-badge';
 import { cn } from '@/lib/utils';
@@ -49,27 +50,48 @@ function Cell({
     );
 }
 
+/** A message as the page gets it: the lead rides along, lean, for the row and the panel. */
+export type MessageWithLead = Message & {
+    lead: Pick<Lead, 'id' | 'company' | 'email'> | null;
+};
+
+/** What the footer says about the whole filtered set, not just the loaded rows. */
+export type MessageCounts = { total: number; replied: number; bounced: number };
+
 export function MessagesTable({
     messages,
-    leads,
+    counts,
     mailboxes,
     selectedId,
     onSelect,
 }: {
-    messages: Message[];
-    leads: Pick<Lead, 'id' | 'company'>[];
+    messages: MessageWithLead[];
+    counts: MessageCounts;
     mailboxes: Pick<Mailbox, 'id' | 'address'>[];
     selectedId: number | null;
-    onSelect: (message: Message) => void;
+    onSelect: (message: MessageWithLead) => void;
 }) {
-    const companyOf = (id: number) =>
-        leads.find((lead) => lead.id === id)?.company ?? 'Unknown lead';
+    const tableBody = useRef<HTMLTableSectionElement>(null);
+    const companyOf = (message: MessageWithLead) =>
+        message.lead?.company ?? 'Unknown lead';
     const mailboxOf = (id: number) =>
         mailboxes.find((mailbox) => mailbox.id === id)?.address ?? '—';
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-auto">
+            {/* The InfiniteScroll wrapper sits inside the scroll box, so the header keeps sticking to it. */}
+            <InfiniteScroll
+                data="messages"
+                itemsElement={tableBody}
+                preserveUrl
+                onlyNext
+                className="min-h-0 flex-1 overflow-auto"
+                loading={() => (
+                    <div className="flex h-11 items-center px-4 text-sm text-muted-foreground">
+                        Loading more…
+                    </div>
+                )}
+            >
                 <table className="w-full min-w-[1300px] table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr>
@@ -90,7 +112,7 @@ export function MessagesTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody data-keeps-panel>
+                    <tbody ref={tableBody} data-keeps-panel>
                         {messages.map((message) => (
                             <tr
                                 key={message.id}
@@ -100,9 +122,9 @@ export function MessagesTable({
                             >
                                 <Cell>
                                     <span className="flex items-center gap-2.5">
-                                        <CompanyAvatar name={companyOf(message.lead_id)} />
+                                        <CompanyAvatar name={companyOf(message)} />
                                         <span className="truncate font-medium">
-                                            {companyOf(message.lead_id)}
+                                            {companyOf(message)}
                                         </span>
                                     </span>
                                 </Cell>
@@ -138,17 +160,14 @@ export function MessagesTable({
                         ))}
                     </tbody>
                 </table>
-            </div>
+            </InfiniteScroll>
 
             <div className="flex h-14 shrink-0 items-center gap-6 border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground tabular-nums">
-                <span>Total: {messages.length} messages</span>
                 <span>
-                    {messages.filter((message) => message.reply).length} replies
+                    Showing {messages.length} of {counts.total}
                 </span>
-                <span>
-                    {messages.filter((message) => message.status === 'bounced').length}{' '}
-                    bounced
-                </span>
+                <span>{counts.replied} replies</span>
+                <span>{counts.bounced} bounced</span>
             </div>
         </div>
     );

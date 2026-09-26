@@ -7,11 +7,15 @@ import {
     Tag,
     Target,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { InfiniteScroll } from '@inertiajs/react';
+import { useRef, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { cn } from '@/lib/utils';
 import type { Lead, Niche, Offer } from '@/types';
+
+/** A lead as the table receives it: with the address that last mailed it, computed on the server. */
+export type LeadRow = Lead & { sent_from: string | null };
 
 // Fixed widths in px, so a column never gets narrower than its header; the table scrolls instead.
 const columns: { title: string; icon: typeof Mail; className: string }[] = [
@@ -51,20 +55,22 @@ function Cell({
 
 export function LeadsTable({
     leads,
+    total,
     niches,
     offers,
-    sentFrom,
     selectedId,
     onSelect,
 }: {
-    leads: Lead[];
+    /** The rows loaded so far; Inertia appends the next page as you scroll. */
+    leads: LeadRow[];
+    /** How many match the filters in total. */
+    total: number;
     niches: Niche[];
     offers: Offer[];
-    /** Address of the mailbox that last mailed each lead, by lead id. */
-    sentFrom: Record<number, string | undefined>;
     selectedId: number | null;
-    onSelect: (lead: Lead) => void;
+    onSelect: (lead: LeadRow) => void;
 }) {
+    const body = useRef<HTMLTableSectionElement>(null);
     const nicheName = (id: number) =>
         niches.find((niche) => niche.id === id)?.name ?? '—';
     const offerName = (id: number | null) =>
@@ -73,6 +79,17 @@ export function LeadsTable({
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
+                {/* Loads the next fifty when the last rows scroll into view; the URL keeps its filters. */}
+                <InfiniteScroll
+                    data="leads"
+                    itemsElement={body}
+                    preserveUrl
+                    loading={() => (
+                        <div className="flex h-11 items-center px-4 text-sm text-muted-foreground">
+                            Loading more…
+                        </div>
+                    )}
+                >
                 <table className="w-full min-w-[1500px] table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr>
@@ -93,7 +110,7 @@ export function LeadsTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody data-keeps-panel>
+                    <tbody ref={body} data-keeps-panel>
                         {leads.map((lead) => (
                             <tr
                                 key={lead.id}
@@ -133,7 +150,7 @@ export function LeadsTable({
                                     <LeadStatusBadge status={lead.status} />
                                 </Cell>
                                 <Cell className="text-muted-foreground">
-                                    {sentFrom[lead.id] ?? '—'}
+                                    {lead.sent_from ?? '—'}
                                 </Cell>
                                 <Cell className="text-muted-foreground tabular-nums">
                                     {lead.next_action_at
@@ -146,11 +163,12 @@ export function LeadsTable({
                         ))}
                     </tbody>
                 </table>
+                </InfiniteScroll>
             </div>
 
             {/* Filled band, same height as the sidebar footer. */}
             <div className="flex h-14 shrink-0 items-center border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground">
-                Total: {leads.length} leads
+                Showing {leads.length} of {total} {total === 1 ? 'lead' : 'leads'}
             </div>
         </div>
     );

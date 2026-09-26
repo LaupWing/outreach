@@ -27,10 +27,10 @@ test('another account sees none of the rows on any page', function () {
 
     $this->actingAs(otherAccount());
 
-    $this->get(route('leads.index'))->assertInertia(fn (Assert $page) => $page->has('leads', 0)->has('niches', 0));
+    $this->get(route('leads.index'))->assertInertia(fn (Assert $page) => $page->has('leads.data', 0)->has('niches', 0));
     $this->get(route('niches.index'))->assertInertia(fn (Assert $page) => $page->has('niches', 0));
     $this->get(route('offers.index'))->assertInertia(fn (Assert $page) => $page->has('offers', 0));
-    $this->get(route('messages.index'))->assertInertia(fn (Assert $page) => $page->has('messages', 0));
+    $this->get(route('messages.index'))->assertInertia(fn (Assert $page) => $page->has('messages.data', 0));
     $this->get(route('scrape.index'))->assertInertia(fn (Assert $page) => $page->has('runs', 0)->where('usage.used', 0));
     $this->get(route('mailboxes.index'))->assertInertia(fn (Assert $page) => $page->has('mailboxes', 1)); // only its own default box
     $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->has('leads', 0)->has('messages', 0));

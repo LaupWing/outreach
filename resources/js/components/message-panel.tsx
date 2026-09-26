@@ -17,8 +17,9 @@ import {
     SidePanelRow,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
+import type { MessageWithLead } from '@/components/messages-table';
 import { index as leadsIndex } from '@/routes/leads';
-import type { Lead, Mailbox, Message } from '@/types';
+import type { Mailbox } from '@/types';
 
 const dateTime = new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
@@ -30,17 +31,17 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
 /** One mail in full, with its reply underneath; no tabs, a message is small enough to read at once. */
 export function MessagePanel({
     message,
-    lead,
     mailbox,
     open,
     onClose,
 }: {
-    message: Message | null;
-    lead: Pick<Lead, 'id' | 'company' | 'email'> | undefined;
+    message: MessageWithLead | null;
     mailbox: Pick<Mailbox, 'id' | 'address'> | undefined;
     open: boolean;
     onClose: () => void;
 }) {
+    const lead = message?.lead;
+
     return (
         <SidePanel open={open} onClose={onClose}>
             {message && (

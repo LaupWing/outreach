@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Database,
     MapPin,
@@ -16,8 +16,9 @@ import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { leadStatuses } from '@/components/lead-status-badge';
 import { LeadDialog } from '@/components/lead-dialog';
-import { LeadPanel, type LeadWithNotes } from '@/components/lead-panel';
-import { LeadsTable } from '@/components/leads-table';
+import type { LeadNote } from '@/components/lead-activity';
+import { LeadPanel } from '@/components/lead-panel';
+import { LeadsTable, type LeadRow } from '@/components/leads-table';
 import {
     Popover,
     PopoverContent,
@@ -36,15 +37,33 @@ import type {
 } from '@/types';
 
 type PageProps = {
-    leads: LeadWithNotes[];
+    /** Fifty at a time; Inertia appends the next page as you scroll. */
+    leads: { data: LeadRow[] };
+    /** How many match the current filters in total. */
+    total: number;
+    /** The lead from ?lead=ID, whether or not it sits in the loaded rows. */
+    linked: LeadRow | null;
+    /** Mails and notes of that lead; null when none is open. */
+    thread: { messages: Message[]; notes: LeadNote[] } | null;
     niches: Niche[];
     offers: Offer[];
+    cities: string[];
     mailboxes: Mailbox[];
-    messages: Message[];
     steps: SequenceStep[];
-    /** Just enough of each run for the chip that narrows the list to what it found. */
-    scrapeRuns: Pick<ScrapeRun, 'id' | 'query' | 'place'>[];
+    /** The scrape run the list is narrowed to, from ?run=ID. */
+    run: Pick<ScrapeRun, 'id' | 'query' | 'place'> | null;
 };
+
+/** The filters as they live in the URL; the server does the filtering. */
+type Filters = {
+    status: string[];
+    source: string[];
+    niche: string[];
+    offer: string[];
+    city: string[];
+};
+
+const filterKeys: (keyof Filters)[] = ['status', 'source', 'niche', 'offer', 'city'];
 
 const statusOptions: FilterOption[] = (
     Object.keys(leadStatuses) as LeadStatus[]
@@ -58,115 +77,79 @@ const sourceOptions: { value: LeadSource; label: string }[] = [
 
 const iconClassName = 'size-3.5 text-muted-foreground';
 
+/** Reads `status[]=a&status[]=b` style parameters back into arrays. */
+function filtersFromUrl(url: string): Filters {
+    const params = new URLSearchParams(url.split('?')[1] ?? '');
+    const list = (key: string) => [...params.getAll(`${key}[]`), ...params.getAll(key)];
+
+    return Object.fromEntries(filterKeys.map((key) => [key, list(key)])) as Filters;
+}
+
 export default function LeadsIndex() {
     const { url, props } = usePage<PageProps>();
-    const { leads: allLeads, niches: allNiches, offers: allOffers, mailboxes, messages, steps, scrapeRuns } = props;
+    const { leads, total, linked, thread, niches, offers, cities, mailboxes, steps, run } = props;
 
-    // Search and other pages deep-link to a lead with ?lead=ID.
     const params = new URLSearchParams(url.split('?')[1] ?? '');
-    const linked = params.get('lead');
-    // A scrape run's "Open in leads" narrows the list to what that run found.
-    const runId = params.get('run');
-    const run = scrapeRuns.find((item) => String(item.id) === runId) ?? null;
-    const linkedLead = allLeads.find((lead) => String(lead.id) === linked) ?? null;
+    const linkedId = params.get('lead');
+    const filters = filtersFromUrl(url);
 
-    const nicheOptions: FilterOption[] = allNiches.map((niche) => ({
-        value: String(niche.id),
-        label: niche.name,
-    }));
-    const offerOptions: FilterOption[] = allOffers.map((offer) => ({
-        value: String(offer.id),
-        label: offer.name,
-    }));
-    const cityOptions: FilterOption[] = [
-        ...new Set(allLeads.flatMap((lead) => (lead.city ? [lead.city] : []))),
-    ]
-        .sort()
-        .map((city) => ({ value: city, label: city }));
+    const nicheOptions: FilterOption[] = niches.map((niche) => ({ value: String(niche.id), label: niche.name }));
+    const offerOptions: FilterOption[] = offers.map((offer) => ({ value: String(offer.id), label: offer.name }));
+    const cityOptions: FilterOption[] = cities.map((city) => ({ value: city, label: city }));
 
-    // The mailbox that last mailed each lead; the messages carry it, the lead does not.
-    const sentFrom = Object.fromEntries(
-        allLeads.map((lead) => {
-            const last = messages.filter((m) => m.lead_id === lead.id).at(-1);
-
-            return [
-                lead.id,
-                mailboxes.find((mailbox) => mailbox.id === last?.mailbox_id)?.address,
-            ];
-        }),
-    );
-
-    const [statuses, setStatuses] = useState<string[]>([]);
-    const [sources, setSources] = useState<string[]>([]);
-    const [niches, setNiches] = useState<string[]>([]);
-    const [offers, setOffers] = useState<string[]>([]);
-    const [cities, setCities] = useState<string[]>([]);
-    const [selectedId, setSelectedId] = useState<number | null>(linkedLead?.id ?? null);
-    const compact = selectedId !== null;
-    const hiddenActive =
-        niches.length + offers.length + cities.length + sources.length;
+    const [selectedId, setSelectedId] = useState<number | null>(linked?.id ?? null);
     // Keeps the last lead while the panel slides shut.
-    const [panelLead, setPanelLead] = useState<LeadWithNotes | null>(linkedLead);
+    const [panelLead, setPanelLead] = useState<LeadRow | null>(linked);
+    const compact = selectedId !== null;
+    const hiddenActive = filters.niche.length + filters.offer.length + filters.city.length + filters.source.length;
 
     // Same page, new ?lead: the component stays mounted, so follow the link by hand.
     useEffect(() => {
-        if (linkedLead) {
-            setSelectedId(linkedLead.id);
-            setPanelLead(linkedLead);
+        if (linked) {
+            setSelectedId(linked.id);
+            setPanelLead(linked);
         }
-    }, [linked]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // After a save the props come back fresh; the panel shows the new copy of its lead.
     useEffect(() => {
         setPanelLead((current) =>
-            current ? (allLeads.find((lead) => lead.id === current.id) ?? current) : current,
+            current ? (leads.data.find((lead) => lead.id === current.id) ?? linked ?? current) : current,
         );
-    }, [allLeads]);
+    }, [leads, linked]);
 
-    // Client-side for now; these become query parameters once the list outgrows one page.
-    const leads = allLeads.filter(
-        (lead) =>
-            (statuses.length === 0 || statuses.includes(lead.status)) &&
-            (sources.length === 0 || sources.includes(lead.source)) &&
-            (niches.length === 0 || niches.includes(String(lead.niche_id))) &&
-            (offers.length === 0 || offers.includes(String(lead.offer_id))) &&
-            (cities.length === 0 || (lead.city && cities.includes(lead.city))) &&
-            (run === null || lead.scrape_run_id === run.id),
-    );
+    // Every filter change asks the server for page one again, keeping the open lead and run.
+    const visit = (next: Partial<Filters>, extra: Record<string, string | number | null> = {}) => {
+        router.get(
+            leadsIndex().url,
+            {
+                ...filters,
+                ...next,
+                run: run?.id ?? null,
+                lead: selectedId,
+                ...extra,
+            },
+            { only: ['leads', 'total', 'linked', 'thread'], reset: ['leads'], preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
+
+    // Opening a row fetches only its thread; the table stays where it is.
+    const select = (lead: LeadRow) => {
+        setSelectedId(lead.id);
+        setPanelLead(lead);
+        router.get(
+            leadsIndex().url,
+            { ...filters, run: run?.id ?? null, lead: lead.id },
+            { only: ['thread', 'linked'], preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
 
     const moreFilters = (
         <>
-            <FilterCombobox
-                label="Niche"
-                icon={<Target className={iconClassName} />}
-                options={nicheOptions}
-                selected={niches}
-                onChange={setNiches}
-                searchPlaceholder="Search niches…"
-            />
-            <FilterCombobox
-                label="Offer"
-                icon={<Tag className={iconClassName} />}
-                options={offerOptions}
-                selected={offers}
-                onChange={setOffers}
-                searchPlaceholder="Search offers…"
-            />
-            <FilterCombobox
-                label="City"
-                icon={<MapPin className={iconClassName} />}
-                options={cityOptions}
-                selected={cities}
-                onChange={setCities}
-                searchPlaceholder="Search cities…"
-            />
-            <FilterMenu
-                label="Source"
-                icon={<Database className={iconClassName} />}
-                options={sourceOptions}
-                selected={sources}
-                onChange={setSources}
-            />
+            <FilterCombobox label="Niche" icon={<Target className={iconClassName} />} options={nicheOptions} selected={filters.niche} onChange={(niche) => visit({ niche })} searchPlaceholder="Search niches…" />
+            <FilterCombobox label="Offer" icon={<Tag className={iconClassName} />} options={offerOptions} selected={filters.offer} onChange={(offer) => visit({ offer })} searchPlaceholder="Search offers…" />
+            <FilterCombobox label="City" icon={<MapPin className={iconClassName} />} options={cityOptions} selected={filters.city} onChange={(city) => visit({ city })} searchPlaceholder="Search cities…" />
+            <FilterMenu label="Source" icon={<Database className={iconClassName} />} options={sourceOptions} selected={filters.source} onChange={(source) => visit({ source })} />
         </>
     );
 
@@ -194,13 +177,7 @@ export default function LeadsIndex() {
                                 <X className="size-3.5 text-muted-foreground" />
                             </Link>
                         )}
-                        <FilterMenu
-                            label="Status"
-                            icon={<Tag className={iconClassName} />}
-                            options={statusOptions}
-                            selected={statuses}
-                            onChange={setStatuses}
-                        />
+                        <FilterMenu label="Status" icon={<Tag className={iconClassName} />} options={statusOptions} selected={filters.status} onChange={(status) => visit({ status })} />
                         {/* With the panel open there is no room for four filters: the rest live in a popover. */}
                         {compact ? (
                             <Popover>
@@ -227,24 +204,21 @@ export default function LeadsIndex() {
                         )}
                     </div>
                     <LeadsTable
-                        leads={leads}
-                        niches={allNiches}
-                        offers={allOffers}
-                        sentFrom={sentFrom}
+                        leads={leads.data}
+                        total={total}
+                        niches={niches}
+                        offers={offers}
                         selectedId={selectedId}
-                        onSelect={(lead) => {
-                            setSelectedId(lead.id);
-                            setPanelLead(lead);
-                        }}
+                        onSelect={select}
                     />
                 </div>
                 <LeadPanel
-                    lead={panelLead}
-                    niche={allNiches.find((niche) => niche.id === panelLead?.niche_id)}
-                    offer={allOffers.find((offer) => offer.id === panelLead?.offer_id)}
-                    niches={allNiches}
-                    offers={allOffers}
-                    messages={messages.filter((message) => message.lead_id === panelLead?.id)}
+                    lead={panelLead ? { ...panelLead, notes: thread?.notes ?? [] } : null}
+                    niche={niches.find((niche) => niche.id === panelLead?.niche_id)}
+                    offer={offers.find((offer) => offer.id === panelLead?.offer_id)}
+                    niches={niches}
+                    offers={offers}
+                    messages={thread?.messages ?? []}
                     mailboxes={mailboxes}
                     steps={steps}
                     open={selectedId !== null}

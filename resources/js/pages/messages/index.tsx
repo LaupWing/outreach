@@ -1,17 +1,23 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { MessageSquare, Send, SlidersHorizontal, Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
 import { MessagePanel } from '@/components/message-panel';
 import { messageStatuses } from '@/components/message-status-badge';
-import { MessagesTable } from '@/components/messages-table';
+import {
+    MessagesTable,
+    type MessageCounts,
+    type MessageWithLead,
+} from '@/components/messages-table';
 import { index as messagesIndex } from '@/routes/messages';
-import type { Lead, Mailbox, Message, MessageStatus } from '@/types';
+import type { Mailbox, MessageStatus } from '@/types';
 
 type PageProps = {
-    messages: Message[];
-    leads: Pick<Lead, 'id' | 'company' | 'email'>[];
+    messages: { data: MessageWithLead[] };
+    counts: MessageCounts;
+    /** The ?message deep link, fetched on its own in case it sits past the loaded page. */
+    linked: MessageWithLead | null;
     mailboxes: Pick<Mailbox, 'id' | 'address'>[];
 };
 
@@ -22,37 +28,52 @@ const statusOptions: FilterOption[] = (
 const iconClassName = 'size-3.5 text-muted-foreground';
 
 export default function MessagesIndex() {
-    const { messages: allMessages, leads, mailboxes: allMailboxes } = usePage<PageProps>().props;
-    const mailboxOptions: FilterOption[] = allMailboxes.map((mailbox) => ({
+    const { messages, counts, linked: linkedProp, mailboxes } = usePage<PageProps>().props;
+    const mailboxOptions: FilterOption[] = mailboxes.map((mailbox) => ({
         value: String(mailbox.id),
         label: mailbox.address,
     }));
 
-    const [statuses, setStatuses] = useState<string[]>([]);
-    const [mailboxes, setMailboxes] = useState<string[]>([]);
-    // Search deep-links here with ?message=ID.
+    // The filters live in the URL, so a reload and the next page keep them.
     const { url } = usePage();
-    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('message');
-    const linked = allMessages.find((item) => String(item.id) === linkedId) ?? null;
+    const params = new URLSearchParams(url.split('?')[1] ?? '');
+    const statuses = params.getAll('status[]');
+    const mailboxIds = params.getAll('mailbox[]');
+    // Search deep-links here with ?message=ID.
+    const linkedId = params.get('message');
+    const linked =
+        linkedProp ??
+        messages.data.find((item) => String(item.id) === linkedId) ??
+        null;
 
-    const [selected, setSelected] = useState<Message | null>(linked);
+    const applyFilters = (next: { status?: string[]; mailbox?: string[] }) =>
+        router.get(
+            messagesIndex(),
+            {
+                status: next.status ?? statuses,
+                mailbox: next.mailbox ?? mailboxIds,
+                message: linkedId ?? undefined,
+            },
+            {
+                only: ['messages', 'counts'],
+                reset: ['messages'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+
+    const [selected, setSelected] = useState<MessageWithLead | null>(linked);
+    // Keeps the last message while the panel slides shut.
+    const [panelMessage, setPanelMessage] = useState<MessageWithLead | null>(linked);
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
         if (linked) {
             setSelected(linked);
-            setSelected(linked);
+            setPanelMessage(linked);
         }
     }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
-    // Keeps the last message while the panel slides shut.
-    const [panelMessage, setPanelMessage] = useState<Message | null>(linked);
-
-    const messages = allMessages.filter(
-        (message) =>
-            (statuses.length === 0 || statuses.includes(message.status)) &&
-            (mailboxes.length === 0 ||
-                mailboxes.includes(String(message.mailbox_id))),
-    );
 
     return (
         <>
@@ -70,20 +91,20 @@ export default function MessagesIndex() {
                             icon={<Tag className={iconClassName} />}
                             options={statusOptions}
                             selected={statuses}
-                            onChange={setStatuses}
+                            onChange={(status) => applyFilters({ status })}
                         />
                         <FilterMenu
                             label="Sent from"
                             icon={<Send className={iconClassName} />}
                             options={mailboxOptions}
-                            selected={mailboxes}
-                            onChange={setMailboxes}
+                            selected={mailboxIds}
+                            onChange={(mailbox) => applyFilters({ mailbox })}
                         />
                     </div>
                     <MessagesTable
-                        messages={messages}
-                        leads={leads}
-                        mailboxes={allMailboxes}
+                        messages={messages.data}
+                        counts={counts}
+                        mailboxes={mailboxes}
                         selectedId={selected?.id ?? null}
                         onSelect={(message) => {
                             setSelected(message);
@@ -93,8 +114,7 @@ export default function MessagesIndex() {
                 </div>
                 <MessagePanel
                     message={panelMessage}
-                    lead={leads.find((lead) => lead.id === panelMessage?.lead_id)}
-                    mailbox={allMailboxes.find(
+                    mailbox={mailboxes.find(
                         (mailbox) => mailbox.id === panelMessage?.mailbox_id,
                     )}
                     open={selected !== null}

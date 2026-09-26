@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Lead;
+use App\Models\Mailbox;
+use App\Models\Message;
 use Database\Seeders\DemoSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -34,10 +36,41 @@ test('the messages page lists every mail newest first', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('messages/index')
-            ->has('messages', 10)
-            ->where('messages.0.subject', 'Online afspraken')
-            ->has('leads', 12)
+            ->has('messages.data', 10)
+            ->where('messages.data.0.subject', 'Online afspraken')
+            ->where('messages.data.0.lead.company', 'Tandarts Bos & Partners')
+            ->where('counts.total', 10)
+            ->where('linked', null)
             ->has('mailboxes', 4)
+        );
+});
+
+test('the messages page narrows the rows and the counts to the status filter', function () {
+    $this->seed(DemoSeeder::class);
+
+    $this->actingAs($this->user)
+        ->get(route('messages.index', ['status' => ['bounced']]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('messages/index')
+            ->has('messages.data', 1)
+            ->where('messages.data.0.status', 'bounced')
+            ->where('counts.total', 1)
+            ->where('counts.bounced', 1)
+            ->where('counts.replied', 0)
+        );
+});
+
+test('the messages page scrolls the next page in', function () {
+    Message::factory()->count(60)->for(Lead::factory())->for(Mailbox::factory())->create();
+
+    $this->actingAs($this->user)
+        ->get(route('messages.index', ['page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('messages/index')
+            ->has('messages.data', 10)
+            ->where('counts.total', 60)
         );
 });
 
