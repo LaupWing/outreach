@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     Building2,
     Check,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { DialogSteps } from '@/components/dialog-steps';
+import InputError from '@/components/input-error';
 import { leadStatuses } from '@/components/lead-status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +40,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { store as storeLead, update as updateLead } from '@/routes/leads';
 import type { Lead, LeadStatus, Niche, Offer } from '@/types';
 
 /** Sentinel value in the niche select that swaps it for a text field. */
@@ -72,7 +75,7 @@ const valuesFrom = (lead?: Lead) => ({
 /**
  * Adds a lead the scraper did not find, or edits an existing one when `lead` is given.
  * Self-contained with its own trigger, so it can sit in a page's static topbar actions.
- * Nothing is saved yet; that comes with Laravel.
+ * Posts to leads.store, or patches leads.update when editing.
  */
 export function LeadDialog({
     lead,
@@ -102,6 +105,8 @@ export function LeadDialog({
     const [offerId, setOfferId] = useState(initial.offerId);
     const [status, setStatus] = useState<LeadStatus>(initial.status);
     const [hook, setHook] = useState(initial.hook);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
 
     const hasNiche =
         nicheId === NEW_NICHE ? newNiche.trim() !== '' : nicheId !== '';
@@ -119,15 +124,42 @@ export function LeadDialog({
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setOpen(false);
+
+        const blank = (value: string) => (value.trim() === '' ? null : value.trim());
+        const data = {
+            company: company.trim(),
+            email: blank(email),
+            phone: blank(phone),
+            website: blank(website),
+            city: blank(city),
+            niche_id: nicheId === NEW_NICHE ? null : Number(nicheId),
+            new_niche: nicheId === NEW_NICHE ? newNiche.trim() : null,
+            offer_id: offerId === '' ? null : Number(offerId),
+            status,
+            hook: blank(hook),
+        };
+        const options = {
+            preserveScroll: true,
+            onStart: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
+            onError: (fresh: Record<string, string>) => setErrors(fresh),
+            onSuccess: () => setOpen(false),
+        };
+
+        if (lead) {
+            router.patch(updateLead.url(lead.id), data, options);
+        } else {
+            router.post(storeLead.url(), data, options);
+        }
     };
 
     const toggle = (value: boolean) => {
         setOpen(value);
         setStep(0);
+        setErrors({});
 
-        // A cancelled edit must not linger into the next one.
-        if (value && editing) {
+        // A cancelled edit must not linger into the next one; a saved add starts blank again.
+        if (value) {
             const values = valuesFrom(lead);
             setCompany(values.company);
             setEmail(values.email);
@@ -191,6 +223,7 @@ export function LeadDialog({
                                     placeholder="Tandartspraktijk De Molen"
                                     autoFocus
                                 />
+                                <InputError message={errors.company} />
                             </Field>
 
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -201,12 +234,12 @@ export function LeadDialog({
                                 >
                                     <Input
                                         id="lead-website"
-                                        type="url"
+                                        inputMode="url"
                                         value={website}
                                         onChange={(event) =>
                                             setWebsite(event.target.value)
                                         }
-                                        placeholder="https://example.nl"
+                                        placeholder="example.nl"
                                     />
                                 </Field>
 
@@ -285,6 +318,7 @@ export function LeadDialog({
                                         </SelectContent>
                                     </Select>
                                 )}
+                                <InputError message={errors.niche_id ?? errors.new_niche} />
                             </Field>
 
                             <Field label="Offer" icon={Tag} htmlFor="lead-offer">
@@ -310,6 +344,7 @@ export function LeadDialog({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <InputError message={errors.offer_id} />
                             </Field>
                             </div>
                     ) : (
@@ -329,6 +364,7 @@ export function LeadDialog({
                                         }
                                         placeholder="info@example.nl"
                                     />
+                                    <InputError message={errors.email} />
                                 </Field>
 
                                 <Field
@@ -345,6 +381,7 @@ export function LeadDialog({
                                         }
                                         placeholder="023 123 4567"
                                     />
+                                    <InputError message={errors.phone} />
                                 </Field>
                             </div>
 
@@ -376,6 +413,7 @@ export function LeadDialog({
                                         </button>
                                     ))}
                                 </div>
+                                <InputError message={errors.status} />
                             </Field>
 
                             <Field label="Hook" icon={Sparkles} htmlFor="lead-hook">
@@ -390,6 +428,7 @@ export function LeadDialog({
                                     placeholder="What you noticed on their site, in one or two lines"
                                     className="flex w-full min-w-0 resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
                                 />
+                                <InputError message={errors.hook} />
                             </Field>
 
                             {/* Source is not a choice here: everything from this dialog is manual. */}
@@ -434,7 +473,7 @@ export function LeadDialog({
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready}>
+                                <Button key="submit" type="submit" disabled={!ready || processing}>
                                     {editing ? <Check /> : <Plus />}
                                     {editing ? 'Save' : 'Add lead'}
                                 </Button>

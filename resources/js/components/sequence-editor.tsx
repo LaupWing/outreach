@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     ArrowDown,
     ArrowUp,
@@ -13,6 +14,8 @@ import { useState, type SubmitEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { reorder, store } from '@/routes/offers/steps';
+import { destroy, update } from '@/routes/steps';
 import type { SequenceStep } from '@/types';
 
 const textareaClassName =
@@ -27,49 +30,55 @@ const emptyDraft = (isFirst: boolean): Draft => ({
 });
 
 /**
- * The mails of an offer, editable in place: add, change, reorder, delete. State is
- * local while we mock; each action becomes one call once the steps live in Laravel.
+ * The mails of an offer, editable in place: add, change, reorder, delete. Each
+ * action is one call; the steps come back renumbered through the page props.
  */
 export function SequenceEditor({
     offerId,
-    steps: initial,
+    steps,
 }: {
     offerId: number;
     steps: SequenceStep[];
 }) {
-    const [steps, setSteps] = useState<SequenceStep[]>(initial);
-    const [openId, setOpenId] = useState<number | null>(initial[0]?.id ?? null);
+    const [openId, setOpenId] = useState<number | null>(steps[0]?.id ?? null);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [adding, setAdding] = useState(false);
+    const [busy, setBusy] = useState(false);
 
-    // Step numbers follow the order in the list; renumber after every change.
-    const commit = (next: SequenceStep[]) =>
-        setSteps(next.map((step, index) => ({ ...step, step: index + 1 })));
-
-    const add = (draft: Draft) => {
-        const id = Math.max(0, ...steps.map((step) => step.id)) + 1;
-
-        commit([...steps, { id, offer_id: offerId, step: steps.length + 1, ...draft }]);
-        setAdding(false);
-        setOpenId(id);
+    const options = {
+        preserveScroll: true,
+        onStart: () => setBusy(true),
+        onFinish: () => setBusy(false),
     };
 
-    const update = (id: number, draft: Draft) => {
-        commit(steps.map((step) => (step.id === id ? { ...step, ...draft } : step)));
-        setEditingId(null);
+    const add = (draft: Draft) => {
+        router.post(store.url(offerId), draft, {
+            ...options,
+            onSuccess: () => setAdding(false),
+        });
+    };
+
+    const save = (id: number, draft: Draft) => {
+        router.patch(update.url(id), draft, {
+            ...options,
+            onSuccess: () => setEditingId(null),
+        });
     };
 
     const remove = (id: number) => {
-        commit(steps.filter((step) => step.id !== id));
-        setEditingId(null);
+        router.delete(destroy.url(id), {
+            ...options,
+            onSuccess: () => setEditingId(null),
+        });
     };
 
+    // Step numbers follow the order in the list; the server renumbers from the ids.
     const move = (index: number, direction: -1 | 1) => {
-        const next = [...steps];
-        const [step] = next.splice(index, 1);
+        const order = steps.map((step) => step.id);
+        const [id] = order.splice(index, 1);
 
-        next.splice(index + direction, 0, step);
-        commit(next);
+        order.splice(index + direction, 0, id);
+        router.put(reorder.url(offerId), { order }, options);
     };
 
     return (
@@ -102,7 +111,8 @@ export function SequenceEditor({
                                     <StepForm
                                         initial={step}
                                         isFirst={index === 0}
-                                        onSave={(draft) => update(step.id, draft)}
+                                        busy={busy}
+                                        onSave={(draft) => save(step.id, draft)}
                                         onCancel={() => setEditingId(null)}
                                         onDelete={() => remove(step.id)}
                                     />
@@ -130,14 +140,14 @@ export function SequenceEditor({
                                             {/* Reorder and edit live on the row, so the sequence reads as a list you shape. */}
                                             <IconButton
                                                 label="Move up"
-                                                disabled={index === 0}
+                                                disabled={busy || index === 0}
                                                 onClick={() => move(index, -1)}
                                             >
                                                 <ArrowUp />
                                             </IconButton>
                                             <IconButton
                                                 label="Move down"
-                                                disabled={index === steps.length - 1}
+                                                disabled={busy || index === steps.length - 1}
                                                 onClick={() => move(index, 1)}
                                             >
                                                 <ArrowDown />
@@ -170,6 +180,7 @@ export function SequenceEditor({
                     <StepForm
                         initial={emptyDraft(steps.length === 0)}
                         isFirst={steps.length === 0}
+                        busy={busy}
                         onSave={add}
                         onCancel={() => setAdding(false)}
                     />
@@ -197,12 +208,14 @@ export function SequenceEditor({
 function StepForm({
     initial,
     isFirst,
+    busy,
     onSave,
     onCancel,
     onDelete,
 }: {
     initial: Draft;
     isFirst: boolean;
+    busy: boolean;
     onSave: (draft: Draft) => void;
     onCancel: () => void;
     onDelete?: () => void;
@@ -211,7 +224,7 @@ function StepForm({
     const [body, setBody] = useState(initial.body);
     const [days, setDays] = useState(initial.days_after_previous);
 
-    const ready = subject.trim() !== '' && body.trim() !== '';
+    const ready = !busy && subject.trim() !== '' && body.trim() !== '';
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -258,6 +271,7 @@ function StepForm({
                         variant="ghost"
                         size="sm"
                         className="text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
+                        disabled={busy}
                         onClick={onDelete}
                     >
                         <Trash2 />

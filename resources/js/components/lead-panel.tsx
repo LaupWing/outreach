@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     Activity,
     Calendar,
@@ -5,6 +6,7 @@ import {
     Database,
     FileText,
     ExternalLink,
+    Trash2,
     Globe,
     Mail,
     MapPin,
@@ -40,7 +42,12 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { destroy as destroyLead, update as updateLead } from '@/routes/leads';
 import type { Lead, LeadStatus, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
+
+/** A lead as the leads and inbox pages receive it: with its notes eager-loaded. */
+export type LeadWithNotes = Lead & { notes?: LeadNote[] };
 
 const tabs = [
     { key: 'details', label: 'Details', icon: FileText },
@@ -81,7 +88,7 @@ export function LeadPanel({
     onClose,
     initialTab = 'details',
 }: {
-    lead: Lead | null;
+    lead: LeadWithNotes | null;
     niche: Niche | undefined;
     offer: Offer | undefined;
     /** The full lists feed the edit dialog's selects. */
@@ -97,24 +104,59 @@ export function LeadPanel({
     initialTab?: Tab;
 }) {
     const [tab, setTab] = useState<Tab>(initialTab);
-    // Mock state: the header dropdowns change a local copy until there is a backend.
-    const [status, setStatus] = useState<LeadStatus>(lead?.status ?? 'new');
-    // Notes live here until they get a table; they show up in Activity.
-    const [notes, setNotes] = useState<LeadNote[]>([]);
-    const [offerId, setOfferId] = useState<number | null>(lead?.offer_id ?? null);
+    // Delete asks once: the second click within three seconds does it.
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
-        setNotes([]);
-        setStatus(lead?.status ?? 'new');
-        setOfferId(lead?.offer_id ?? null);
-    }, [lead?.id, lead?.status, lead?.offer_id]);
+        if (!confirmingDelete) {
+            return;
+        }
 
+        const timer = window.setTimeout(() => setConfirmingDelete(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [confirmingDelete]);
+
+    useEffect(() => {
+        setConfirmingDelete(false);
+    }, [lead?.id]);
+
+    const offerId = lead?.offer_id ?? null;
+    const status = lead?.status ?? 'new';
+    const notes = lead?.notes ?? [];
     const nicheOffers = offers.filter((item) => item.niche_id === lead?.niche_id);
     // The pages that pass no `offers` list still pass the matched `offer`.
     const currentOffer =
         offers.length > 0
             ? offers.find((item) => item.id === offerId)
             : offer;
+
+    // The header dropdowns save straight away; the lead comes back fresh with the page props.
+    const patch = (data: { status: LeadStatus } | { offer_id: number | null }) => {
+        if (lead) {
+            router.patch(updateLead.url(lead.id), data, { preserveScroll: true });
+        }
+    };
+
+    const remove = () => {
+        if (!lead) {
+            return;
+        }
+
+        if (!confirmingDelete) {
+            setConfirmingDelete(true);
+
+            return;
+        }
+
+        router.delete(destroyLead.url(lead.id), {
+            preserveScroll: true,
+            onStart: () => setDeleting(true),
+            onFinish: () => setDeleting(false),
+            onSuccess: onClose,
+        });
+    };
 
     return (
         <SidePanel open={open} onClose={onClose}>
@@ -163,7 +205,7 @@ export function LeadPanel({
                                         <DropdownMenuRadioGroup
                                             value={offerId === null ? '' : String(offerId)}
                                             onValueChange={(value) =>
-                                                setOfferId(value === '' ? null : Number(value))
+                                                patch({ offer_id: value === '' ? null : Number(value) })
                                             }
                                         >
                                             {nicheOffers.map((item) => (
@@ -197,7 +239,7 @@ export function LeadPanel({
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuRadioGroup
                                         value={status}
-                                        onValueChange={(value) => setStatus(value as LeadStatus)}
+                                        onValueChange={(value) => patch({ status: value as LeadStatus })}
                                     >
                                         {(Object.keys(leadStatuses) as LeadStatus[]).map((item) => (
                                             <DropdownMenuRadioItem key={item} value={item}>
@@ -224,13 +266,7 @@ export function LeadPanel({
                                 }
                             />
                             <AddNoteDialog
-                                company={lead.company}
-                                onAdd={(body) =>
-                                    setNotes([
-                                        ...notes,
-                                        { body, created_at: new Date().toISOString() },
-                                    ])
-                                }
+                                lead={lead}
                                 trigger={
                                     <Button variant="outline" size="sm">
                                         <StickyNote />
@@ -249,6 +285,20 @@ export function LeadPanel({
                                     </Button>
                                 }
                             />
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={remove}
+                                disabled={deleting}
+                                aria-label={confirmingDelete ? 'Click again to delete this lead' : 'Delete this lead'}
+                                className={cn(
+                                    'ml-auto text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400',
+                                    confirmingDelete && 'bg-red-500/10',
+                                )}
+                            >
+                                <Trash2 />
+                                {confirmingDelete ? 'Sure?' : 'Delete'}
+                            </Button>
                         </div>
                     </div>
 

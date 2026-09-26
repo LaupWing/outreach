@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     CalendarClock,
@@ -6,29 +6,33 @@ import {
     Inbox,
     Reply,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
-import { LeadPanel } from '@/components/lead-panel';
+import { LeadPanel, type LeadWithNotes } from '@/components/lead-panel';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { mockLeads } from '@/mock/leads';
-import { mockMailboxes } from '@/mock/mailboxes';
-import { mockMessages } from '@/mock/messages';
-import { mockNiches } from '@/mock/niches';
-import { mockOffers } from '@/mock/offers';
-import { mockSequenceSteps } from '@/mock/sequence-steps';
 import { index as inboxIndex } from '@/routes/inbox';
-import type { Lead, Message } from '@/types';
-
-/** Mock "today"; real data compares against now. */
-const TODAY = '2026-09-26';
+import { index as leadsIndex } from '@/routes/leads';
+import type { Lead, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
 
 type Kind = 'reply' | 'due' | 'bounce';
 
+type PageProps = {
+    /** Every lead that sits in one of the queues, so the panel can show it. */
+    leads: LeadWithNotes[];
+    /** The server sorts the leads into the three queues against its own clock. */
+    queues: { replies: LeadWithNotes[]; due: LeadWithNotes[]; bounces: LeadWithNotes[] };
+    messages: Message[];
+    mailboxes: Mailbox[];
+    niches: Niche[];
+    offers: Offer[];
+    steps: SequenceStep[];
+};
+
 type Item = {
     kind: Kind;
-    lead: Lead;
+    lead: LeadWithNotes;
     message: Message | undefined;
     at: string;
 };
@@ -64,14 +68,15 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
     minute: '2-digit',
 });
 
-const lastMessageOf = (lead: Lead) =>
-    mockMessages.filter((message) => message.lead_id === lead.id).at(-1);
+export default function InboxIndex() {
+    const { leads, queues, messages, mailboxes, niches, offers, steps } = usePage<PageProps>().props;
 
-// The three queues: replies to answer, follow-ups the scheduler put on today, and bounces to fix.
-const items: Item[] = [
-    ...mockLeads
-        .filter((lead) => lead.status === 'replied')
-        .map((lead) => {
+    const lastMessageOf = (lead: Lead) =>
+        messages.filter((message) => message.lead_id === lead.id).at(-1);
+
+    // The three queues: replies to answer, follow-ups the scheduler put on today, and bounces to fix.
+    const items: Item[] = [
+        ...queues.replies.map((lead) => {
             const message = lastMessageOf(lead);
 
             return {
@@ -81,21 +86,13 @@ const items: Item[] = [
                 at: message?.reply?.received_at ?? lead.last_contact_at ?? '',
             };
         }),
-    ...mockLeads
-        .filter(
-            (lead) =>
-                lead.next_action_at !== null &&
-                lead.next_action_at.slice(0, 10) <= TODAY,
-        )
-        .map((lead) => ({
+        ...queues.due.map((lead) => ({
             kind: 'due' as const,
             lead,
             message: lastMessageOf(lead),
             at: lead.next_action_at ?? '',
         })),
-    ...mockLeads
-        .filter((lead) => lead.status === 'undeliverable')
-        .map((lead) => {
+        ...queues.bounces.map((lead) => {
             const message = lastMessageOf(lead);
 
             return {
@@ -105,20 +102,26 @@ const items: Item[] = [
                 at: message?.sent_at ?? lead.last_contact_at ?? '',
             };
         }),
-];
+    ];
 
-export default function InboxIndex() {
     const [kind, setKind] = useState<Kind | null>(null);
-    const [selected, setSelected] = useState<Lead | null>(null);
+    const [selectedId, setSelectedId] = useState<number | null>(null);
     // Keeps the last lead while the panel slides shut.
-    const [panelLead, setPanelLead] = useState<Lead | null>(null);
+    const [panelLead, setPanelLead] = useState<LeadWithNotes | null>(null);
+
+    // After a save the props come back fresh; the panel shows the new copy of its lead.
+    useEffect(() => {
+        setPanelLead((current) =>
+            current ? (leads.find((lead) => lead.id === current.id) ?? current) : current,
+        );
+    }, [leads]);
 
     const shown = (Object.keys(kinds) as Kind[]).filter(
         (key) => kind === null || key === kind,
     );
 
-    const select = (lead: Lead) => {
-        setSelected(lead);
+    const select = (lead: LeadWithNotes) => {
+        setSelectedId(lead.id);
         setPanelLead(lead);
     };
 
@@ -172,7 +175,7 @@ export default function InboxIndex() {
                                                 <Row
                                                     key={`${key}-${item.lead.id}`}
                                                     item={item}
-                                                    selected={item.lead.id === selected?.id}
+                                                    selected={item.lead.id === selectedId}
                                                     onSelect={() => select(item.lead)}
                                                 />
                                             ))}
@@ -190,15 +193,15 @@ export default function InboxIndex() {
 
                 <LeadPanel
                     lead={panelLead}
-                    niche={mockNiches.find((niche) => niche.id === panelLead?.niche_id)}
-                    offer={mockOffers.find((offer) => offer.id === panelLead?.offer_id)}
-                    niches={mockNiches}
-                    offers={mockOffers}
-                    messages={mockMessages.filter((message) => message.lead_id === panelLead?.id)}
-                    mailboxes={mockMailboxes}
-                    steps={mockSequenceSteps}
-                    open={selected !== null}
-                    onClose={() => setSelected(null)}
+                    niche={niches.find((niche) => niche.id === panelLead?.niche_id)}
+                    offer={offers.find((offer) => offer.id === panelLead?.offer_id)}
+                    niches={niches}
+                    offers={offers}
+                    messages={messages.filter((message) => message.lead_id === panelLead?.id)}
+                    mailboxes={mailboxes}
+                    steps={steps}
+                    open={selectedId !== null}
+                    onClose={() => setSelectedId(null)}
                     initialTab="messages"
                 />
             </div>
@@ -284,8 +287,8 @@ function Done() {
             <p className="text-xs text-muted-foreground">
                 Nothing waits on you. Start a scrape or write the next step.
             </p>
-            <Button variant="outline" size="sm" className="mt-2">
-                Go to leads
+            <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link href={leadsIndex()}>Go to leads</Link>
             </Button>
         </div>
     );

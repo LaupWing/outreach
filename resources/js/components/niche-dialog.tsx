@@ -1,5 +1,7 @@
+import { router, usePage } from '@inertiajs/react';
 import { Check, Flag, HelpCircle, Plus, Target } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
+import InputError from '@/components/input-error';
 import { nicheStatuses } from '@/components/niche-status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { store, update } from '@/routes/niches';
 import type { Niche, NicheStatus } from '@/types';
 
 /** Same order as the badge map: the path a niche takes. */
@@ -35,7 +38,6 @@ const valuesFrom = (niche?: Niche) => ({
  * Creates a niche: a market to test an offer on, or edits an existing one when
  * `niche` is given. Self-contained with its own trigger, so it can sit in a
  * page's static topbar actions. Findings are left out; they come from testing.
- * Nothing is saved yet.
  */
 export function NicheDialog({
     niche,
@@ -47,17 +49,45 @@ export function NicheDialog({
 }) {
     const initial = valuesFrom(niche);
     const editing = niche !== undefined;
+    const { errors } = usePage().props;
 
     const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [name, setName] = useState(initial.name);
     const [status, setStatus] = useState<NicheStatus>(initial.status);
     const [why, setWhy] = useState(initial.why);
 
-    const ready = name.trim() !== '';
+    const ready = name.trim() !== '' && !saving;
+
+    const reset = () => {
+        const values = valuesFrom(niche);
+        setName(values.name);
+        setStatus(values.status);
+        setWhy(values.why);
+    };
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setOpen(false);
+
+        const data = { name, status, why: why.trim() === '' ? null : why };
+        const options = {
+            preserveScroll: true,
+            onStart: () => setSaving(true),
+            onFinish: () => setSaving(false),
+            onSuccess: () => {
+                setOpen(false);
+
+                if (!editing) {
+                    reset();
+                }
+            },
+        };
+
+        if (editing) {
+            router.patch(update.url(niche.id), data, options);
+        } else {
+            router.post(store.url(), data, options);
+        }
     };
 
     const toggle = (value: boolean) => {
@@ -65,10 +95,7 @@ export function NicheDialog({
 
         // A cancelled edit must not linger into the next one.
         if (value && editing) {
-            const values = valuesFrom(niche);
-            setName(values.name);
-            setStatus(values.status);
-            setWhy(values.why);
+            reset();
         }
     };
 
@@ -108,6 +135,7 @@ export function NicheDialog({
                                 placeholder="Tandartsen"
                                 autoFocus
                             />
+                            <InputError message={errors.name} />
                         </Field>
 
                         <Field label="Status" icon={Flag}>
@@ -135,6 +163,7 @@ export function NicheDialog({
                                     </button>
                                 ))}
                             </div>
+                            <InputError message={errors.status} />
                         </Field>
 
                         <Field label="Why" icon={HelpCircle} htmlFor="niche-why">
@@ -145,6 +174,7 @@ export function NicheDialog({
                                 placeholder="Why this niche might work: money, pain, reachability."
                                 className={textareaClassName}
                             />
+                            <InputError message={errors.why} />
                         </Field>
                     </div>
 

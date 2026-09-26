@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'google' => [
+        'places' => [
+            'key' => env('GOOGLE_PLACES_KEY'),
+            // Text Search Enterprise: 1,000 free requests a month, then $35 per 1,000.
+            'free_requests' => (int) env('GOOGLE_PLACES_FREE_REQUESTS', 1000),
+            'price_per_1000' => (int) env('GOOGLE_PLACES_PRICE_PER_1000', 35),
+        ],
+    ],
+
 ];

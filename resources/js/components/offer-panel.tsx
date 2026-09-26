@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     Clock,
     FileText,
@@ -7,9 +8,10 @@ import {
     Square,
     Tag,
     Target,
+    Trash2,
     Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { OfferDialog } from '@/components/offer-dialog';
@@ -24,7 +26,8 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import type { Lead, Niche, Offer, SequenceStep } from '@/types';
+import { destroy, update } from '@/routes/offers';
+import type { Lead, Niche, Offer, OfferStatus, SequenceStep } from '@/types';
 
 const tabs = [
     { key: 'sequence', label: 'Sequence', icon: ListOrdered },
@@ -56,6 +59,45 @@ export function OfferPanel({
     onClose: () => void;
 }) {
     const [tab, setTab] = useState<Tab>('sequence');
+    // Delete asks twice: the second click within a few seconds does it.
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+    useEffect(() => {
+        if (!confirmingDelete) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => setConfirmingDelete(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [confirmingDelete]);
+
+    useEffect(() => {
+        setConfirmingDelete(false);
+    }, [offer?.id]);
+
+    const setStatus = (status: OfferStatus) => {
+        if (offer) {
+            router.patch(update.url(offer.id), { status }, { preserveScroll: true });
+        }
+    };
+
+    const remove = () => {
+        if (!offer) {
+            return;
+        }
+
+        if (!confirmingDelete) {
+            setConfirmingDelete(true);
+
+            return;
+        }
+
+        router.delete(destroy.url(offer.id), {
+            preserveScroll: true,
+            onSuccess: onClose,
+        });
+    };
 
     const replied = leads.filter((lead) => lead.status === 'replied').length;
     const rate = emailed > 0 ? `${Math.round((replied / emailed) * 100)}%` : undefined;
@@ -106,7 +148,7 @@ export function OfferPanel({
                             />
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <OfferDialog
                                 offer={offer}
                                 niches={niches}
@@ -118,16 +160,33 @@ export function OfferPanel({
                                 }
                             />
                             {offer.status === 'active' ? (
-                                <Button variant="outline" size="sm">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setStatus('stopped')}
+                                >
                                     <Square />
                                     Stop
                                 </Button>
                             ) : (
-                                <Button variant="outline" size="sm">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setStatus('active')}
+                                >
                                     <Play />
                                     Activate
                                 </Button>
                             )}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-auto text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
+                                onClick={remove}
+                            >
+                                <Trash2 />
+                                {confirmingDelete ? 'Really delete?' : 'Delete'}
+                            </Button>
                         </div>
                     </div>
 

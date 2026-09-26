@@ -23,13 +23,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { setSearchOpen, useSearchOpen } from '@/hooks/use-search';
-import { mockLeads } from '@/mock/leads';
-import { mockMailboxes } from '@/mock/mailboxes';
-import { mockMessages } from '@/mock/messages';
-import { mockNiches } from '@/mock/niches';
-import { mockOffers } from '@/mock/offers';
-import { mockScrapeRuns } from '@/mock/scrape-runs';
-import { dashboard } from '@/routes';
+import { dashboard, search } from '@/routes';
 import { index as inboxIndex } from '@/routes/inbox';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as mailboxesIndex } from '@/routes/mailboxes';
@@ -37,6 +31,7 @@ import { index as messagesIndex } from '@/routes/messages';
 import { index as nichesIndex } from '@/routes/niches';
 import { index as offersIndex } from '@/routes/offers';
 import { index as scrapeIndex } from '@/routes/scrape';
+import type { LeadStatus } from '@/types';
 
 const pages = [
     { title: 'Home', icon: House, url: dashboard().url },
@@ -49,8 +44,17 @@ const pages = [
     { title: 'Messages', icon: MessageSquare, url: messagesIndex().url },
 ];
 
-/** Results per group; enough to find it, not enough to drown in. */
-const LIMIT = 5;
+/** What the search endpoint returns, five per group. */
+type Results = {
+    leads: { id: number; company: string; city: string | null; status: LeadStatus }[];
+    niches: { id: number; name: string }[];
+    offers: { id: number; name: string; niche: { name: string } | null }[];
+    mailboxes: { id: number; address: string }[];
+    messages: { id: number; subject: string; lead: { company: string } | null }[];
+    runs: { id: number; query: string; place: string }[];
+};
+
+const empty: Results = { leads: [], niches: [], offers: [], mailboxes: [], messages: [], runs: [] };
 
 /** Every word of the query has to appear somewhere in the haystack. */
 function matches(query: string, haystack: string): boolean {
@@ -70,6 +74,7 @@ function matches(query: string, haystack: string): boolean {
 export function SearchCommand() {
     const open = useSearchOpen();
     const [query, setQuery] = useState('');
+    const [results, setResults] = useState<Results>(empty);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -88,55 +93,50 @@ export function SearchCommand() {
     useEffect(() => {
         if (open) {
             setQuery('');
+            setResults(empty);
         }
     }, [open]);
+
+    // Ask the server after a short pause in typing; a stale answer is dropped.
+    useEffect(() => {
+        if (query.trim() === '') {
+            setResults(empty);
+
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            fetch(search.url({ query: { q: query.trim() } }), {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then((response) => (response.ok ? response.json() : empty))
+                .then((data: Results) => setResults(data))
+                .catch(() => undefined);
+        }, 150);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [query]);
 
     const go = (url: string) => {
         setSearchOpen(false);
         router.visit(url);
     };
 
-    const nicheName = (id: number) =>
-        mockNiches.find((niche) => niche.id === id)?.name;
-    const companyOf = (id: number) =>
-        mockLeads.find((lead) => lead.id === id)?.company ?? '';
-
-    // Filtering is ours, not cmdk's: an empty query shows only the pages, and every group is capped.
     const typing = query.trim() !== '';
-    const pick = <T,>(items: T[], text: (item: T) => string) =>
-        typing
-            ? items.filter((item) => matches(query, text(item))).slice(0, LIMIT)
-            : [];
-
     const foundPages = typing
         ? pages.filter((page) => matches(query, page.title))
         : pages;
-    const foundLeads = pick(
-        mockLeads,
-        (lead) =>
-            `${lead.company} ${lead.email ?? ''} ${lead.city ?? ''} ${lead.website ?? ''} ${nicheName(lead.niche_id) ?? ''}`,
-    );
-    const foundNiches = pick(mockNiches, (niche) => `${niche.name} ${niche.status}`);
-    const foundOffers = pick(
-        mockOffers,
-        (offer) => `${offer.name} ${nicheName(offer.niche_id) ?? ''}`,
-    );
-    const foundMailboxes = pick(
-        mockMailboxes,
-        (mailbox) => `${mailbox.address} ${mailbox.type}`,
-    );
-    const foundMessages = pick(
-        mockMessages,
-        (message) =>
-            `${message.subject} ${companyOf(message.lead_id)} ${message.reply?.body ?? ''}`,
-    );
-    const foundRuns = pick(mockScrapeRuns, (run) => `${run.query} ${run.place}`);
+    const { leads: foundLeads, niches: foundNiches, offers: foundOffers, mailboxes: foundMailboxes, messages: foundMessages, runs: foundRuns } = results;
 
     const nothing =
         typing &&
-        [foundPages, foundLeads, foundNiches, foundOffers, foundMailboxes, foundMessages, foundRuns].every(
-            (group) => group.length === 0,
-        );
+        foundPages.length === 0 &&
+        Object.values(results).every((group) => group.length === 0);
 
     return (
         <DialogPrimitive.Root open={open} onOpenChange={setSearchOpen}>
@@ -191,7 +191,7 @@ export function SearchCommand() {
                                 {foundLeads.map((lead) => (
                                     <CommandItem
                                         key={lead.id}
-                                        value={`lead ${lead.company} ${lead.email ?? ''} ${lead.city ?? ''} ${lead.website ?? ''} ${nicheName(lead.niche_id) ?? ''}`}
+                                        value={`lead ${lead.id}`}
                                         onSelect={() =>
                                             go(leadsIndex({ query: { lead: lead.id } }).url)
                                         }
@@ -199,10 +199,12 @@ export function SearchCommand() {
                                         <CompanyAvatar name={lead.company} className="size-5 text-[9px]" />
                                         <span className="min-w-0 flex-1 truncate">
                                             {lead.company}
-                                            <span className="text-muted-foreground">
-                                                {' '}
-                                                · {lead.city}
-                                            </span>
+                                            {lead.city && (
+                                                <span className="text-muted-foreground">
+                                                    {' '}
+                                                    · {lead.city}
+                                                </span>
+                                            )}
                                         </span>
                                         <LeadStatusBadge status={lead.status} className="shrink-0" />
                                     </CommandItem>
@@ -215,7 +217,7 @@ export function SearchCommand() {
                                 {foundNiches.map((niche) => (
                                     <CommandItem
                                         key={niche.id}
-                                        value={`niche ${niche.name} ${niche.status}`}
+                                        value={`niche ${niche.id}`}
                                         onSelect={() =>
                                             go(nichesIndex({ query: { niche: niche.id } }).url)
                                         }
@@ -232,7 +234,7 @@ export function SearchCommand() {
                                 {foundOffers.map((offer) => (
                                     <CommandItem
                                         key={offer.id}
-                                        value={`offer ${offer.name} ${nicheName(offer.niche_id) ?? ''}`}
+                                        value={`offer ${offer.id}`}
                                         onSelect={() =>
                                             go(offersIndex({ query: { offer: offer.id } }).url)
                                         }
@@ -240,10 +242,12 @@ export function SearchCommand() {
                                         <Tag />
                                         <span className="min-w-0 flex-1 truncate">
                                             {offer.name}
-                                            <span className="text-muted-foreground">
-                                                {' '}
-                                                · {nicheName(offer.niche_id)}
-                                            </span>
+                                            {offer.niche && (
+                                                <span className="text-muted-foreground">
+                                                    {' '}
+                                                    · {offer.niche.name}
+                                                </span>
+                                            )}
                                         </span>
                                     </CommandItem>
                                 ))}
@@ -255,7 +259,7 @@ export function SearchCommand() {
                                 {foundMailboxes.map((mailbox) => (
                                     <CommandItem
                                         key={mailbox.id}
-                                        value={`mailbox ${mailbox.address} ${mailbox.type}`}
+                                        value={`mailbox ${mailbox.id}`}
                                         onSelect={() =>
                                             go(mailboxesIndex({ query: { mailbox: mailbox.id } }).url)
                                         }
@@ -272,7 +276,7 @@ export function SearchCommand() {
                                 {foundMessages.map((message) => (
                                     <CommandItem
                                         key={message.id}
-                                        value={`message ${message.subject} ${companyOf(message.lead_id)} ${message.reply?.body ?? ''}`}
+                                        value={`message ${message.id}`}
                                         onSelect={() =>
                                             go(messagesIndex({ query: { message: message.id } }).url)
                                         }
@@ -280,10 +284,12 @@ export function SearchCommand() {
                                         <Mail />
                                         <span className="min-w-0 flex-1 truncate">
                                             {message.subject}
-                                            <span className="text-muted-foreground">
-                                                {' '}
-                                                · {companyOf(message.lead_id)}
-                                            </span>
+                                            {message.lead && (
+                                                <span className="text-muted-foreground">
+                                                    {' '}
+                                                    · {message.lead.company}
+                                                </span>
+                                            )}
                                         </span>
                                     </CommandItem>
                                 ))}
@@ -295,7 +301,7 @@ export function SearchCommand() {
                                 {foundRuns.map((run) => (
                                     <CommandItem
                                         key={run.id}
-                                        value={`scrape ${run.query} ${run.place}`}
+                                        value={`scrape ${run.id}`}
                                         onSelect={() =>
                                             go(scrapeIndex({ query: { run: run.id } }).url)
                                         }

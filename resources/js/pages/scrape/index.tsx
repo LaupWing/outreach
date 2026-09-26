@@ -3,31 +3,53 @@ import { Radar } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NewScrapeDialog } from '@/components/new-scrape-dialog';
 import { PlacesUsageCard } from '@/components/places-usage';
-import { ScrapeRunPanel } from '@/components/scrape-run-panel';
+import { ScrapeRunPanel, type ScrapeLead } from '@/components/scrape-run-panel';
 import { ScrapeRunsTable } from '@/components/scrape-runs-table';
-import { mockLeads } from '@/mock/leads';
-import { mockNiches } from '@/mock/niches';
-import { mockPlacesUsage, mockScrapeRuns } from '@/mock/scrape-runs';
 import { index as scrapeIndex } from '@/routes/scrape';
-import type { ScrapeRun } from '@/types';
+import type { Niche, PlacesUsage, ScrapeRun } from '@/types';
+
+type PageProps = {
+    /** Newest first. */
+    runs: ScrapeRun[];
+    niches: Niche[];
+    /** Only the leads a run found, lean: what the panel's list shows. */
+    leads: ScrapeLead[];
+    usage: PlacesUsage;
+};
 
 export default function ScrapeIndex() {
+    const { runs, niches, leads, usage } = usePage<PageProps>().props;
+
     // Search deep-links here with ?run=ID.
     const { url } = usePage();
     const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('run');
-    const linked = mockScrapeRuns.find((item) => String(item.id) === linkedId) ?? null;
+    const linked = runs.find((item) => String(item.id) === linkedId) ?? null;
 
     const [selected, setSelected] = useState<ScrapeRun | null>(linked);
+    // Keeps the last run while the panel slides shut.
+    const [panelRun, setPanelRun] = useState<ScrapeRun | null>(linked);
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
         if (linked) {
             setSelected(linked);
-            setSelected(linked);
+            setPanelRun(linked);
         }
     }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
-    // Keeps the last run while the panel slides shut.
-    const [panelRun, setPanelRun] = useState<ScrapeRun | null>(linked);
+
+    // Fresh props after a mutation: keep showing the same run, with its new counts.
+    useEffect(() => {
+        setPanelRun((current) =>
+            current
+                ? (runs.find((item) => item.id === current.id) ?? current)
+                : current,
+        );
+        setSelected((current) =>
+            current
+                ? (runs.find((item) => item.id === current.id) ?? null)
+                : current,
+        );
+    }, [runs]);
 
     return (
         <>
@@ -37,12 +59,12 @@ export default function ScrapeIndex() {
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                     {/* The budget sits above the runs: you check it before you start one. */}
                     <div className="shrink-0 border-b border-border p-4">
-                        <PlacesUsageCard usage={mockPlacesUsage} />
+                        <PlacesUsageCard usage={usage} />
                     </div>
 
                     <ScrapeRunsTable
-                        runs={mockScrapeRuns}
-                        niches={mockNiches}
+                        runs={runs}
+                        niches={niches}
                         selectedId={selected?.id ?? null}
                         onSelect={(run) => {
                             setSelected(run);
@@ -52,10 +74,10 @@ export default function ScrapeIndex() {
                 </div>
                 <ScrapeRunPanel
                     run={panelRun}
-                    niche={mockNiches.find((niche) => niche.id === panelRun?.niche_id)}
-                    niches={mockNiches}
-                    usage={mockPlacesUsage}
-                    leads={mockLeads.filter((lead) => lead.scrape_run_id === panelRun?.id)}
+                    niche={niches.find((niche) => niche.id === panelRun?.niche_id)}
+                    niches={niches}
+                    usage={usage}
+                    leads={leads.filter((lead) => lead.scrape_run_id === panelRun?.id)}
                     open={selected !== null}
                     onClose={() => setSelected(null)}
                 />
@@ -64,7 +86,14 @@ export default function ScrapeIndex() {
     );
 }
 
+/** The topbar action lives outside the page tree, so it reads the props itself. */
+function NewScrapeAction() {
+    const { niches, usage } = usePage<PageProps>().props;
+
+    return <NewScrapeDialog niches={niches} usage={usage} />;
+}
+
 ScrapeIndex.layout = {
     breadcrumbs: [{ title: 'Scrape', href: scrapeIndex(), icon: Radar }],
-    actions: <NewScrapeDialog niches={mockNiches} usage={mockPlacesUsage} />,
+    actions: <NewScrapeAction />,
 };

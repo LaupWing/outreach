@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { Ellipsis } from 'lucide-react';
 import {
     DropdownMenu,
@@ -13,14 +14,17 @@ import {
 import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { mockUser } from '@/mock/user';
 
 export function NavUser() {
     const { state } = useSidebar();
     const isMobile = useIsMobile();
 
-    // Mock until the layout gets the real `auth.user` prop.
-    const user = mockUser;
+    const { auth } = usePage().props;
+    const user = auth.user;
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <SidebarMenu>

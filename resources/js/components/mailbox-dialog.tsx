@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     AtSign,
     Check,
@@ -27,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { store, update } from '@/routes/mailboxes';
 import type { Mailbox, MailboxType } from '@/types';
 
 /** Pick the connection first, then set it up; the two forms look nothing alike. */
@@ -94,20 +96,49 @@ export function MailboxDialog({
     const [password, setPassword] = useState('');
     const [dailyLimit, setDailyLimit] = useState(initial.dailyLimit);
     const [warmUp, setWarmUp] = useState(initial.warmUp);
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // An existing box is already connected; its password stays unless a new one is typed.
     const ready = editing
         ? type === 'gmail' || address.trim() !== ''
         : type === 'gmail'
-          ? connected
+          ? connected && address.trim() !== ''
           : address.trim() !== '' &&
             imapHost.trim() !== '' &&
             smtpHost.trim() !== '' &&
             password.trim() !== '';
 
+    // Hosts and password ride along for validation; the server stores them once the mail connection lands.
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setOpen(false);
+
+        const credentials = type === 'imap'
+            ? { imap_host: imapHost, smtp_host: smtpHost, password }
+            : {};
+        const options = {
+            preserveScroll: true,
+            onStart: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
+            onError: (bag: Record<string, string>) => setErrors(bag),
+            onSuccess: () => setOpen(false),
+        };
+
+        if (editing) {
+            router.patch(
+                update.url(mailbox.id),
+                { daily_limit: dailyLimit, warm_up: warmUp, ...credentials },
+                options,
+            );
+
+            return;
+        }
+
+        router.post(
+            store.url(),
+            { type, address, daily_limit: dailyLimit, warm_up: warmUp, ...credentials },
+            options,
+        );
     };
 
     const toggle = (value: boolean) => {
@@ -115,6 +146,7 @@ export function MailboxDialog({
         setStep(0);
         setConnected(false);
         setCopied(false);
+        setErrors({});
 
         // A cancelled edit must not linger into the next one.
         if (value && editing) {
@@ -298,17 +330,24 @@ export function MailboxDialog({
                             {/* Google's picker lets you choose or add an account, so several Gmails need no tricks. */}
                             <div className="flex flex-col gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-4 shadow-(--raised-shadow)">
                                 {connected ? (
+                                    // Mocked connect: Google would hand the address back; until then it is typed here.
                                     <div className="flex items-center gap-3 text-sm">
                                         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-500/15 text-green-600 dark:text-green-400">
                                             <Check className="size-4" />
                                         </span>
-                                        <span className="flex min-w-0 flex-col">
+                                        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                                             <span className="font-medium">
                                                 Connected
                                             </span>
-                                            <span className="truncate text-xs text-muted-foreground">
-                                                loc@snelstack.com
-                                            </span>
+                                            <Input
+                                                type="email"
+                                                value={address}
+                                                onChange={(event) => setAddress(event.target.value)}
+                                                placeholder="loc@snelstack.com"
+                                                aria-label="Gmail address"
+                                                autoFocus
+                                            />
+                                            <FieldError message={errors.address} />
                                         </span>
                                     </div>
                                 ) : (
@@ -369,7 +408,7 @@ export function MailboxDialog({
                         </div>
                     ) : (
                         <div className="grid gap-4">
-                            <Field label="Address" icon={AtSign} htmlFor="mailbox-address">
+                            <Field label="Address" icon={AtSign} htmlFor="mailbox-address" error={errors.address}>
                                 <Input
                                     id="mailbox-address"
                                     type="email"
@@ -427,7 +466,7 @@ export function MailboxDialog({
                                 >
                                     Cancel
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready}>
+                                <Button key="submit" type="submit" disabled={!ready || processing}>
                                     <Check />
                                     Save
                                 </Button>
@@ -463,7 +502,7 @@ export function MailboxDialog({
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready}>
+                                <Button key="submit" type="submit" disabled={!ready || processing}>
                                     <Plus />
                                     Add mailbox
                                 </Button>
@@ -529,11 +568,13 @@ function Field({
     label,
     icon: Icon,
     htmlFor,
+    error,
     children,
 }: {
     label: string;
     icon: typeof Mail;
     htmlFor?: string;
+    error?: string;
     children: ReactNode;
 }) {
     return (
@@ -546,6 +587,15 @@ function Field({
                 {label}
             </Label>
             {children}
+            <FieldError message={error} />
         </div>
     );
+}
+
+function FieldError({ message }: { message?: string }) {
+    if (!message) {
+        return null;
+    }
+
+    return <p className="text-xs text-red-600 dark:text-red-400">{message}</p>;
 }

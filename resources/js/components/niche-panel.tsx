@@ -1,9 +1,11 @@
+import { router } from '@inertiajs/react';
 import {
     Check,
     FileText,
     Pencil,
     RotateCcw,
     Tag,
+    Trash2,
     Users,
     XCircle,
 } from 'lucide-react';
@@ -22,6 +24,7 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
+import { destroy, update } from '@/routes/niches';
 import type { Lead, LeadStatus, Niche, NicheStatus, Offer } from '@/types';
 
 const tabs = [
@@ -50,12 +53,45 @@ export function NichePanel({
     onClose: () => void;
 }) {
     const [tab, setTab] = useState<Tab>('overview');
-    // Mock state: the buttons change a local copy until there is a backend.
-    const [status, setStatus] = useState<NicheStatus>(niche?.status ?? 'idea');
+    // Delete asks twice: the second click within a few seconds does it.
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     useEffect(() => {
-        setStatus(niche?.status ?? 'idea');
-    }, [niche?.id, niche?.status]);
+        if (!confirmingDelete) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => setConfirmingDelete(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [confirmingDelete]);
+
+    useEffect(() => {
+        setConfirmingDelete(false);
+    }, [niche?.id]);
+
+    const setStatus = (status: NicheStatus) => {
+        if (niche) {
+            router.patch(update.url(niche.id), { status }, { preserveScroll: true });
+        }
+    };
+
+    const remove = () => {
+        if (!niche) {
+            return;
+        }
+
+        if (!confirmingDelete) {
+            setConfirmingDelete(true);
+
+            return;
+        }
+
+        router.delete(destroy.url(niche.id), {
+            preserveScroll: true,
+            onSuccess: onClose,
+        });
+    };
 
     const replied = leads.filter((lead) => lead.status === 'replied').length;
     const perStatus = (Object.keys(leadStatuses) as LeadStatus[])
@@ -85,7 +121,7 @@ export function NichePanel({
                                 <h2 className="truncate text-lg font-semibold tracking-tight">
                                     {niche.name}
                                 </h2>
-                                <NicheStatusBadge status={status} />
+                                <NicheStatusBadge status={niche.status} />
                             </div>
                         </div>
 
@@ -103,7 +139,7 @@ export function NichePanel({
                             <SidePanelStat label="Offers" value={offers.length} />
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <NicheDialog
                                 niche={niche}
                                 trigger={
@@ -113,7 +149,7 @@ export function NichePanel({
                                     </Button>
                                 }
                             />
-                            {status !== 'proven' && (
+                            {niche.status !== 'proven' && (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -123,7 +159,7 @@ export function NichePanel({
                                     Mark proven
                                 </Button>
                             )}
-                            {status === 'dropped' ? (
+                            {niche.status === 'dropped' ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -144,6 +180,15 @@ export function NichePanel({
                                     Drop
                                 </Button>
                             )}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-auto text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
+                                onClick={remove}
+                            >
+                                <Trash2 />
+                                {confirmingDelete ? 'Really delete?' : 'Delete'}
+                            </Button>
                         </div>
                     </div>
 
@@ -171,7 +216,7 @@ export function NichePanel({
 
                                 <dl className="flex flex-col py-2">
                                     <SidePanelRow icon={Tag} label="Status">
-                                        {nicheStatuses[status].label}
+                                        {nicheStatuses[niche.status].label}
                                     </SidePanelRow>
                                     {perStatus.length === 0 ? (
                                         <SidePanelRow icon={Users} label="Leads">

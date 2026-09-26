@@ -36,8 +36,8 @@ export function MessagePanel({
     onClose,
 }: {
     message: Message | null;
-    lead: Lead | undefined;
-    mailbox: Mailbox | undefined;
+    lead: Pick<Lead, 'id' | 'company' | 'email'> | undefined;
+    mailbox: Pick<Mailbox, 'id' | 'address'> | undefined;
     open: boolean;
     onClose: () => void;
 }) {

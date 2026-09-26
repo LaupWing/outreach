@@ -1,3 +1,4 @@
+import { useForm } from '@inertiajs/react';
 import { Coins, MapPin, Plus, Search, Target, X } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { store } from '@/routes/scrape';
 import type { Niche, PlacesUsage } from '@/types';
 
 /** Places returns twenty results per page and at most three pages per search. */
@@ -32,7 +34,7 @@ const NEW_NICHE = '__new';
 
 /**
  * Starts a Google Places search. Self-contained with its own trigger, so it can sit
- * in a page's static topbar actions. Nothing is sent yet; that comes with the scraper.
+ * in a page's static topbar actions. Posting queues the run; the scraper picks it up later.
  */
 export function NewScrapeDialog({
     niches,
@@ -47,27 +49,56 @@ export function NewScrapeDialog({
     trigger?: ReactNode;
 }) {
     const [open, setOpen] = useState(false);
-    const [query, setQuery] = useState(prefill?.query ?? '');
-    const [place, setPlace] = useState(prefill?.place ?? '');
-    const [nicheId, setNicheId] = useState(
-        prefill ? String(prefill.niche_id) : '',
-    );
-    const [newNiche, setNewNiche] = useState('');
-    const [pages, setPages] = useState(MAX_PAGES);
+    const form = useForm({
+        query: prefill?.query ?? '',
+        place: prefill?.place ?? '',
+        /** A niche id as string, or the sentinel while a new one is being typed. */
+        niche_id: prefill ? String(prefill.niche_id) : '',
+        new_niche: '',
+        pages: MAX_PAGES,
+    });
+    const { data, setData, errors, processing } = form;
 
     const left = Math.max(usage.free_limit - usage.used, 0);
-    const overBudget = pages > left;
-    const hasNiche =
-        nicheId === NEW_NICHE ? newNiche.trim() !== '' : nicheId !== '';
-    const ready = query.trim() !== '' && place.trim() !== '' && hasNiche;
+    const overBudget = data.pages > left;
+    const creatingNiche = data.niche_id === NEW_NICHE;
+    const hasNiche = creatingNiche
+        ? data.new_niche.trim() !== ''
+        : data.niche_id !== '';
+    const ready = data.query.trim() !== '' && data.place.trim() !== '' && hasNiche;
+
+    // The server wants one of the two: an existing id or the name of a new niche.
+    form.transform((values) => ({
+        query: values.query,
+        place: values.place,
+        pages: values.pages,
+        ...(values.niche_id === NEW_NICHE
+            ? { new_niche: values.new_niche.trim() }
+            : { niche_id: Number(values.niche_id) }),
+    }));
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setOpen(false);
+
+        form.post(store.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setOpen(false);
+                form.reset();
+            },
+        });
+    };
+
+    const toggle = (value: boolean) => {
+        setOpen(value);
+
+        if (value) {
+            form.clearErrors();
+        }
     };
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
                 {trigger ?? (
                     <Button
@@ -96,12 +127,13 @@ export function NewScrapeDialog({
                             label="Search"
                             icon={Search}
                             htmlFor="scrape-query"
+                            error={errors.query}
                         >
                             <Input
                                 id="scrape-query"
-                                value={query}
+                                value={data.query}
                                 onChange={(event) =>
-                                    setQuery(event.target.value)
+                                    setData('query', event.target.value)
                                 }
                                 placeholder="tandarts"
                                 autoFocus
@@ -112,12 +144,13 @@ export function NewScrapeDialog({
                             label="Place"
                             icon={MapPin}
                             htmlFor="scrape-place"
+                            error={errors.place}
                         >
                             <Input
                                 id="scrape-place"
-                                value={place}
+                                value={data.place}
                                 onChange={(event) =>
-                                    setPlace(event.target.value)
+                                    setData('place', event.target.value)
                                 }
                                 placeholder="Haarlem"
                             />
@@ -127,15 +160,16 @@ export function NewScrapeDialog({
                             label="Niche"
                             icon={Target}
                             htmlFor="scrape-niche"
+                            error={errors.niche_id ?? errors.new_niche}
                         >
-                            {nicheId === NEW_NICHE ? (
+                            {creatingNiche ? (
                                 // Typing a new niche right here beats leaving the dialog to make one first.
                                 <div className="flex gap-1.5">
                                     <Input
                                         id="scrape-niche"
-                                        value={newNiche}
+                                        value={data.new_niche}
                                         onChange={(event) =>
-                                            setNewNiche(event.target.value)
+                                            setData('new_niche', event.target.value)
                                         }
                                         placeholder="Name of the new niche"
                                         autoFocus
@@ -147,8 +181,8 @@ export function NewScrapeDialog({
                                         className="shrink-0 text-muted-foreground"
                                         aria-label="Pick an existing niche instead"
                                         onClick={() => {
-                                            setNicheId('');
-                                            setNewNiche('');
+                                            setData('niche_id', '');
+                                            setData('new_niche', '');
                                         }}
                                     >
                                         <X />
@@ -156,8 +190,8 @@ export function NewScrapeDialog({
                                 </div>
                             ) : (
                                 <Select
-                                    value={nicheId}
-                                    onValueChange={setNicheId}
+                                    value={data.niche_id}
+                                    onValueChange={(value) => setData('niche_id', value)}
                                 >
                                     <SelectTrigger
                                         id="scrape-niche"
@@ -199,11 +233,11 @@ export function NewScrapeDialog({
                                         key={count}
                                         type="button"
                                         role="radio"
-                                        aria-checked={pages === count}
-                                        onClick={() => setPages(count)}
+                                        aria-checked={data.pages === count}
+                                        onClick={() => setData('pages', count)}
                                         className={cn(
                                             'flex flex-1 flex-col items-center rounded-[5px] border px-2 py-1.5 text-sm transition-colors tabular-nums',
-                                            pages === count
+                                            data.pages === count
                                                 ? 'border-(--raised-border) bg-background text-foreground shadow-(--raised-shadow)'
                                                 : 'border-transparent text-muted-foreground hover:text-foreground',
                                         )}
@@ -220,32 +254,40 @@ export function NewScrapeDialog({
                     </div>
 
                     {/* What this run costs against the free tier, before you press start. */}
-                    <div className="flex items-center justify-between rounded-lg border border-(--raised-border) bg-accent/40 px-4 py-3 text-sm shadow-(--raised-shadow)">
-                        <div className="flex flex-col gap-0.5">
-                            <span>
-                                {pages} {pages === 1 ? 'request' : 'requests'},
-                                up to {pages * RESULTS_PER_PAGE} businesses
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                                {overBudget
-                                    ? 'Not enough free requests left this month.'
-                                    : `${left - pages} of ${usage.free_limit} free requests left after this run.`}
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between rounded-lg border border-(--raised-border) bg-accent/40 px-4 py-3 text-sm shadow-(--raised-shadow)">
+                            <div className="flex flex-col gap-0.5">
+                                <span>
+                                    {data.pages} {data.pages === 1 ? 'request' : 'requests'},
+                                    up to {data.pages * RESULTS_PER_PAGE} businesses
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    {overBudget
+                                        ? 'Not enough free requests left this month.'
+                                        : `${left - data.pages} of ${usage.free_limit} free requests left after this run.`}
+                                </span>
+                            </div>
+                            <span
+                                className={cn(
+                                    'text-lg font-semibold tabular-nums',
+                                    overBudget
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'lava bg-clip-text text-transparent',
+                                )}
+                            >
+                                {usage.used + data.pages}
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    {' '}
+                                    / {usage.free_limit}
+                                </span>
                             </span>
                         </div>
-                        <span
-                            className={cn(
-                                'text-lg font-semibold tabular-nums',
-                                overBudget
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : 'lava bg-clip-text text-transparent',
-                            )}
-                        >
-                            {usage.used + pages}
-                            <span className="text-xs font-normal text-muted-foreground">
-                                {' '}
-                                / {usage.free_limit}
-                            </span>
-                        </span>
+                        {/* The server checks the budget too; the page's usage can lag a run queued elsewhere. */}
+                        {errors.pages && (
+                            <p className="text-xs text-red-600 dark:text-red-400">
+                                {errors.pages}
+                            </p>
+                        )}
                     </div>
 
                     <DialogFooter>
@@ -256,7 +298,10 @@ export function NewScrapeDialog({
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={!ready || overBudget}>
+                        <Button
+                            type="submit"
+                            disabled={!ready || overBudget || processing}
+                        >
                             <Search />
                             Start scrape
                         </Button>
@@ -271,11 +316,13 @@ function Field({
     label,
     icon: Icon,
     htmlFor,
+    error,
     children,
 }: {
     label: string;
     icon: typeof Search;
     htmlFor?: string;
+    error?: string;
     children: ReactNode;
 }) {
     return (
@@ -288,6 +335,9 @@ function Field({
                 {label}
             </Label>
             {children}
+            {error && (
+                <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            )}
         </div>
     );
 }

@@ -6,35 +6,34 @@ import type { FilterOption } from '@/components/filters/filter-trigger';
 import { MessagePanel } from '@/components/message-panel';
 import { messageStatuses } from '@/components/message-status-badge';
 import { MessagesTable } from '@/components/messages-table';
-import { mockLeads } from '@/mock/leads';
-import { mockMailboxes } from '@/mock/mailboxes';
-import { mockMessages } from '@/mock/messages';
 import { index as messagesIndex } from '@/routes/messages';
-import type { Message, MessageStatus } from '@/types';
+import type { Lead, Mailbox, Message, MessageStatus } from '@/types';
+
+type PageProps = {
+    messages: Message[];
+    leads: Pick<Lead, 'id' | 'company' | 'email'>[];
+    mailboxes: Pick<Mailbox, 'id' | 'address'>[];
+};
 
 const statusOptions: FilterOption[] = (
     Object.keys(messageStatuses) as MessageStatus[]
 ).map((value) => ({ value, label: messageStatuses[value].label }));
 
-const mailboxOptions: FilterOption[] = mockMailboxes.map((mailbox) => ({
-    value: String(mailbox.id),
-    label: mailbox.address,
-}));
-
-// Newest first: the last thing that went out is the first thing you want to see.
-const sorted = [...mockMessages].sort((a, b) =>
-    (b.sent_at ?? '').localeCompare(a.sent_at ?? ''),
-);
-
 const iconClassName = 'size-3.5 text-muted-foreground';
 
 export default function MessagesIndex() {
+    const { messages: allMessages, leads, mailboxes: allMailboxes } = usePage<PageProps>().props;
+    const mailboxOptions: FilterOption[] = allMailboxes.map((mailbox) => ({
+        value: String(mailbox.id),
+        label: mailbox.address,
+    }));
+
     const [statuses, setStatuses] = useState<string[]>([]);
     const [mailboxes, setMailboxes] = useState<string[]>([]);
     // Search deep-links here with ?message=ID.
     const { url } = usePage();
     const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('message');
-    const linked = mockMessages.find((item) => String(item.id) === linkedId) ?? null;
+    const linked = allMessages.find((item) => String(item.id) === linkedId) ?? null;
 
     const [selected, setSelected] = useState<Message | null>(linked);
 
@@ -48,7 +47,7 @@ export default function MessagesIndex() {
     // Keeps the last message while the panel slides shut.
     const [panelMessage, setPanelMessage] = useState<Message | null>(linked);
 
-    const messages = sorted.filter(
+    const messages = allMessages.filter(
         (message) =>
             (statuses.length === 0 || statuses.includes(message.status)) &&
             (mailboxes.length === 0 ||
@@ -83,8 +82,8 @@ export default function MessagesIndex() {
                     </div>
                     <MessagesTable
                         messages={messages}
-                        leads={mockLeads}
-                        mailboxes={mockMailboxes}
+                        leads={leads}
+                        mailboxes={allMailboxes}
                         selectedId={selected?.id ?? null}
                         onSelect={(message) => {
                             setSelected(message);
@@ -94,8 +93,8 @@ export default function MessagesIndex() {
                 </div>
                 <MessagePanel
                     message={panelMessage}
-                    lead={mockLeads.find((lead) => lead.id === panelMessage?.lead_id)}
-                    mailbox={mockMailboxes.find(
+                    lead={leads.find((lead) => lead.id === panelMessage?.lead_id)}
+                    mailbox={allMailboxes.find(
                         (mailbox) => mailbox.id === panelMessage?.mailbox_id,
                     )}
                     open={selected !== null}

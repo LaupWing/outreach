@@ -29,6 +29,12 @@ import { cn } from '@/lib/utils';
 import { index as leadsIndex } from '@/routes/leads';
 import type { Lead, Niche, PlacesUsage, ScrapeRun } from '@/types';
 
+/** What the run panel needs of a lead: enough to list it and flag the sites that blocked us. */
+export type ScrapeLead = Pick<
+    Lead,
+    'id' | 'company' | 'email' | 'status' | 'scrape_run_id' | 'website' | 'signals'
+>;
+
 const tabs = [
     { key: 'overview', label: 'Overview', icon: FileText },
     { key: 'leads', label: 'Leads', icon: Users },
@@ -71,7 +77,7 @@ export function ScrapeRunPanel({
     niche: Niche | undefined;
     niches: Niche[];
     usage: PlacesUsage;
-    leads: Lead[];
+    leads: ScrapeLead[];
     open: boolean;
     onClose: () => void;
 }) {
@@ -79,7 +85,7 @@ export function ScrapeRunPanel({
     const [blockedOnly, setBlockedOnly] = useState(false);
 
     // Sites the enricher could not read: blocked us, or render fully with JavaScript.
-    const isFlagged = (lead: Lead) =>
+    const isFlagged = (lead: ScrapeLead) =>
         Boolean(lead.signals?.blocked || lead.signals?.javascript_only);
     const flagged = leads.filter(isFlagged);
     const shown = blockedOnly ? flagged : leads;

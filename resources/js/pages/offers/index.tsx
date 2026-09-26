@@ -8,73 +8,92 @@ import { OfferPanel } from '@/components/offer-panel';
 import { offerStatuses } from '@/components/offer-status-badge';
 import { OffersTable, type OfferCounts } from '@/components/offers-table';
 import { OfferDialog } from '@/components/offer-dialog';
-import { mockLeads } from '@/mock/leads';
-import { mockMessages } from '@/mock/messages';
-import { mockNiches } from '@/mock/niches';
-import { mockOffers } from '@/mock/offers';
-import { mockSequenceSteps } from '@/mock/sequence-steps';
 import { index as offersIndex } from '@/routes/offers';
-import type { Offer, OfferStatus } from '@/types';
+import type {
+    Lead,
+    Message,
+    Niche,
+    Offer,
+    OfferStatus,
+    SequenceStep,
+} from '@/types';
+
+type PageProps = {
+    offers: Offer[];
+    niches: Niche[];
+    leads: Lead[];
+    messages: Message[];
+    /** Every sequence step, ordered by offer and step. */
+    steps: SequenceStep[];
+};
 
 const statusOptions: FilterOption[] = (
     Object.keys(offerStatuses) as OfferStatus[]
 ).map((value) => ({ value, label: offerStatuses[value].label }));
 
-const nicheOptions: FilterOption[] = mockNiches.map((niche) => ({
-    value: String(niche.id),
-    label: niche.name,
-}));
-
-// Leads that got at least one mail out; a lead's status alone loses this once it replies.
-const emailedLeadIds = new Set(
-    mockMessages
-        .filter((message) => message.sent_at !== null)
-        .map((message) => message.lead_id),
-);
-
-const counts: Record<number, OfferCounts> = Object.fromEntries(
-    mockOffers.map((offer) => {
-        const leads = mockLeads.filter((lead) => lead.offer_id === offer.id);
-
-        return [
-            offer.id,
-            {
-                steps: mockSequenceSteps.filter(
-                    (step) => step.offer_id === offer.id,
-                ).length,
-                leads: leads.length,
-                emailed: leads.filter((lead) => emailedLeadIds.has(lead.id))
-                    .length,
-                replied: leads.filter((lead) => lead.status === 'replied')
-                    .length,
-            },
-        ];
-    }),
-);
-
 const iconClassName = 'size-3.5 text-muted-foreground';
 
 export default function OffersIndex() {
+    const {
+        offers: allOffers,
+        niches: allNiches,
+        leads,
+        messages,
+        steps,
+    } = usePage<PageProps>().props;
     const [statuses, setStatuses] = useState<string[]>([]);
     const [niches, setNiches] = useState<string[]>([]);
     // Search deep-links here with ?offer=ID.
     const { url } = usePage();
     const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('offer');
-    const linked = mockOffers.find((item) => String(item.id) === linkedId) ?? null;
+    const linked = allOffers.find((item) => String(item.id) === linkedId) ?? null;
 
-    const [selected, setSelected] = useState<Offer | null>(linked);
+    // Ids, not objects: the rows come from props and change under the panel after every save.
+    const [selectedId, setSelectedId] = useState<number | null>(linked?.id ?? null);
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
         if (linked) {
-            setSelected(linked);
-            setSelected(linked);
+            setSelectedId(linked.id);
+            setPanelId(linked.id);
         }
     }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last offer while the panel slides shut.
-    const [panelOffer, setPanelOffer] = useState<Offer | null>(linked);
+    const [panelId, setPanelId] = useState<number | null>(linked?.id ?? null);
+    const panelOffer = allOffers.find((offer) => offer.id === panelId) ?? null;
 
-    const offers = mockOffers.filter(
+    const nicheOptions: FilterOption[] = allNiches.map((niche) => ({
+        value: String(niche.id),
+        label: niche.name,
+    }));
+
+    // Leads that got at least one mail out; a lead's status alone loses this once it replies.
+    const emailedLeadIds = new Set(
+        messages
+            .filter((message) => message.sent_at !== null)
+            .map((message) => message.lead_id),
+    );
+
+    const counts: Record<number, OfferCounts> = Object.fromEntries(
+        allOffers.map((offer) => {
+            const offerLeads = leads.filter((lead) => lead.offer_id === offer.id);
+
+            return [
+                offer.id,
+                {
+                    steps: steps.filter((step) => step.offer_id === offer.id)
+                        .length,
+                    leads: offerLeads.length,
+                    emailed: offerLeads.filter((lead) => emailedLeadIds.has(lead.id))
+                        .length,
+                    replied: offerLeads.filter((lead) => lead.status === 'replied')
+                        .length,
+                },
+            ];
+        }),
+    );
+
+    const offers = allOffers.filter(
         (offer) =>
             (statuses.length === 0 || statuses.includes(offer.status)) &&
             (niches.length === 0 || niches.includes(String(offer.niche_id))),
@@ -109,24 +128,24 @@ export default function OffersIndex() {
                     </div>
                     <OffersTable
                         offers={offers}
-                        niches={mockNiches}
+                        niches={allNiches}
                         counts={counts}
-                        selectedId={selected?.id ?? null}
+                        selectedId={selectedId}
                         onSelect={(offer) => {
-                            setSelected(offer);
-                            setPanelOffer(offer);
+                            setSelectedId(offer.id);
+                            setPanelId(offer.id);
                         }}
                     />
                 </div>
                 <OfferPanel
                     offer={panelOffer}
-                    niche={mockNiches.find((niche) => niche.id === panelOffer?.niche_id)}
-                    niches={mockNiches}
-                    steps={mockSequenceSteps.filter((step) => step.offer_id === panelOffer?.id)}
-                    leads={mockLeads.filter((lead) => lead.offer_id === panelOffer?.id)}
+                    niche={allNiches.find((niche) => niche.id === panelOffer?.niche_id)}
+                    niches={allNiches}
+                    steps={steps.filter((step) => step.offer_id === panelOffer?.id)}
+                    leads={leads.filter((lead) => lead.offer_id === panelOffer?.id)}
                     emailed={panelOffer ? counts[panelOffer.id].emailed : 0}
-                    open={selected !== null}
-                    onClose={() => setSelected(null)}
+                    open={selectedId !== null && panelOffer !== null}
+                    onClose={() => setSelectedId(null)}
                 />
             </div>
         </>
@@ -135,5 +154,6 @@ export default function OffersIndex() {
 
 OffersIndex.layout = {
     breadcrumbs: [{ title: 'Offers', href: offersIndex(), icon: Tag }],
-    actions: <OfferDialog niches={mockNiches} />,
+    // The dialog reads the niches from the page props itself; the layout is static.
+    actions: <OfferDialog />,
 };

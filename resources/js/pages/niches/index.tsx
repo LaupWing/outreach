@@ -7,64 +7,69 @@ import { NicheDialog } from '@/components/niche-dialog';
 import { NichePanel } from '@/components/niche-panel';
 import { nicheStatuses } from '@/components/niche-status-badge';
 import { NichesTable, type NicheCounts } from '@/components/niches-table';
-import { mockLeads } from '@/mock/leads';
-import { mockMessages } from '@/mock/messages';
-import { mockNiches } from '@/mock/niches';
-import { mockOffers } from '@/mock/offers';
 import { index as nichesIndex } from '@/routes/niches';
-import type { Niche, NicheStatus } from '@/types';
+import type { Lead, Message, Niche, NicheStatus, Offer } from '@/types';
+
+type PageProps = {
+    niches: Niche[];
+    leads: Lead[];
+    messages: Message[];
+    offers: Offer[];
+};
 
 const statusOptions: FilterOption[] = (
     Object.keys(nicheStatuses) as NicheStatus[]
 ).map((value) => ({ value, label: nicheStatuses[value].label }));
 
-// Leads that got at least one mail out, keyed by niche; a lead's status alone loses this once it replies.
-const emailedLeadIds = new Set(
-    mockMessages
-        .filter((message) => message.sent_at !== null)
-        .map((message) => message.lead_id),
-);
-
-const counts: Record<number, NicheCounts> = Object.fromEntries(
-    mockNiches.map((niche) => {
-        const leads = mockLeads.filter((lead) => lead.niche_id === niche.id);
-
-        return [
-            niche.id,
-            {
-                leads: leads.length,
-                emailed: leads.filter((lead) => emailedLeadIds.has(lead.id))
-                    .length,
-                replied: leads.filter((lead) => lead.status === 'replied')
-                    .length,
-                offers: mockOffers.filter(
-                    (offer) => offer.niche_id === niche.id,
-                ).length,
-            },
-        ];
-    }),
-);
-
 export default function NichesIndex() {
+    const { niches: allNiches, leads, messages, offers } = usePage<PageProps>().props;
     const [statuses, setStatuses] = useState<string[]>([]);
     // Search deep-links here with ?niche=ID.
     const { url } = usePage();
     const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('niche');
-    const linked = mockNiches.find((item) => String(item.id) === linkedId) ?? null;
+    const linked = allNiches.find((item) => String(item.id) === linkedId) ?? null;
 
-    const [selected, setSelected] = useState<Niche | null>(linked);
+    // Ids, not objects: the rows come from props and change under the panel after every save.
+    const [selectedId, setSelectedId] = useState<number | null>(linked?.id ?? null);
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
         if (linked) {
-            setSelected(linked);
-            setSelected(linked);
+            setSelectedId(linked.id);
+            setPanelId(linked.id);
         }
     }, [linkedId]); // eslint-disable-line react-hooks/exhaustive-deps
     // Keeps the last niche while the panel slides shut.
-    const [panelNiche, setPanelNiche] = useState<Niche | null>(linked);
+    const [panelId, setPanelId] = useState<number | null>(linked?.id ?? null);
+    const panelNiche = allNiches.find((niche) => niche.id === panelId) ?? null;
 
-    const niches = mockNiches.filter(
+    // Leads that got at least one mail out, keyed by niche; a lead's status alone loses this once it replies.
+    const emailedLeadIds = new Set(
+        messages
+            .filter((message) => message.sent_at !== null)
+            .map((message) => message.lead_id),
+    );
+
+    const counts: Record<number, NicheCounts> = Object.fromEntries(
+        allNiches.map((niche) => {
+            const nicheLeads = leads.filter((lead) => lead.niche_id === niche.id);
+
+            return [
+                niche.id,
+                {
+                    leads: nicheLeads.length,
+                    emailed: nicheLeads.filter((lead) => emailedLeadIds.has(lead.id))
+                        .length,
+                    replied: nicheLeads.filter((lead) => lead.status === 'replied')
+                        .length,
+                    offers: offers.filter((offer) => offer.niche_id === niche.id)
+                        .length,
+                },
+            ];
+        }),
+    );
+
+    const niches = allNiches.filter(
         (niche) => statuses.length === 0 || statuses.includes(niche.status),
     );
 
@@ -90,20 +95,20 @@ export default function NichesIndex() {
                     <NichesTable
                         niches={niches}
                         counts={counts}
-                        selectedId={selected?.id ?? null}
+                        selectedId={selectedId}
                         onSelect={(niche) => {
-                            setSelected(niche);
-                            setPanelNiche(niche);
+                            setSelectedId(niche.id);
+                            setPanelId(niche.id);
                         }}
                     />
                 </div>
                 <NichePanel
                     niche={panelNiche}
-                    offers={mockOffers.filter((offer) => offer.niche_id === panelNiche?.id)}
-                    leads={mockLeads.filter((lead) => lead.niche_id === panelNiche?.id)}
+                    offers={offers.filter((offer) => offer.niche_id === panelNiche?.id)}
+                    leads={leads.filter((lead) => lead.niche_id === panelNiche?.id)}
                     emailed={panelNiche ? counts[panelNiche.id].emailed : 0}
-                    open={selected !== null}
-                    onClose={() => setSelected(null)}
+                    open={selectedId !== null && panelNiche !== null}
+                    onClose={() => setSelectedId(null)}
                 />
             </div>
         </>

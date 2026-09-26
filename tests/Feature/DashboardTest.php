@@ -1,49 +1,60 @@
 <?php
 
-test('the dashboard is open while it runs on mock data', function () {
-    $response = $this->get(route('dashboard'));
+use App\Models\Lead;
+use App\Models\User;
+use Database\Seeders\DemoSeeder;
+use Inertia\Testing\AssertableInertia as Assert;
 
-    $response->assertOk();
+test('guests are redirected to the login page', function () {
+    $this->get(route('dashboard'))->assertRedirect(route('login'));
 });
 
-test('the leads page is open while it runs on mock data', function () {
-    $response = $this->get(route('leads.index'));
+test('the dashboard shows the numbers home is built from', function () {
+    $this->seed(DemoSeeder::class);
+    Lead::query()->where('company', 'Tandartspraktijk De Linde')->update(['next_action_at' => now()->subHour()]);
 
-    $response->assertOk();
+    $this->actingAs(User::factory()->create())
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('dashboard')
+            ->has('leads', 12)
+            ->has('messages', 10)
+            ->has('mailboxes', 3)
+            ->where('due', 1)
+            ->where('usage.free_limit', 1000)
+        );
 });
 
-test('the scrape page is open while it runs on mock data', function () {
-    $response = $this->get(route('scrape.index'));
+test('the messages page lists every mail newest first', function () {
+    $this->seed(DemoSeeder::class);
 
-    $response->assertOk();
+    $this->actingAs(User::factory()->create())
+        ->get(route('messages.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('messages/index')
+            ->has('messages', 10)
+            ->where('messages.0.subject', 'Online afspraken')
+            ->has('leads', 12)
+            ->has('mailboxes', 3)
+        );
 });
 
-test('the niches page is open while it runs on mock data', function () {
-    $response = $this->get(route('niches.index'));
+test('search matches every word across the tables and caps each group', function () {
+    $this->seed(DemoSeeder::class);
 
-    $response->assertOk();
+    $this->actingAs(User::factory()->create())
+        ->getJson(route('search', ['q' => 'tandarts haarlem']))
+        ->assertOk()
+        ->assertJsonPath('runs.0.place', 'Haarlem')
+        ->assertJsonPath('leads.0.company', 'Tandarts Bos & Partners')
+        ->assertJsonCount(0, 'mailboxes');
 });
 
-test('the offers page is open while it runs on mock data', function () {
-    $response = $this->get(route('offers.index'));
-
-    $response->assertOk();
-});
-
-test('the mailboxes page is open while it runs on mock data', function () {
-    $response = $this->get(route('mailboxes.index'));
-
-    $response->assertOk();
-});
-
-test('the messages page is open while it runs on mock data', function () {
-    $response = $this->get(route('messages.index'));
-
-    $response->assertOk();
-});
-
-test('the inbox page is open while it runs on mock data', function () {
-    $response = $this->get(route('inbox.index'));
-
-    $response->assertOk();
+test('search with an empty query returns nothing', function () {
+    $this->actingAs(User::factory()->create())
+        ->getJson(route('search', ['q' => '  ']))
+        ->assertOk()
+        ->assertExactJson(['leads' => [], 'niches' => [], 'offers' => [], 'mailboxes' => [], 'messages' => [], 'runs' => []]);
 });

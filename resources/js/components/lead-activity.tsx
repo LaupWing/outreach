@@ -11,8 +11,13 @@ import {
 import { cn } from '@/lib/utils';
 import type { Lead, Message } from '@/types';
 
-/** A note typed on the lead; no table yet, the panel keeps them locally while we mock. */
-export type LeadNote = { body: string; created_at: string };
+/** A note typed on the lead, as the `notes` relation serializes it. */
+export type LeadNote = {
+    id: number;
+    lead_id: number;
+    body: string;
+    created_at: string;
+};
 
 type Event = {
     at: string;

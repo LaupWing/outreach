@@ -1,7 +1,10 @@
+import { useForm } from '@inertiajs/react';
 import { ChevronRight, Reply, Send } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { store as storeReply } from '@/routes/messages/reply';
 import type { Mailbox, Message, MessageStatus } from '@/types';
 
 const statusTones: Record<MessageStatus, { label: string; className: string }> = {
@@ -32,7 +35,23 @@ export function LeadMessages({
     );
     // Which message has the reply box open, and what is typed in it.
     const [replyTo, setReplyTo] = useState<number | null>(null);
-    const [draft, setDraft] = useState('');
+    const form = useForm({ body: '' });
+    const draft = form.data.body;
+    const setDraft = (value: string) => form.setData('body', value);
+
+    const closeReply = () => {
+        setReplyTo(null);
+        form.reset();
+        form.clearErrors();
+    };
+
+    // The reply goes to the message that carries the lead's answer, so it stays in that thread.
+    const sendReply = (message: Message) => {
+        form.post(storeReply.url(message.id), {
+            preserveScroll: true,
+            onSuccess: closeReply,
+        });
+    };
 
     if (messages.length === 0) {
         return (
@@ -116,8 +135,7 @@ export function LeadMessages({
                                                 className="mt-3 flex flex-col gap-2"
                                                 onSubmit={(event) => {
                                                     event.preventDefault();
-                                                    setReplyTo(null);
-                                                    setDraft('');
+                                                    sendReply(message);
                                                 }}
                                             >
                                                 <textarea
@@ -128,6 +146,7 @@ export function LeadMessages({
                                                     aria-label="Reply"
                                                     className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                 />
+                                                <InputError message={form.errors.body} />
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs text-muted-foreground">
                                                         From {mailbox?.address ?? 'the thread mailbox'}, in this thread.
@@ -137,17 +156,14 @@ export function LeadMessages({
                                                         variant="ghost"
                                                         size="sm"
                                                         className="ml-auto"
-                                                        onClick={() => {
-                                                            setReplyTo(null);
-                                                            setDraft('');
-                                                        }}
+                                                        onClick={closeReply}
                                                     >
                                                         Cancel
                                                     </Button>
                                                     <Button
                                                         type="submit"
                                                         size="sm"
-                                                        disabled={draft.trim() === ''}
+                                                        disabled={draft.trim() === '' || form.processing}
                                                     >
                                                         <Send />
                                                         Send reply

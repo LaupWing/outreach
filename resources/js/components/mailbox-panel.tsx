@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     AlertTriangle,
     AtSign,
@@ -11,6 +12,7 @@ import {
     Plug,
     Reply,
     Tag,
+    Trash2,
     Zap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -29,7 +31,17 @@ import {
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Lead, Mailbox, MailboxStatus, Message, MessageStatus } from '@/types';
+import { destroy, update } from '@/routes/mailboxes';
+import type { Lead, Mailbox, Message, MessageStatus } from '@/types';
+
+/** What the mailboxes page needs of a message: enough to list it and count it. */
+export type MailboxMessage = Pick<
+    Message,
+    'id' | 'lead_id' | 'mailbox_id' | 'step' | 'subject' | 'status' | 'sent_at' | 'reply'
+>;
+
+/** What the mailboxes page needs of a lead: a name next to each message. */
+export type MailboxLead = Pick<Lead, 'id' | 'company'>;
 
 const tabs = [
     { key: 'overview', label: 'Overview', icon: FileText },
@@ -52,6 +64,9 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
     minute: '2-digit',
 });
 
+/** A second click within this window confirms the delete; after it the button resets. */
+const CONFIRM_WINDOW_MS = 3000;
+
 /** The mailbox card: how much room it has today and whether its mail lands. */
 export function MailboxPanel({
     mailbox,
@@ -63,27 +78,65 @@ export function MailboxPanel({
 }: {
     mailbox: Mailbox | null;
     counts: MailboxCounts | undefined;
-    messages: Message[];
-    leads: Lead[];
+    messages: MailboxMessage[];
+    leads: MailboxLead[];
     open: boolean;
     onClose: () => void;
 }) {
     const [tab, setTab] = useState<Tab>('overview');
-    // Mock state: pause keeps the previous status so resume can put a warming box back to warming.
-    const [status, setStatus] = useState<MailboxStatus>(mailbox?.status ?? 'active');
-    const [beforePause, setBeforePause] = useState<MailboxStatus>('active');
+    const [confirming, setConfirming] = useState(false);
+    const [busy, setBusy] = useState(false);
+
+    // Switching mailboxes must not carry a half-confirmed delete along.
+    useEffect(() => {
+        setConfirming(false);
+    }, [mailbox?.id]);
 
     useEffect(() => {
-        setStatus(mailbox?.status ?? 'active');
-        setBeforePause('active');
-    }, [mailbox?.id, mailbox?.status]);
+        if (!confirming) {
+            return;
+        }
 
-    const pause = () => {
-        setBeforePause(status);
-        setStatus('paused');
+        const timer = setTimeout(() => setConfirming(false), CONFIRM_WINDOW_MS);
+
+        return () => clearTimeout(timer);
+    }, [confirming]);
+
+    // Resume sends "active"; the server puts a box still in its warm-up window back to warming up.
+    const setStatus = (status: 'active' | 'paused') => {
+        if (!mailbox) {
+            return;
+        }
+
+        router.patch(
+            update.url(mailbox.id),
+            { status },
+            {
+                preserveScroll: true,
+                onStart: () => setBusy(true),
+                onFinish: () => setBusy(false),
+            },
+        );
     };
-    const resume = () =>
-        setStatus(beforePause === 'warming_up' ? 'warming_up' : 'active');
+
+    const remove = () => {
+        if (!mailbox) {
+            return;
+        }
+
+        if (!confirming) {
+            setConfirming(true);
+
+            return;
+        }
+
+        router.delete(destroy.url(mailbox.id), {
+            preserveScroll: true,
+            onStart: () => setBusy(true),
+            onFinish: () => setBusy(false),
+            onSuccess: () => onClose(),
+        });
+    };
 
     const sent = counts?.sent ?? 0;
     const rate = (count: number) =>
@@ -119,7 +172,7 @@ export function MailboxPanel({
                                 </span>
                             </div>
                             <MailboxStatusBadge
-                                status={status}
+                                status={mailbox.status}
                                 className="ml-auto shrink-0"
                             />
                         </div>
@@ -181,7 +234,7 @@ export function MailboxPanel({
                             />
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <MailboxDialog
                                 mailbox={mailbox}
                                 trigger={
@@ -191,13 +244,23 @@ export function MailboxPanel({
                                     </Button>
                                 }
                             />
-                            {status === 'paused' ? (
-                                <Button variant="outline" size="sm" onClick={resume}>
+                            {mailbox.status === 'paused' ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={busy}
+                                    onClick={() => setStatus('active')}
+                                >
                                     <Play />
                                     Resume
                                 </Button>
                             ) : (
-                                <Button variant="outline" size="sm" onClick={pause}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={busy}
+                                    onClick={() => setStatus('paused')}
+                                >
                                     <Pause />
                                     Pause
                                 </Button>
@@ -205,6 +268,20 @@ export function MailboxPanel({
                             <Button variant="outline" size="sm">
                                 <Zap />
                                 Test connection
+                            </Button>
+                            {/* Two clicks to delete: the first arms it, the second within three seconds does it. */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={busy}
+                                onClick={remove}
+                                className={cn(
+                                    'ml-auto text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400',
+                                    confirming && 'bg-red-500/10',
+                                )}
+                            >
+                                <Trash2 />
+                                {confirming ? 'Sure?' : 'Delete'}
                             </Button>
                         </div>
                     </div>
@@ -233,7 +310,7 @@ export function MailboxPanel({
                                         : 'IMAP and SMTP'}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Tag} label="Status">
-                                    <MailboxStatusBadge status={status} />
+                                    <MailboxStatusBadge status={mailbox.status} />
                                 </SidePanelRow>
                                 <SidePanelRow icon={Gauge} label="Daily limit">
                                     {mailbox.daily_limit} mails

@@ -1,3 +1,4 @@
+import { useForm } from '@inertiajs/react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { DialogSteps } from '@/components/dialog-steps';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -30,6 +32,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { store as storeMessage } from '@/routes/leads/messages';
 import type { Lead, Mailbox, Message, Offer, SequenceStep } from '@/types';
 
 const STEPS = ['Source', 'Write'];
@@ -53,8 +56,8 @@ export function fillPlaceholders(text: string, lead: Lead): string {
 
 /**
  * Writes one mail to a lead: the next step of its offer, or free-form for a
- * one-off. "Send" only queues; the daily task sends it spread out. Mirrors the
- * MCP tools write_mail and send.
+ * one-off. Posts to leads.messages.store, which records it and plans the
+ * follow-up; handing it to the mail provider is a later job.
  */
 export function ComposeEmailDialog({
     lead,
@@ -79,9 +82,19 @@ export function ComposeEmailDialog({
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(0);
     const [source, setSource] = useState<Source>(nextStep ? 'offer' : 'free');
-    const [subject, setSubject] = useState('');
-    const [body, setBody] = useState('');
-    const [mailboxId, setMailboxId] = useState('auto');
+    // "auto" in the select is null on the wire: the sender picks a box with room.
+    const form = useForm<{
+        subject: string;
+        body: string;
+        mailbox_id: number | null;
+        step: number | null;
+    }>({ subject: '', body: '', mailbox_id: null, step: null });
+    const { subject, body } = form.data;
+    const mailboxId = form.data.mailbox_id === null ? 'auto' : String(form.data.mailbox_id);
+    const setSubject = (value: string) => form.setData('subject', value);
+    const setBody = (value: string) => form.setData('body', value);
+    const setMailboxId = (value: string) =>
+        form.setData('mailbox_id', value === 'auto' ? null : Number(value));
 
     // Boxes that can still send today; "auto" lets the sender pick among them.
     const openBoxes = mailboxes.filter(
@@ -92,16 +105,21 @@ export function ComposeEmailDialog({
         setOpen(value);
         setStep(0);
         setSource(nextStep ? 'offer' : 'free');
-        setSubject('');
-        setBody('');
-        setMailboxId('auto');
+        form.reset();
+        form.clearErrors();
     };
 
     // Moving to the write step loads the draft: the offer's step filled in, or a blank page.
     const startWriting = () => {
         if (source === 'offer' && nextStep) {
-            setSubject(fillPlaceholders(nextStep.subject, lead));
-            setBody(fillPlaceholders(nextStep.body, lead));
+            form.setData({
+                ...form.data,
+                subject: fillPlaceholders(nextStep.subject, lead),
+                body: fillPlaceholders(nextStep.body, lead),
+                step: nextStep.step,
+            });
+        } else {
+            form.setData('step', null);
         }
 
         setStep(1);
@@ -109,10 +127,14 @@ export function ComposeEmailDialog({
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setOpen(false);
+        form.post(storeMessage.url(lead.id), {
+            preserveScroll: true,
+            onSuccess: () => toggle(false),
+        });
     };
 
-    const ready = subject.trim() !== '' && body.trim() !== '' && lead.email !== null;
+    const ready =
+        subject.trim() !== '' && body.trim() !== '' && lead.email !== null && !form.processing;
 
     return (
         <Dialog open={open} onOpenChange={toggle}>
@@ -170,6 +192,7 @@ export function ComposeEmailDialog({
                                     placeholder="Subject"
                                     autoFocus={source === 'free'}
                                 />
+                                <InputError message={form.errors.subject} />
                             </Field>
                             <Field label="Body" icon={PenLine} htmlFor="compose-body">
                                 <textarea
@@ -179,6 +202,7 @@ export function ComposeEmailDialog({
                                     placeholder="Hoi,"
                                     className={textareaClassName}
                                 />
+                                <InputError message={form.errors.body} />
                             </Field>
                             <Field label="Send from" icon={Send} htmlFor="compose-mailbox">
                                 <Select value={mailboxId} onValueChange={setMailboxId}>
@@ -204,6 +228,7 @@ export function ComposeEmailDialog({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <InputError message={form.errors.mailbox_id} />
                             </Field>
                             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Clock className="size-3.5 shrink-0" />
@@ -238,7 +263,7 @@ export function ComposeEmailDialog({
                                 </Button>
                                 <Button key="submit" type="submit" disabled={!ready}>
                                     <Send />
-                                    Queue to send
+                                    Send
                                 </Button>
                             </>
                         )}

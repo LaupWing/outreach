@@ -57,8 +57,8 @@ export function MessagesTable({
     onSelect,
 }: {
     messages: Message[];
-    leads: Lead[];
-    mailboxes: Mailbox[];
+    leads: Pick<Lead, 'id' | 'company'>[];
+    mailboxes: Pick<Mailbox, 'id' | 'address'>[];
     selectedId: number | null;
     onSelect: (message: Message) => void;
 }) {

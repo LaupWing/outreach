@@ -1,3 +1,4 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     Check,
     ChevronLeft,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { DialogSteps } from '@/components/dialog-steps';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,6 +34,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { store, update } from '@/routes/offers';
 import type { Niche, Offer } from '@/types';
 
 /** The offer itself first, the first mail second. */
@@ -42,6 +45,9 @@ const NEW_NICHE = '__new';
 
 const textareaClassName =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30';
+
+const FIRST_SUBJECT = '{{hook_subject}}';
+const FIRST_BODY = 'Hoi,\n\n{{hook}}\n\n\n\nLoc';
 
 /** Form values for an offer, or the blanks for a new one. */
 const valuesFrom = (offer?: Offer) => ({
@@ -54,7 +60,8 @@ const valuesFrom = (offer?: Offer) => ({
  * Creates an offer: the thing you test on a niche. The first mail can come along;
  * the rest of the sequence is added in the offer's panel. With `offer` it edits
  * the basics instead; the mails then live in the panel's Sequence tab, so the
- * mail step is dropped. Nothing is saved yet.
+ * mail step is dropped. Without `niches` it reads them from the page props, so
+ * it can sit in a page's static topbar actions.
  */
 export function OfferDialog({
     offer,
@@ -62,37 +69,83 @@ export function OfferDialog({
     trigger,
 }: {
     offer?: Offer;
-    niches: Niche[];
+    niches?: Niche[];
     /** Replaces the default "+ Offer" button. */
     trigger?: ReactNode;
 }) {
     const initial = valuesFrom(offer);
     const editing = offer !== undefined;
+    const page = usePage<{ niches?: Niche[] }>();
+    const errors = page.props.errors;
+    const nicheOptions = niches ?? page.props.niches ?? [];
 
     const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [step, setStep] = useState(0);
     const [name, setName] = useState(initial.name);
     const [nicheId, setNicheId] = useState(initial.nicheId);
     const [newNiche, setNewNiche] = useState('');
     const [description, setDescription] = useState(initial.description);
     const [withFirstMail, setWithFirstMail] = useState(true);
-    const [subject, setSubject] = useState('{{hook_subject}}');
-    const [body, setBody] = useState(
-        'Hoi,\n\n{{hook}}\n\n\n\nLoc',
-    );
+    const [subject, setSubject] = useState(FIRST_SUBJECT);
+    const [body, setBody] = useState(FIRST_BODY);
 
     const hasNiche =
         nicheId === NEW_NICHE ? newNiche.trim() !== '' : nicheId !== '';
     const basicsReady = name.trim() !== '' && hasNiche;
     const ready =
         basicsReady &&
+        !saving &&
         (editing ||
             !withFirstMail ||
             (subject.trim() !== '' && body.trim() !== ''));
 
+    const reset = () => {
+        const values = valuesFrom(offer);
+        setStep(0);
+        setName(values.name);
+        setNicheId(values.nicheId);
+        setNewNiche('');
+        setDescription(values.description);
+        setWithFirstMail(true);
+        setSubject(FIRST_SUBJECT);
+        setBody(FIRST_BODY);
+    };
+
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setOpen(false);
+
+        const basics = {
+            name,
+            description: description.trim() === '' ? null : description,
+            ...(nicheId === NEW_NICHE
+                ? { new_niche: newNiche.trim() }
+                : { niche_id: Number(nicheId) }),
+        };
+        const options = {
+            preserveScroll: true,
+            onStart: () => setSaving(true),
+            onFinish: () => setSaving(false),
+            onSuccess: () => {
+                setOpen(false);
+
+                if (!editing) {
+                    reset();
+                }
+            },
+        };
+
+        if (editing) {
+            router.patch(update.url(offer.id), basics, options);
+        } else {
+            router.post(
+                store.url(),
+                withFirstMail
+                    ? { ...basics, first_step: { subject, body } }
+                    : basics,
+                options,
+            );
+        }
     };
 
     const toggle = (value: boolean) => {
@@ -101,11 +154,7 @@ export function OfferDialog({
 
         // A cancelled edit must not linger into the next one.
         if (value && editing) {
-            const values = valuesFrom(offer);
-            setName(values.name);
-            setNicheId(values.nicheId);
-            setNewNiche('');
-            setDescription(values.description);
+            reset();
         }
     };
 
@@ -154,6 +203,7 @@ export function OfferDialog({
                                     placeholder="Nieuwe website in 2 weken"
                                     autoFocus
                                 />
+                                <InputError message={errors.name} />
                             </Field>
 
                             <Field label="Niche" icon={Target} htmlFor="offer-niche">
@@ -188,7 +238,7 @@ export function OfferDialog({
                                             <SelectValue placeholder="Pick a niche" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {niches.map((niche) => (
+                                            {nicheOptions.map((niche) => (
                                                 <SelectItem
                                                     key={niche.id}
                                                     value={String(niche.id)}
@@ -204,6 +254,7 @@ export function OfferDialog({
                                         </SelectContent>
                                     </Select>
                                 )}
+                                <InputError message={errors.niche_id ?? errors.new_niche} />
                             </Field>
 
                             <Field
@@ -220,6 +271,7 @@ export function OfferDialog({
                                     placeholder="What it is, for whom, and the price."
                                     className={cn(textareaClassName, 'min-h-16')}
                                 />
+                                <InputError message={errors.description} />
                             </Field>
 
                         </div>
@@ -254,6 +306,7 @@ export function OfferDialog({
                                             aria-label="Subject"
                                             className="bg-background"
                                         />
+                                        <InputError message={errors['first_step.subject']} />
                                         <textarea
                                             value={body}
                                             onChange={(event) => setBody(event.target.value)}
@@ -263,6 +316,7 @@ export function OfferDialog({
                                                 'bg-background font-mono text-xs',
                                             )}
                                         />
+                                        <InputError message={errors['first_step.body']} />
                                         <p className="text-xs text-muted-foreground">
                                             Placeholders:{' '}
                                             <Placeholder>hook</Placeholder>,{' '}
