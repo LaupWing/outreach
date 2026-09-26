@@ -27,6 +27,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { dashboard } from '@/routes';
+import { index as leadsIndex } from '@/routes/leads';
 import type { NavGroup } from '@/types';
 
 const mainNavGroups: NavGroup[] = [
@@ -41,7 +42,7 @@ const mainNavGroups: NavGroup[] = [
         label: 'Outreach',
         items: [
             { title: 'Scrape', icon: Radar },
-            { title: 'Leads', icon: Users },
+            { title: 'Leads', href: leadsIndex(), icon: Users },
             { title: 'Niches', icon: Target },
             { title: 'Offers', icon: Tag },
         ],
