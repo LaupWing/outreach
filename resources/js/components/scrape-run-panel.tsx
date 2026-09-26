@@ -20,6 +20,7 @@ import {
     SidePanelEmpty,
     SidePanelHeader,
     SidePanelRow,
+    SidePanelStat,
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
@@ -106,8 +107,8 @@ export function ScrapeRunPanel({
 
                         {/* The three numbers you look at first. */}
                         <div className="grid grid-cols-3 gap-2">
-                            <Stat label="Found" value={run.found} />
-                            <Stat
+                            <SidePanelStat label="Found" value={run.found} />
+                            <SidePanelStat
                                 label="With email"
                                 value={run.with_email}
                                 hint={
@@ -116,7 +117,7 @@ export function ScrapeRunPanel({
                                         : undefined
                                 }
                             />
-                            <Stat
+                            <SidePanelStat
                                 label="Blocked"
                                 value={run.blocked}
                                 warn={run.blocked > 0}
@@ -295,36 +296,5 @@ function Toggle({
         >
             {children}
         </button>
-    );
-}
-
-function Stat({
-    label,
-    value,
-    hint,
-    warn = false,
-}: {
-    label: string;
-    value: number;
-    hint?: string;
-    warn?: boolean;
-}) {
-    return (
-        <div className="rounded-lg border border-(--raised-border) bg-accent/40 px-3 py-2.5 shadow-(--raised-shadow)">
-            <div className="text-xs text-muted-foreground">{label}</div>
-            <div
-                className={cn(
-                    'flex items-baseline gap-1.5 text-xl font-semibold tabular-nums',
-                    warn && 'text-amber-600 dark:text-amber-400',
-                )}
-            >
-                {value}
-                {hint && (
-                    <span className="text-xs font-normal text-muted-foreground">
-                        {hint}
-                    </span>
-                )}
-            </div>
-        </div>
     );
 }

@@ -126,3 +126,35 @@ export function SidePanelRow({
 export function SidePanelEmpty({ children = '—' }: { children?: ReactNode }) {
     return <span className="text-muted-foreground/60">{children}</span>;
 }
+
+/** A raised number card; the panels show the three you look at first in a row. */
+export function SidePanelStat({
+    label,
+    value,
+    hint,
+    warn = false,
+}: {
+    label: string;
+    value: number;
+    hint?: string;
+    warn?: boolean;
+}) {
+    return (
+        <div className="rounded-lg border border-(--raised-border) bg-accent/40 px-3 py-2.5 shadow-(--raised-shadow)">
+            <div className="text-xs text-muted-foreground">{label}</div>
+            <div
+                className={cn(
+                    'flex items-baseline gap-1.5 text-xl font-semibold tabular-nums',
+                    warn && 'text-amber-600 dark:text-amber-400',
+                )}
+            >
+                {value}
+                {hint && (
+                    <span className="text-xs font-normal text-muted-foreground">
+                        {hint}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
