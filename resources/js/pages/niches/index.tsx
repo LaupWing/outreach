@@ -1,12 +1,12 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Plus, SlidersHorizontal, Tag, Target } from 'lucide-react';
+import { SlidersHorizontal, Tag, Target } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
+import { NewNicheDialog } from '@/components/new-niche-dialog';
 import { NichePanel } from '@/components/niche-panel';
 import { nicheStatuses } from '@/components/niche-status-badge';
 import { NichesTable, type NicheCounts } from '@/components/niches-table';
-import { Button } from '@/components/ui/button';
 import { mockLeads } from '@/mock/leads';
 import { mockMessages } from '@/mock/messages';
 import { mockNiches } from '@/mock/niches';
@@ -112,10 +112,5 @@ export default function NichesIndex() {
 
 NichesIndex.layout = {
     breadcrumbs: [{ title: 'Niches', href: nichesIndex(), icon: Target }],
-    actions: (
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Plus />
-            Niche
-        </Button>
-    ),
+    actions: <NewNicheDialog />,
 };
