@@ -117,7 +117,7 @@ export function LeadPanel({
             : offer;
 
     return (
-        <SidePanel open={open}>
+        <SidePanel open={open} onClose={onClose}>
             {lead && (
                 <>
                     <SidePanelHeader

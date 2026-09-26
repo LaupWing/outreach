@@ -85,7 +85,7 @@ export function ScrapeRunPanel({
     const shown = blockedOnly ? flagged : leads;
 
     return (
-        <SidePanel open={open}>
+        <SidePanel open={open} onClose={onClose}>
             {run && (
                 <>
                     <SidePanelHeader

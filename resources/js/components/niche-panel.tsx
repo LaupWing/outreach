@@ -66,7 +66,7 @@ export function NichePanel({
         .filter((item) => item.count > 0);
 
     return (
-        <SidePanel open={open}>
+        <SidePanel open={open} onClose={onClose}>
             {niche && (
                 <>
                     <SidePanelHeader

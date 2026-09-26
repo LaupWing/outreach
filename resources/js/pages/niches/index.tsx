@@ -74,7 +74,7 @@ export default function NichesIndex() {
 
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
                         <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
                             <SlidersHorizontal className="size-4" />
                             Filters:

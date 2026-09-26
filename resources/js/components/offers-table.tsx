@@ -92,7 +92,7 @@ export function OffersTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-keeps-panel>
                         {offers.map((offer) => {
                             const count = counts[offer.id];
                             const rate =

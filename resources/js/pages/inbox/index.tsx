@@ -129,7 +129,7 @@ export default function InboxIndex() {
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                     {/* Counts double as the filter, like the pipeline in the sidebar of a CRM. */}
-                    <div className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-4">
+                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-4">
                         <Chip active={kind === null} onClick={() => setKind(null)}>
                             All ({items.length})
                         </Chip>
@@ -167,7 +167,7 @@ export default function InboxIndex() {
                                             {meta.empty}
                                         </p>
                                     ) : (
-                                        <ul>
+                                        <ul data-keeps-panel>
                                             {group.map((item) => (
                                                 <Row
                                                     key={`${key}-${item.lead.id}`}

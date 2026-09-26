@@ -90,7 +90,7 @@ export function MessagesTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-keeps-panel>
                         {messages.map((message) => (
                             <tr
                                 key={message.id}

@@ -114,7 +114,7 @@ export function MailboxesTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-keeps-panel>
                         {mailboxes.map((mailbox) => {
                             const count = counts[mailbox.id];
                             const share = Math.min(

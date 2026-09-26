@@ -95,7 +95,7 @@ export function MailboxPanel({
         leads.find((lead) => lead.id === leadId)?.company ?? 'Unknown lead';
 
     return (
-        <SidePanel open={open}>
+        <SidePanel open={open} onClose={onClose}>
             {mailbox && (
                 <>
                     <SidePanelHeader

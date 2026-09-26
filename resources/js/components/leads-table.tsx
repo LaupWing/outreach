@@ -93,7 +93,7 @@ export function LeadsTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-keeps-panel>
                         {leads.map((lead) => (
                             <tr
                                 key={lead.id}

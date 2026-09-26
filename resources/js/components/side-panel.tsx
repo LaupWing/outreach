@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -9,14 +9,45 @@ import { cn } from '@/lib/utils';
  */
 export function SidePanel({
     open,
+    onClose,
     children,
 }: {
     open: boolean;
+    /** Called on a click outside the panel; rows, filters and overlays are exempt via data-keeps-panel. */
+    onClose?: () => void;
     /** Keep passing the last content while closing, so it does not blink away. */
     children: ReactNode;
 }) {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open || !onClose) {
+            return;
+        }
+
+        const onPointerDown = (event: PointerEvent) => {
+            const target = event.target as Element | null;
+
+            if (
+                !target ||
+                ref.current?.contains(target) ||
+                // Anything portalled (dialogs, menus, popovers) or marked to keep the panel.
+                target.closest('[data-keeps-panel], [role="dialog"], [data-radix-popper-content-wrapper]')
+            ) {
+                return;
+            }
+
+            onClose();
+        };
+
+        document.addEventListener('pointerdown', onPointerDown);
+
+        return () => document.removeEventListener('pointerdown', onPointerDown);
+    }, [open, onClose]);
+
     return (
         <div
+            ref={ref}
             className={cn(
                 'shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
                 open ? 'w-120' : 'w-0',

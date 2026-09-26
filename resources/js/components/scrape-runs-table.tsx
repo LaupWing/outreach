@@ -111,7 +111,7 @@ export function ScrapeRunsTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-keeps-panel>
                         {runs.map((run) => {
                             const status = statuses[run.status];
 

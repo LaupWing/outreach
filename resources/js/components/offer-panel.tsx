@@ -62,7 +62,7 @@ export function OfferPanel({
     const totalDays = steps.reduce((sum, step) => sum + step.days_after_previous, 0);
 
     return (
-        <SidePanel open={open}>
+        <SidePanel open={open} onClose={onClose}>
             {offer && (
                 <>
                     <SidePanelHeader

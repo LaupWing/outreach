@@ -42,7 +42,7 @@ export function MessagePanel({
     onClose: () => void;
 }) {
     return (
-        <SidePanel open={open}>
+        <SidePanel open={open} onClose={onClose}>
             {message && (
                 <>
                     <SidePanelHeader

@@ -88,7 +88,7 @@ export function NichesTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-keeps-panel>
                         {niches.map((niche) => {
                             const count = counts[niche.id] ?? {
                                 leads: 0,
