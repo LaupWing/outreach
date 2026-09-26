@@ -29,6 +29,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as mailboxesIndex } from '@/routes/mailboxes';
+import { index as messagesIndex } from '@/routes/messages';
 import { index as nichesIndex } from '@/routes/niches';
 import { index as offersIndex } from '@/routes/offers';
 import { index as scrapeIndex } from '@/routes/scrape';
@@ -55,7 +56,7 @@ const mainNavGroups: NavGroup[] = [
         label: 'Sending',
         items: [
             { title: 'Mailboxes', href: mailboxesIndex(), icon: Mailbox },
-            { title: 'Messages', icon: MessageSquare },
+            { title: 'Messages', href: messagesIndex(), icon: MessageSquare },
         ],
     },
 ];

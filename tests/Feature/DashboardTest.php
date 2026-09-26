@@ -35,3 +35,9 @@ test('the mailboxes page is open while it runs on mock data', function () {
 
     $response->assertOk();
 });
+
+test('the messages page is open while it runs on mock data', function () {
+    $response = $this->get(route('messages.index'));
+
+    $response->assertOk();
+});

@@ -11,5 +11,6 @@ Route::inertia('scrape', 'scrape/index')->name('scrape.index');
 Route::inertia('niches', 'niches/index')->name('niches.index');
 Route::inertia('offers', 'offers/index')->name('offers.index');
 Route::inertia('mailboxes', 'mailboxes/index')->name('mailboxes.index');
+Route::inertia('messages', 'messages/index')->name('messages.index');
 
 require __DIR__.'/settings.php';
