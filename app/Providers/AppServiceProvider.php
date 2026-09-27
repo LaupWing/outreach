@@ -45,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
         Passport::authorizationView(fn (array $parameters) => Inertia::render('auth/oauth/authorize', [
             'client' => ['id' => $parameters['client']->id, 'name' => $parameters['client']->name],
             'authToken' => $parameters['authToken'],
+            // Plain HTML forms post here, so the browser can follow the redirect back to Claude.
+            'csrf' => csrf_token(),
             'state' => $parameters['request']->state,
             'scopes' => array_map(fn ($scope) => ['id' => $scope->id, 'description' => $scope->description], $parameters['scopes']),
         ]));

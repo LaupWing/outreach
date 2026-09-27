@@ -1,22 +1,34 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Check, X } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
 type PageProps = {
     client: { id: string; name: string };
     authToken: string;
+    csrf: string;
     state: string | null;
     scopes: { id: string; description: string }[];
 };
 
-/** Consent for an MCP client: Claude asks once to act as this account. */
+/**
+ * Consent for an MCP client: Claude asks once to act as this account.
+ *
+ * Plain forms on purpose: Passport answers with a redirect to the client (claude.ai,
+ * Claude Code), which only works as a real navigation, not as an Inertia request.
+ */
 export default function Authorize() {
-    const { client, authToken, state, scopes } = usePage<PageProps>().props;
+    const { client, authToken, csrf, state, scopes } =
+        usePage<PageProps>().props;
     const { auth } = usePage().props;
+    const [submitting, setSubmitting] = useState<'allow' | 'cancel' | null>(
+        null,
+    );
 
     const hidden = (
         <>
+            <input type="hidden" name="_token" value={csrf} />
             <input type="hidden" name="state" value={state ?? ''} />
             <input type="hidden" name="client_id" value={client.id} />
             <input type="hidden" name="auth_token" value={authToken} />
@@ -27,7 +39,7 @@ export default function Authorize() {
         <>
             <Head title="Connect Claude" />
 
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 rounded-lg border border-(--raised-border) bg-card p-5 shadow-(--raised-shadow)">
                 <p className="text-sm">
                     <span className="font-medium">{client.name}</span> wants to
                     work in Snelreach as{' '}
@@ -59,45 +71,40 @@ export default function Authorize() {
                 </p>
 
                 <div className="flex gap-3">
-                    <Form
-                        action="/oauth/authorize"
-                        method="delete"
-                        className="flex-1"
-                    >
-                        {({ processing }) => (
-                            <>
-                                {hidden}
-                                <Button
-                                    type="submit"
-                                    variant="outline"
-                                    className="w-full"
-                                    disabled={processing}
-                                >
-                                    <X />
-                                    Cancel
-                                </Button>
-                            </>
-                        )}
-                    </Form>
-                    <Form
-                        action="/oauth/authorize"
+                    <form
                         method="post"
+                        action="/oauth/authorize"
                         className="flex-1"
+                        onSubmit={() => setSubmitting('cancel')}
                     >
-                        {({ processing }) => (
-                            <>
-                                {hidden}
-                                <Button
-                                    type="submit"
-                                    className="w-full"
-                                    disabled={processing}
-                                >
-                                    {processing ? <Spinner /> : <Check />}
-                                    Allow
-                                </Button>
-                            </>
-                        )}
-                    </Form>
+                        <input type="hidden" name="_method" value="DELETE" />
+                        {hidden}
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            className="w-full"
+                            disabled={submitting !== null}
+                        >
+                            <X />
+                            Cancel
+                        </Button>
+                    </form>
+                    <form
+                        method="post"
+                        action="/oauth/authorize"
+                        className="flex-1"
+                        onSubmit={() => setSubmitting('allow')}
+                    >
+                        {hidden}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={submitting !== null}
+                        >
+                            {submitting === 'allow' ? <Spinner /> : <Check />}
+                            Allow
+                        </Button>
+                    </form>
                 </div>
             </div>
         </>
