@@ -84,3 +84,14 @@ test('the tool runs the import in the background, can create leads, and reports 
         ->and($lead->company)->toBe('Mondzorgzuid')
         ->and($lead->status)->toBe(LeadStatus::Emailed);
 });
+
+test('a sent mail without a Message-ID is still not imported twice', function () {
+    Lead::factory()->create(['email' => 'info@bos.nl']);
+    $mailbox = Mailbox::factory()->create();
+    readerWith([new SentMail(1, ['info@bos.nl'], 'Jullie site', 'Hoi.', null, CarbonImmutable::parse('2026-08-10 10:00'))]);
+
+    app(SentMailImport::class)->run($mailbox, CarbonImmutable::parse('2026-08-01'));
+    app(SentMailImport::class)->run($mailbox, CarbonImmutable::parse('2026-08-01'));
+
+    expect(Message::query()->count())->toBe(1);
+});

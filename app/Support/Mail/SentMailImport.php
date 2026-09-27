@@ -46,6 +46,16 @@ class SentMailImport
 
             $lead = $user->leads()->whereIn('email', $mail->to)->first();
 
+            // Second net: the same mail to the same lead at the same minute is already in.
+            if ($lead !== null && $lead->messages()->reorder()
+                ->where('subject', $mail->subject)
+                ->whereBetween('sent_at', [$mail->sentAt->subMinute(), $mail->sentAt->addMinute()])
+                ->exists()) {
+                $counts['skipped']++;
+
+                continue;
+            }
+
             if ($lead === null && $createLeads && $mail->to !== [] && $nicheId !== null) {
                 $lead = $user->leads()->create([
                     'niche_id' => $nicheId,

@@ -203,8 +203,17 @@ class ImapMailboxReader implements MailboxReader
         );
     }
 
+    /**
+     * A Message-ID with its angle brackets; some servers hand it back without them.
+     */
     private function firstId(string $header): ?string
     {
-        return preg_match('/<[^>]+>/', $header, $match) === 1 ? $match[0] : null;
+        if (preg_match('/<[^>]+>/', $header, $match) === 1) {
+            return $match[0];
+        }
+
+        $bare = trim($header);
+
+        return $bare === '' ? null : '<'.$bare.'>';
     }
 }
