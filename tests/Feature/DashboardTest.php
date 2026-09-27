@@ -4,6 +4,7 @@ use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Message;
 use Database\Seeders\DemoSeeder;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are redirected to the login page', function () {
@@ -12,6 +13,8 @@ test('guests are redirected to the login page', function () {
 });
 
 test('the dashboard shows the numbers home is built from', function () {
+    // The demo data has fixed follow-up dates; pin the clock so only the one we set is due.
+    Carbon::setTestNow('2026-09-25 12:00:00');
     $this->seed(DemoSeeder::class);
     Lead::query()->where('company', 'Tandartspraktijk De Linde')->update(['next_action_at' => now()->subHour()]);
 

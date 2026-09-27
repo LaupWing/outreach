@@ -10,6 +10,7 @@ use App\Mcp\Resources\StatsApp;
 use App\Mcp\Tools\CheckInbox;
 use App\Mcp\Tools\EnrichLead;
 use App\Mcp\Tools\EnrichRun;
+use App\Mcp\Tools\ImportSentMail;
 use App\Mcp\Tools\LeadContext;
 use App\Mcp\Tools\ListLeads;
 use App\Mcp\Tools\ListNiches;
@@ -42,7 +43,7 @@ Niches are the kinds of business you try (list_niches, update_niche: status idea
 
 Writing: an offer has a mail sequence (list_offers). Steps contain {{tags}}. Built-in tags come from the lead itself: company, city, email, phone, website, hook (one sentence about their site, set with update_lead) and hook_subject (the hook as a subject line). Every other tag, like {{compliment}} or {{first_name}}, is yours to fill per lead; the offer's tag_explanations say what it should contain. Get lead_context (with_site_text=true when you need to read the site), then preview_mail to show the mail as a card (the user can press Send or edit it in the app), or send_step / send to queue it straight away. Values you pass are saved as facts on the lead, so later steps reuse them. lead_context lists every step with its missing_tags: fill the tags of ALL steps in one go (pass them all in values, or with update_lead), so the automatic follow-ups can go out without you. Mail lands in the outbox and leaves at the next free moment within the account's sending hours; nothing goes out immediately.
 
-Following up: with auto follow-up on, the app sends the next step by itself once it is due, unless a tag is unfilled. who_needs_follow_up shows what waits and why; check_inbox shows who replied. Answer a reply with send and a "Re:" subject. stats shows how niches, offers and mailboxes perform.
+Following up: with auto follow-up on, the app sends the next step by itself once it is due, unless a tag is unfilled. who_needs_follow_up shows what waits and why; check_inbox shows who replied. Answer a reply with send and a "Re:" subject. Mail sent by hand before Snelreach: import_sent_mail pulls it in from the sent folder, with its replies. stats shows how niches, offers and mailboxes perform.
 TEXT)]
 class OutreachServer extends Server
 {
@@ -65,6 +66,7 @@ class OutreachServer extends Server
         SendMail::class,
         SendDraft::class,
         CheckInbox::class,
+        ImportSentMail::class,
         WhoNeedsFollowUp::class,
         Stats::class,
     ];

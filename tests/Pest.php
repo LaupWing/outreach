@@ -45,6 +45,8 @@ pest()->extend(TestCase::class)
         }));
         $this->instance(MailboxReader::class, tap(Mockery::mock(MailboxReader::class), function ($fake): void {
             $fake->shouldReceive('newMail')->andReturn([])->byDefault();
+            $fake->shouldReceive('mailSince')->andReturn([])->byDefault();
+            $fake->shouldReceive('sentMail')->andReturn([])->byDefault();
         }));
 
         $this->user = User::factory()->onboarded()->create();

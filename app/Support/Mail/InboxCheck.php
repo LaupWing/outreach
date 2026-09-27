@@ -7,6 +7,7 @@ use App\Enums\MessageStatus;
 use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Message;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -52,6 +53,31 @@ class InboxCheck
     }
 
     /**
+     * Book everything that came in since a moment, for mail sent before Snelreach was
+     * in the loop. Does not move the mailbox's place; the regular check keeps its own.
+     *
+     * @return array{replies: int, bounces: int, skipped: int, error: string|null}
+     */
+    public function since(Mailbox $mailbox, CarbonImmutable $since): array
+    {
+        $counts = ['replies' => 0, 'bounces' => 0, 'skipped' => 0, 'error' => null];
+
+        try {
+            $mail = $this->reader->mailSince($mailbox, $since);
+        } catch (Throwable $exception) {
+            $counts['error'] = trim(strtok($exception->getMessage(), "\n") ?: 'could not read the inbox');
+
+            return $counts;
+        }
+
+        foreach ($mail as $incoming) {
+            $counts[$incoming->autoSubmitted ? 'skipped' : $this->book($mailbox, $incoming)]++;
+        }
+
+        return $counts;
+    }
+
+    /**
      * @return 'replies'|'bounces'|'skipped'
      */
     private function book(Mailbox $mailbox, IncomingMail $incoming): string
@@ -74,6 +100,10 @@ class InboxCheck
         $original = $this->byReference($mailbox, $incoming) ?? $this->bySender($mailbox, $incoming);
 
         if ($original === null) {
+            return 'skipped';
+        }
+
+        if ($original->reply_received_at !== null && $original->reply_received_at->equalTo($incoming->receivedAt)) {
             return 'skipped';
         }
 
