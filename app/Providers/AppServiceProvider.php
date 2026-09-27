@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,6 +40,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // The consent page an MCP client (Claude) lands on after login, in our own UI.
+        Passport::authorizationView(fn (array $parameters) => Inertia::render('auth/oauth/authorize', [
+            'client' => ['id' => $parameters['client']->id, 'name' => $parameters['client']->name],
+            'authToken' => $parameters['authToken'],
+            'state' => $parameters['request']->state,
+            'scopes' => array_map(fn ($scope) => ['id' => $scope->id, 'description' => $scope->description], $parameters['scopes']),
+        ]));
     }
 
     /**
