@@ -26,6 +26,11 @@ class SmtpImapConnection implements MailboxConnection
             $transport->start();
             $transport->stop();
         } catch (Throwable $exception) {
+            // Hosting blocks outbound 465; say so instead of leaving a bare timeout.
+            if ($mailbox->smtp_port === 465 && str_contains($exception->getMessage(), 'timed out')) {
+                return 'SMTP: port 465 is blocked from our server. Use port 587 (STARTTLS).';
+            }
+
             return 'SMTP: '.$this->plain($exception->getMessage());
         }
 

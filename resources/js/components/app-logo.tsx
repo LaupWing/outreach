@@ -4,7 +4,9 @@ import { cn } from '@/lib/utils';
 /** The envelope stack on its own, for places where only the icon fits. */
 export function AppLogoMark({ className }: { className?: string }) {
     return (
-        <AppLogoIcon className={cn('aspect-square size-8 shrink-0', className)} />
+        <AppLogoIcon
+            className={cn('aspect-square size-8 shrink-0', className)}
+        />
     );
 }
 

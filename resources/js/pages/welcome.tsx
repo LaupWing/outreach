@@ -168,10 +168,10 @@ export default function Welcome() {
                                 first.
                             </h1>
                             <p className="max-w-[52ch] text-base text-muted-foreground sm:text-lg">
-                                Snelreach finds businesses on Google Maps,
-                                reads their websites and sends your offer from
-                                your own mailboxes, spread over the day. Claude
-                                does the writing.
+                                Snelreach finds businesses on Google Maps, reads
+                                their websites and sends your offer from your
+                                own mailboxes, spread over the day. Claude does
+                                the writing.
                             </p>
                             <div className="flex flex-wrap items-center gap-3">
                                 <Button size="lg" asChild>
@@ -239,7 +239,9 @@ export default function Welcome() {
                         </div>
                         <Button size="lg" asChild>
                             <Link href={auth.user ? dashboard() : register()}>
-                                {auth.user ? 'Open the dashboard' : 'Get started'}
+                                {auth.user
+                                    ? 'Open the dashboard'
+                                    : 'Get started'}
                                 <ArrowRight />
                             </Link>
                         </Button>
