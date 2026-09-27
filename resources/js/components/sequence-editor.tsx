@@ -348,7 +348,7 @@ export function Placeholders({ text }: { text: string }) {
                         key={index}
                         className="rounded bg-violet-500/15 px-1 font-mono text-xs text-violet-700 dark:text-violet-300"
                     >
-                        {part.slice(2, -2)}
+                        {part}
                     </span>
                 ) : (
                     part

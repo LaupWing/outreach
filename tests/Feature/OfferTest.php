@@ -30,7 +30,7 @@ test('the offers page renders the offers with their steps and what the counts de
                 ->where('id', $offer->id)
                 ->where('niche_id', $offer->niche_id)
                 ->where('status', $offer->status->value)
-                ->hasAll(['name', 'description']))
+                ->hasAll(['name', 'description', 'placeholders', 'auto_follow_up']))
             ->has('niches', 1)
             ->has('leads', 1)
             ->has('messages', 1)
@@ -145,4 +145,14 @@ test('an offer can be deleted', function () {
 
     $this->assertModelMissing($offer);
     $this->assertModelMissing($step);
+});
+
+test('the offers page carries the tag explanations and the auto follow-up switch', function () {
+    Offer::factory()->create(['placeholders' => ['aanhef' => 'Voornaam'], 'auto_follow_up' => true]);
+
+    $this->actingAs($this->user)
+        ->get(route('offers.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('offers.0.placeholders', ['aanhef' => 'Voornaam'])
+            ->where('offers.0.auto_follow_up', true));
 });

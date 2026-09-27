@@ -25,7 +25,7 @@ class OfferController extends Controller
 
         return Inertia::render('offers/index', [
             'offers' => $user->offers()
-                ->select(['id', 'name', 'niche_id', 'description', 'status'])
+                ->select(['id', 'name', 'niche_id', 'description', 'placeholders', 'auto_follow_up', 'status'])
                 ->orderBy('name')
                 ->get(),
             'niches' => $user->niches()
