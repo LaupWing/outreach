@@ -186,3 +186,28 @@
         animation: none;
     }
 }
+
+/*
+ * The envelopes on the home page float a little, each out of step with the others,
+ * like the layers of the snelstack stack.
+ */
+.envelope-bob {
+    animation: envelope-bob 6s ease-in-out infinite;
+}
+
+@keyframes envelope-bob {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-0.8px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .envelope-bob {
+        animation: none;
+    }
+}

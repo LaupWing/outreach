@@ -27,7 +27,7 @@ export default function Authorize() {
         <>
             <Head title="Connect Claude" />
 
-            <div className="flex flex-col gap-5 rounded-lg border border-(--raised-border) bg-card p-5 shadow-(--raised-shadow)">
+            <div className="flex flex-col gap-5">
                 <p className="text-sm">
                     <span className="font-medium">{client.name}</span> wants to
                     work in Snelreach as{' '}

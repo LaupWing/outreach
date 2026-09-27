@@ -1,17 +1,10 @@
 import AppLogoIcon from '@/components/app-logo-icon';
 import { cn } from '@/lib/utils';
 
-/** The round gradient mark on its own, for places where only the icon fits. */
+/** The envelope stack on its own, for places where only the icon fits. */
 export function AppLogoMark({ className }: { className?: string }) {
     return (
-        <div
-            className={cn(
-                'flex aspect-square size-8 items-center justify-center rounded-full bg-linear-to-br from-sky-400 to-violet-500',
-                className,
-            )}
-        >
-            <AppLogoIcon className="size-4.5 fill-white stroke-white stroke-[1.5] [stroke-linejoin:round]" />
-        </div>
+        <AppLogoIcon className={cn('aspect-square size-8 shrink-0', className)} />
     );
 }
 
