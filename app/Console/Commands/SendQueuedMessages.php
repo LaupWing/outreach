@@ -23,17 +23,11 @@ class SendQueuedMessages extends Command
     protected $description = 'Hand every queued message whose moment has come to its mailbox';
 
     /**
-     * Runs every few minutes from the scheduler. Sends nothing outside the window,
-     * so a mail queued for 16:58 that the tick misses goes first thing tomorrow.
+     * Runs every few minutes from the scheduler. A due mail whose account is outside
+     * its sending window is pushed to the next opening instead of sent.
      */
     public function handle(Outbox $outbox): int
     {
-        if (! $outbox->isOpen()) {
-            $this->info('Outside the sending window; nothing sent.');
-
-            return self::SUCCESS;
-        }
-
         $counts = ['sent' => 0, 'failed' => 0, 'queued' => 0];
 
         foreach ($outbox->due() as $message) {

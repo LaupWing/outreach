@@ -49,11 +49,12 @@ class Outbox
             return 0;
         }
 
-        $window = $this->windowOn($this->now());
+        $window = SendingWindow::for($mailbox->user);
+        $today = $window->on($window->now());
 
         $queuedToday = $mailbox->messages()
             ->where('status', MessageStatus::Queued)
-            ->whereBetween('send_after', [$this->utc($window['start']), $this->utc($window['end'])])
+            ->whereBetween('send_after', [$window->toUtc($today['start']), $window->toUtc($today['end'])])
             ->count();
 
         return max(0, $mailbox->limitToday() - $mailbox->sent_today - $queuedToday);
@@ -75,7 +76,7 @@ class Outbox
             'thread_id' => $attributes['thread_id'] ?? 'thr_'.Str::lower(Str::random(5)),
             'message_id' => $this->messageIdFor($mailbox),
             'status' => MessageStatus::Queued,
-            'send_after' => $this->utc($rightAway ? $this->now() : $this->slotFor($mailbox)),
+            'send_after' => $rightAway ? now() : $this->slotFor($mailbox),
         ]);
 
         return $message;
@@ -91,7 +92,7 @@ class Outbox
         return Message::query()
             ->with(['lead', 'mailbox'])
             ->where('status', MessageStatus::Queued)
-            ->where('send_after', '<=', $this->utc($this->now()))
+            ->where('send_after', '<=', now())
             ->orderBy('send_after')
             ->orderBy('id')
             ->get();
@@ -111,8 +112,16 @@ class Outbox
             return $this->fail($message, 'The lead has no email address.');
         }
 
+        $window = SendingWindow::for($mailbox->user);
+
+        if (! $window->isOpen()) {
+            $message->update(['send_after' => $window->toUtc($window->inside($window->now()))]);
+
+            return MessageStatus::Queued;
+        }
+
         if (! $mailbox->canSend() || $mailbox->sent_today >= $mailbox->limitToday()) {
-            $message->update(['send_after' => $this->utc($this->nextWindowAfter($this->now()))]);
+            $message->update(['send_after' => $window->toUtc($window->nextAfter($window->now()))]);
 
             return MessageStatus::Queued;
         }
@@ -152,56 +161,28 @@ class Outbox
     /**
      * The next moment the mailbox can send: an even interval after the last mail
      * it has waiting, inside the window, with a little jitter so it is not a clock.
+     * Returned in the app timezone, ready to save.
      */
     public function slotFor(Mailbox $mailbox): CarbonImmutable
     {
+        $window = SendingWindow::for($mailbox->user);
+
         $lastQueued = $mailbox->messages()
             ->where('status', MessageStatus::Queued)
             ->max('send_after');
 
-        $now = $this->now();
-        $window = $this->windowOn($now);
-        $length = $window['end']->diffInSeconds($window['start'], true);
-        $interval = (int) max(60, $length / max(1, $mailbox->limitToday()));
+        $now = $window->now();
+        $interval = (int) max(60, $window->length() / max(1, $mailbox->limitToday()));
 
         $candidate = $now;
 
         if ($lastQueued !== null) {
-            $candidate = $candidate->max(CarbonImmutable::parse($lastQueued, 'UTC')->setTimezone($now->getTimezone())->addSeconds($interval));
+            $candidate = $candidate->max(CarbonImmutable::parse($lastQueued, config('app.timezone'))->setTimezone($now->getTimezone())->addSeconds($interval));
         }
 
         $candidate = $candidate->addSeconds(random_int(0, intdiv($interval, 3)));
 
-        return $this->insideWindow($candidate);
-    }
-
-    /**
-     * The same moment when it falls in a sending window, otherwise the start of the next one.
-     */
-    public function insideWindow(CarbonImmutable $moment): CarbonImmutable
-    {
-        $window = $this->windowOn($moment);
-
-        if ($moment->lessThan($window['start']) && $this->isSendingDay($moment)) {
-            return $window['start']->addSeconds(random_int(0, 300));
-        }
-
-        if ($moment->greaterThanOrEqualTo($window['end']) || ! $this->isSendingDay($moment)) {
-            return $this->nextWindowAfter($moment)->addSeconds(random_int(0, 300));
-        }
-
-        return $moment;
-    }
-
-    /**
-     * Whether mail may go out right now.
-     */
-    public function isOpen(): bool
-    {
-        $now = $this->now();
-        $window = $this->windowOn($now);
-
-        return $this->isSendingDay($now) && $now->between($window['start'], $window['end']);
+        return $window->toUtc($window->inside($candidate));
     }
 
     /**
@@ -255,48 +236,5 @@ class Outbox
         $domain = Str::after($mailbox->address, '@');
 
         return '<'.Str::uuid().'@'.$domain.'>';
-    }
-
-    private function now(): CarbonImmutable
-    {
-        return CarbonImmutable::now(config('outreach.window.timezone'));
-    }
-
-    /**
-     * Eloquent stores a datetime in the timezone it carries, so window moments go
-     * back to the app timezone before they are saved.
-     */
-    private function utc(CarbonImmutable $moment): CarbonImmutable
-    {
-        return $moment->setTimezone(config('app.timezone'));
-    }
-
-    /**
-     * @return array{start: CarbonImmutable, end: CarbonImmutable}
-     */
-    private function windowOn(CarbonImmutable $day): array
-    {
-        $day = $day->setTimezone(config('outreach.window.timezone'));
-
-        return [
-            'start' => $day->setTime((int) config('outreach.window.start'), 0),
-            'end' => $day->setTime((int) config('outreach.window.end'), 0),
-        ];
-    }
-
-    private function nextWindowAfter(CarbonImmutable $moment): CarbonImmutable
-    {
-        $day = $moment->setTimezone(config('outreach.window.timezone'))->addDay();
-
-        while (! $this->isSendingDay($day)) {
-            $day = $day->addDay();
-        }
-
-        return $this->windowOn($day)['start'];
-    }
-
-    private function isSendingDay(CarbonImmutable $day): bool
-    {
-        return ! config('outreach.window.weekdays_only') || $day->isWeekday();
     }
 }

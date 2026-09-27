@@ -30,13 +30,13 @@ class LeadMessageController extends Controller
             'step' => $step,
         ]);
 
+        $sendsAt = $message->send_after->setTimezone($request->user()->send_timezone);
+
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => __(':what queued, sends :when.', [
                 'what' => $step === 0 ? 'Mail' : "Step {$step}",
-                'when' => $message->send_after->setTimezone(config('outreach.window.timezone'))->isToday()
-                    ? 'at '.$message->send_after->setTimezone(config('outreach.window.timezone'))->format('H:i')
-                    : $message->send_after->setTimezone(config('outreach.window.timezone'))->format('D H:i'),
+                'when' => $sendsAt->isToday() ? 'at '.$sendsAt->format('H:i') : $sendsAt->format('D H:i'),
             ]),
         ]);
 

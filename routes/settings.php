@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\GoogleController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\SendingController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -28,4 +29,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/google', [GoogleController::class, 'edit'])->name('google.edit');
     Route::patch('settings/google', [GoogleController::class, 'update'])->name('google.update');
+
+    Route::patch('settings/sending', [SendingController::class, 'update'])->name('sending.update');
 });

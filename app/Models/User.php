@@ -19,6 +19,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $google_places_key
+ * @property string $send_timezone
+ * @property int $send_from
+ * @property int $send_until
+ * @property bool $send_weekdays_only
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -90,6 +94,21 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The model's default values for attributes.
+     *
+     * Also the defaults on the users table; here so a fresh model, like one a
+     * factory just created, sends in the same window without a refresh.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'send_timezone' => 'Europe/Amsterdam',
+        'send_from' => 9,
+        'send_until' => 17,
+        'send_weekdays_only' => true,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -100,6 +119,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'google_places_key' => 'encrypted',
+            'send_from' => 'integer',
+            'send_until' => 'integer',
+            'send_weekdays_only' => 'boolean',
         ];
     }
 }

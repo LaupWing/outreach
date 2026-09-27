@@ -1,5 +1,6 @@
 import { Form, Link, usePage } from '@inertiajs/react';
 import {
+    Clock,
     KeyRound,
     Mailbox as MailboxIcon,
     Palette,
@@ -14,6 +15,7 @@ import InputError from '@/components/input-error';
 import { MailboxDialog } from '@/components/mailbox-dialog';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -27,8 +29,20 @@ import { cn } from '@/lib/utils';
 import { update as updateGoogle } from '@/routes/google';
 import { index as mailboxesIndex } from '@/routes/mailboxes';
 import { edit as editSecurity } from '@/routes/security';
+import { update as updateSending } from '@/routes/sending';
 
-type Section = 'profile' | 'password' | 'appearance' | 'google' | 'mailboxes';
+type Section = 'profile' | 'password' | 'appearance' | 'google' | 'mailboxes' | 'sending';
+
+/** Enough for a Dutch agency and its clients; the field is free text for anything else. */
+const timezones = [
+    'Europe/Amsterdam',
+    'Europe/Brussels',
+    'Europe/Berlin',
+    'Europe/London',
+    'Europe/Madrid',
+    'Europe/Paris',
+    'UTC',
+];
 
 const sections: { id: Section; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { id: 'profile', label: 'Profile', icon: UserRound },
@@ -36,6 +50,7 @@ const sections: { id: Section; label: string; icon: ComponentType<{ className?: 
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'google', label: 'Google', icon: KeyRound },
     { id: 'mailboxes', label: 'Mailboxes', icon: MailboxIcon },
+    { id: 'sending', label: 'Sending', icon: Clock },
 ];
 
 function SectionHeading({ title, description }: { title: string; description: string }) {
@@ -187,6 +202,66 @@ function MailboxesSection() {
     );
 }
 
+function SendingSection() {
+    const { auth } = usePage().props;
+    const { send_timezone, send_from, send_until, send_weekdays_only } = auth.sending;
+    const [weekdaysOnly, setWeekdaysOnly] = useState(send_weekdays_only);
+
+    return (
+        <Form {...updateSending.form()} options={{ preserveScroll: true, preserveState: true }} className="grid gap-5">
+            {({ processing, errors }) => (
+                <>
+                    <SectionHeading
+                        title="Sending hours"
+                        description="Queued mail leaves between these hours, spread evenly over every mailbox with room. Outside them it waits for the next opening."
+                    />
+                    <div className="grid gap-2">
+                        <Label htmlFor="settings-timezone">Timezone</Label>
+                        <Input
+                            id="settings-timezone"
+                            name="send_timezone"
+                            list="settings-timezones"
+                            defaultValue={send_timezone}
+                            autoComplete="off"
+                        />
+                        <datalist id="settings-timezones">
+                            {timezones.map((zone) => (
+                                <option key={zone} value={zone} />
+                            ))}
+                        </datalist>
+                        <InputError message={errors.send_timezone} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="settings-send-from">From</Label>
+                            <Input id="settings-send-from" name="send_from" type="number" min={0} max={23} defaultValue={send_from} />
+                            <InputError message={errors.send_from} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="settings-send-until">Until</Label>
+                            <Input id="settings-send-until" name="send_until" type="number" min={1} max={24} defaultValue={send_until} />
+                            <InputError message={errors.send_until} />
+                        </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                        {/* The checkbox is not a native input; the hidden field carries the value. */}
+                        <input type="hidden" name="send_weekdays_only" value={weekdaysOnly ? '1' : '0'} />
+                        <Checkbox
+                            checked={weekdaysOnly}
+                            onCheckedChange={(checked) => setWeekdaysOnly(checked === true)}
+                        />
+                        Weekdays only
+                    </label>
+                    <InputError message={errors.send_weekdays_only} />
+                    <Button size="sm" className="justify-self-start" disabled={processing}>
+                        Save
+                    </Button>
+                </>
+            )}
+        </Form>
+    );
+}
+
 /** The settings as a dialog over whatever page is open, instead of pages of their own. */
 export function SettingsDialog() {
     const open = useSettingsOpen();
@@ -230,6 +305,7 @@ export function SettingsDialog() {
                         {section === 'appearance' && <AppearanceSection />}
                         {section === 'google' && <GoogleSection />}
                         {section === 'mailboxes' && <MailboxesSection />}
+                        {section === 'sending' && <SendingSection />}
                     </div>
                 </div>
             </DialogContent>

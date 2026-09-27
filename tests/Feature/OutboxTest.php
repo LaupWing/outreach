@@ -197,15 +197,35 @@ test('the command sends what is due and leaves the rest', function () {
         ->and($failing->refresh()->status)->toBe(MessageStatus::Failed);
 });
 
-test('the command sends nothing outside the window', function () {
+test('outside the account\'s window a due mail is pushed to the next opening', function () {
     Carbon::setTestNow('2026-09-28 20:00:00'); // 22:00 Amsterdam
     $due = Message::factory()->queued()->create(['send_after' => now()->subHour()]);
 
     $this->mock(MailSender::class)->shouldNotReceive('send');
 
     $this->artisan('outreach:send')
-        ->expectsOutputToContain('Outside the sending window')
+        ->expectsOutputToContain('0 sent, 0 failed, 1 pushed to a later window.')
         ->assertSuccessful();
 
-    expect($due->refresh()->status)->toBe(MessageStatus::Queued);
+    expect($due->refresh()->status)->toBe(MessageStatus::Queued)
+        ->and($due->send_after?->setTimezone('Europe/Amsterdam')->format('Y-m-d H'))->toBe('2026-09-29 09');
+});
+
+test('the window follows the account\'s own hours, timezone and weekend choice', function () {
+    Carbon::setTestNow('2026-09-26 12:00:00'); // Saturday noon UTC
+    $this->user->forceFill(['send_timezone' => 'Europe/London', 'send_from' => 8, 'send_until' => 20, 'send_weekdays_only' => false])->save();
+    $mailbox = Mailbox::factory()->create();
+    $lead = Lead::factory()->create();
+
+    $message = app(Outbox::class)->queue($lead, $mailbox, ['subject' => 'A', 'body' => 'a', 'step' => 1]);
+
+    // Saturday 13:00 London is inside 8-20 and weekends are fine, so it goes today.
+    expect($message->send_after->setTimezone('Europe/London')->format('Y-m-d'))->toBe('2026-09-26');
+
+    $this->artisan('outreach:send')->assertSuccessful();
+
+    Carbon::setTestNow('2026-09-26 12:30:00');
+    $this->artisan('outreach:send')->assertSuccessful();
+
+    expect($message->refresh()->status)->toBe(MessageStatus::Sent);
 });

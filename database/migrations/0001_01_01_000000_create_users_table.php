@@ -18,6 +18,11 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->text('google_places_key')->nullable();
+            // When queued mail may leave: hours on a 24-hour clock in this timezone.
+            $table->string('send_timezone')->default('Europe/Amsterdam');
+            $table->unsignedTinyInteger('send_from')->default(9);
+            $table->unsignedTinyInteger('send_until')->default(17);
+            $table->boolean('send_weekdays_only')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });
