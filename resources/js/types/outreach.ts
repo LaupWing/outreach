@@ -115,6 +115,8 @@ export type Message = {
     error: string | null;
     status: MessageStatus;
     thread_id: string | null;
+    /** The RFC Message-ID header once queued; Gmail can search on it. */
+    message_id: string | null;
     /** The reply text, once one came in. Lives on the message for now; the inbox check fills it. */
     reply: { body: string; received_at: string } | null;
 };

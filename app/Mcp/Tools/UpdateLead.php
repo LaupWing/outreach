@@ -18,7 +18,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_lead')]
-#[Description('Change a lead: set or merge facts (the values for {{tags}} in its offer\'s mails, e.g. {"compliment": "…"}), the hook, the offer, the status, or add a note. Only the fields given are touched. Facts merge into what is there; a fact set to an empty string is removed.')]
+#[Description('Change a lead: set the email address, set or merge facts (the values for {{tags}} in its offer\'s mails, e.g. {"compliment": "…"}), the hook, the offer, the status, or add a note. Only the fields given are touched. Facts merge into what is there; a fact set to an empty string is removed.')]
 #[IsIdempotent]
 class UpdateLead extends Tool
 {
@@ -30,6 +30,7 @@ class UpdateLead extends Tool
             'lead_id' => ['required', 'integer'],
             'facts' => ['sometimes', 'array'],
             'facts.*' => ['nullable', 'string', 'max:2000'],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'hook' => ['sometimes', 'nullable', 'string', 'max:500'],
             'offer_id' => ['sometimes', 'nullable', 'integer', Rule::exists(Offer::class, 'id')->where('user_id', $user->id)],
             'status' => ['sometimes', Rule::enum(LeadStatus::class)],
@@ -51,7 +52,7 @@ class UpdateLead extends Tool
             $changed[] = 'facts';
         }
 
-        foreach (['hook', 'offer_id', 'status'] as $field) {
+        foreach (['email', 'hook', 'offer_id', 'status'] as $field) {
             if (array_key_exists($field, $validated)) {
                 $lead->{$field} = $validated[$field];
                 $changed[] = $field;
@@ -77,6 +78,7 @@ class UpdateLead extends Tool
         return [
             'lead_id' => $schema->integer()->description('The lead to change.')->required(),
             'facts' => $schema->object()->description('Tag values to merge, e.g. {"compliment": "Mooi dat …", "first_name": "Sanne"}. Empty string removes a fact.'),
+            'email' => $schema->string()->description('The address to mail, when you found it yourself (e.g. on the site or in the KVK register).'),
             'hook' => $schema->string()->description('One sentence about their site that opens the first mail; also becomes the subject when the sequence uses {{hook_subject}}.'),
             'offer_id' => $schema->integer()->description('The offer (and so the sequence) this lead is worked with.'),
             'status' => $schema->string()->enum(array_map(fn (LeadStatus $status) => $status->value, LeadStatus::cases()))->description('Set by hand, e.g. "no" after a call, "customer" when they signed.'),

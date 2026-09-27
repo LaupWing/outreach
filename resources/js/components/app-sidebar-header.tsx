@@ -1,8 +1,7 @@
-import { ChevronRight, CircleHelp } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AppearanceToggle } from '@/components/appearance-toggle';
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { Button } from '@/components/ui/button';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import {
     Tooltip,
@@ -49,19 +48,6 @@ export function AppSidebarHeader({
                 {actions && (
                     <span className="mx-1 h-5 w-px bg-sidebar-border" />
                 )}
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-muted-foreground hover:text-foreground"
-                            aria-label="Help"
-                        >
-                            <CircleHelp className="size-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Help</TooltipContent>
-                </Tooltip>
                 <AppearanceToggle />
             </div>
         </header>

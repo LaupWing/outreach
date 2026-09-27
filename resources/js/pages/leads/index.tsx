@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    ChevronDown,
     Database,
     MapPin,
     Plus,
@@ -7,6 +8,7 @@ import {
     SlidersHorizontal,
     Tag,
     Target,
+    Trash2,
     Users,
     X,
 } from 'lucide-react';
@@ -14,17 +16,25 @@ import { useEffect, useState } from 'react';
 import { FilterCombobox } from '@/components/filters/filter-combobox';
 import { FilterMenu } from '@/components/filters/filter-menu';
 import type { FilterOption } from '@/components/filters/filter-trigger';
-import { leadStatuses } from '@/components/lead-status-badge';
+import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
 import { LeadDialog } from '@/components/lead-dialog';
 import type { LeadNote } from '@/components/lead-activity';
 import { LeadPanel } from '@/components/lead-panel';
 import { LeadsTable, type LeadRow } from '@/components/leads-table';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { index as leadsIndex } from '@/routes/leads';
+import { cn } from '@/lib/utils';
+import { bulk, index as leadsIndex } from '@/routes/leads';
 import type {
     LeadSource,
     LeadStatus,
@@ -134,6 +144,33 @@ export default function LeadsIndex() {
     // Keeps the last lead while the panel slides shut.
     const [panelLead, setPanelLead] = useState<LeadRow | null>(linked);
     const compact = selectedId !== null;
+    // The rows ticked for a bulk action; the filters (the URL) and a finished action clear them.
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const clearSelection = () => setSelectedIds(new Set());
+
+    useEffect(() => {
+        clearSelection();
+    }, [url]);
+
+    const toggle = (id: number) =>
+        setSelectedIds((current) => {
+            const next = new Set(current);
+
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+
+            return next;
+        });
+
+    const toggleAll = (ids: number[]) =>
+        setSelectedIds((current) =>
+            ids.every((id) => current.has(id))
+                ? new Set()
+                : new Set([...current, ...ids]),
+        );
     const hiddenActive =
         filters.niche.length +
         filters.offer.length +
@@ -306,6 +343,18 @@ export default function LeadsIndex() {
                         offers={offers}
                         selectedId={selectedId}
                         onSelect={select}
+                        selectedIds={selectedIds}
+                        onToggle={toggle}
+                        onToggleAll={toggleAll}
+                        floating={
+                            selectedIds.size > 0 && (
+                                <BulkBar
+                                    ids={[...selectedIds]}
+                                    offers={offers}
+                                    onDone={clearSelection}
+                                />
+                            )
+                        }
                     />
                 </div>
                 <LeadPanel
@@ -330,6 +379,169 @@ export default function LeadsIndex() {
                 />
             </div>
         </>
+    );
+}
+
+const bulkButtonClassName =
+    'flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-(--raised-border) bg-background px-2.5 text-xs shadow-(--raised-shadow) transition-colors hover:bg-accent data-[state=open]:bg-accent';
+
+/** Floats over the table once rows are ticked: one action for all of them at once. */
+function BulkBar({
+    ids,
+    offers,
+    onDone,
+}: {
+    ids: number[];
+    offers: Offer[];
+    /** After the server confirms; the selection goes with it. */
+    onDone: () => void;
+}) {
+    const [busy, setBusy] = useState(false);
+    // Delete asks once: the second click within three seconds does it.
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+    useEffect(() => {
+        if (!confirmingDelete) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => setConfirmingDelete(false), 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [confirmingDelete]);
+
+    const run = (
+        data:
+            | { action: 'assign_offer'; offer_id: number | null }
+            | { action: 'set_status'; status: LeadStatus }
+            | { action: 'delete' },
+    ) => {
+        router.post(
+            bulk.url(),
+            { ids, ...data },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onStart: () => setBusy(true),
+                onFinish: () => setBusy(false),
+                onSuccess: onDone,
+            },
+        );
+    };
+
+    const remove = () => {
+        if (!confirmingDelete) {
+            setConfirmingDelete(true);
+
+            return;
+        }
+
+        run({ action: 'delete' });
+    };
+
+    const count = ids.length;
+
+    return (
+        <div
+            data-keeps-panel
+            className="pointer-events-none absolute inset-x-0 bottom-16 z-20 flex justify-center px-4"
+        >
+            <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-(--raised-border) bg-background p-2 shadow-(--raised-shadow)">
+                <span className="px-1.5 text-sm tabular-nums">
+                    {count} selected
+                </span>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            disabled={busy}
+                            className={bulkButtonClassName}
+                        >
+                            <Tag className={iconClassName} />
+                            Set offer
+                            <ChevronDown className="size-3.5 text-muted-foreground" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="top">
+                        {offers.map((offer) => (
+                            <DropdownMenuItem
+                                key={offer.id}
+                                onSelect={() =>
+                                    run({
+                                        action: 'assign_offer',
+                                        offer_id: offer.id,
+                                    })
+                                }
+                            >
+                                {offer.name}
+                            </DropdownMenuItem>
+                        ))}
+                        {offers.length > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuItem
+                            className="text-muted-foreground"
+                            onSelect={() =>
+                                run({ action: 'assign_offer', offer_id: null })
+                            }
+                        >
+                            No offer
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            disabled={busy}
+                            className={bulkButtonClassName}
+                        >
+                            <Target className={iconClassName} />
+                            Set status
+                            <ChevronDown className="size-3.5 text-muted-foreground" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="top">
+                        {(Object.keys(leadStatuses) as LeadStatus[]).map(
+                            (status) => (
+                                <DropdownMenuItem
+                                    key={status}
+                                    onSelect={() =>
+                                        run({ action: 'set_status', status })
+                                    }
+                                >
+                                    <LeadStatusBadge status={status} />
+                                </DropdownMenuItem>
+                            ),
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <button
+                    type="button"
+                    onClick={remove}
+                    disabled={busy}
+                    aria-label={
+                        confirmingDelete
+                            ? `Click again to delete ${count} leads`
+                            : `Delete ${count} leads`
+                    }
+                    className={cn(
+                        bulkButtonClassName,
+                        'text-red-600 hover:bg-red-500/10 dark:text-red-400',
+                        confirmingDelete && 'bg-red-500/10',
+                    )}
+                >
+                    <Trash2 className="size-3.5" />
+                    {confirmingDelete ? `Sure? Delete ${count}` : 'Delete'}
+                </button>
+                <button
+                    type="button"
+                    onClick={onDone}
+                    aria-label="Clear selection"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                    <X className="size-4" />
+                </button>
+            </div>
+        </div>
     );
 }
 

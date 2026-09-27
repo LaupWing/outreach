@@ -79,10 +79,17 @@ export function MessagePanel({
                                     Open lead
                                 </Link>
                             </Button>
-                            {message.thread_id && (
-                                <Button variant="outline" size="sm">
-                                    <ExternalLink />
-                                    Open in Gmail
+                            {/* Gmail finds a mail by its Message-ID; only mails the app sent have one. */}
+                            {message.message_id && message.sent_at && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a
+                                        href={`https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(message.message_id.replace(/^<|>$/g, ''))}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <ExternalLink />
+                                        Open in Gmail
+                                    </a>
                                 </Button>
                             )}
                         </div>

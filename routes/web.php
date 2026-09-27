@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InboxController;
+use App\Http\Controllers\LeadBulkController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LeadFactController;
 use App\Http\Controllers\LeadMessageController;
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified', EnsureOnboarded::class])->group(function 
     Route::delete('steps/{step}', [SequenceStepController::class, 'destroy'])->name('steps.destroy');
 
     Route::resource('leads', LeadController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('leads/bulk', LeadBulkController::class)->name('leads.bulk');
     Route::post('leads/{lead}/notes', [LeadNoteController::class, 'store'])->name('leads.notes.store');
     Route::patch('leads/{lead}/facts', [LeadFactController::class, 'update'])->name('leads.facts.update');
     Route::post('leads/{lead}/messages', [LeadMessageController::class, 'store'])->name('leads.messages.store');

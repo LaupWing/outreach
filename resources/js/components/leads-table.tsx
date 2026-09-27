@@ -8,9 +8,10 @@ import {
     Target,
 } from 'lucide-react';
 import { InfiniteScroll } from '@inertiajs/react';
-import { useRef, type ReactNode } from 'react';
+import { useRef, type ComponentProps, type ReactNode } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { Lead, Niche, Offer } from '@/types';
 
@@ -37,7 +38,8 @@ const shortDate = new Intl.DateTimeFormat('en-GB', {
 function Cell({
     children,
     className,
-}: {
+    ...props
+}: ComponentProps<'td'> & {
     children: ReactNode;
     className?: string;
 }) {
@@ -47,6 +49,7 @@ function Cell({
                 'h-11 truncate border-r border-b border-border px-4 text-sm last:border-r-0',
                 className,
             )}
+            {...props}
         >
             {children}
         </td>
@@ -60,6 +63,10 @@ export function LeadsTable({
     offers,
     selectedId,
     onSelect,
+    selectedIds,
+    onToggle,
+    onToggleAll,
+    floating,
 }: {
     /** The rows loaded so far; Inertia appends the next page as you scroll. */
     leads: LeadRow[];
@@ -67,17 +74,28 @@ export function LeadsTable({
     total: number;
     niches: Niche[];
     offers: Offer[];
+    /** The lead open in the side panel. */
     selectedId: number | null;
     onSelect: (lead: LeadRow) => void;
+    /** The rows ticked for a bulk action. */
+    selectedIds: Set<number>;
+    onToggle: (id: number) => void;
+    /** Ticks every loaded row, or clears them all when they are all ticked. */
+    onToggleAll: (ids: number[]) => void;
+    /** Floats over the bottom of the rows, above the footer band: the bulk action bar. */
+    floating?: ReactNode;
 }) {
     const body = useRef<HTMLTableSectionElement>(null);
     const nicheName = (id: number) =>
         niches.find((niche) => niche.id === id)?.name ?? '—';
     const offerName = (id: number | null) =>
         offers.find((offer) => offer.id === id)?.name;
+    const allChecked =
+        leads.length > 0 && leads.every((lead) => selectedIds.has(lead.id));
+    const someChecked = !allChecked && selectedIds.size > 0;
 
     return (
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
                 {/* Loads the next fifty when the last rows scroll into view; the URL keeps its filters. */}
                 <InfiniteScroll
@@ -90,9 +108,31 @@ export function LeadsTable({
                         </div>
                     )}
                 >
-                    <table className="w-full min-w-[1500px] table-fixed border-separate border-spacing-0">
+                    <table className="w-full min-w-[1548px] table-fixed border-separate border-spacing-0">
                         <thead>
                             <tr>
+                                <th
+                                    scope="col"
+                                    data-keeps-panel
+                                    className="sticky top-0 z-10 h-11 w-12 border-r border-b border-border bg-background px-4"
+                                >
+                                    <Checkbox
+                                        checked={
+                                            allChecked
+                                                ? true
+                                                : someChecked
+                                                  ? 'indeterminate'
+                                                  : false
+                                        }
+                                        onCheckedChange={() =>
+                                            onToggleAll(
+                                                leads.map((lead) => lead.id),
+                                            )
+                                        }
+                                        aria-label="Select all loaded leads"
+                                        className="block"
+                                    />
+                                </th>
                                 {columns.map((column) => (
                                     <th
                                         key={column.title}
@@ -118,6 +158,21 @@ export function LeadsTable({
                                     aria-selected={lead.id === selectedId}
                                     className="cursor-pointer transition-colors hover:bg-accent/60 aria-selected:bg-accent"
                                 >
+                                    {/* The tick is its own click: it must not open the panel. */}
+                                    <Cell
+                                        onClick={(event) =>
+                                            event.stopPropagation()
+                                        }
+                                    >
+                                        <Checkbox
+                                            checked={selectedIds.has(lead.id)}
+                                            onCheckedChange={() =>
+                                                onToggle(lead.id)
+                                            }
+                                            aria-label={`Select ${lead.company}`}
+                                            className="block"
+                                        />
+                                    </Cell>
                                     <Cell>
                                         <span className="flex items-center gap-2.5">
                                             <CompanyAvatar
@@ -167,6 +222,8 @@ export function LeadsTable({
                     </table>
                 </InfiniteScroll>
             </div>
+
+            {floating}
 
             {/* Filled band, same height as the sidebar footer. */}
             <div className="flex h-14 shrink-0 items-center border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground">
