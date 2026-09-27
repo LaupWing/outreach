@@ -29,6 +29,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('sent_today')->default(0);
             $table->date('sent_today_on')->nullable();
             $table->timestamp('warm_up_started_at')->nullable();
+            // Where the inbox check left off: the highest IMAP UID it has read.
+            $table->unsignedInteger('last_seen_uid')->nullable();
+            $table->timestamp('inbox_checked_at')->nullable();
             $table->timestamps();
 
             $table->unique(['user_id', 'address']);

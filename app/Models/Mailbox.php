@@ -35,10 +35,12 @@ use Illuminate\Support\Carbon;
  * @property string $password
  * @property Carbon|null $connection_checked_at
  * @property string|null $connection_error
+ * @property int|null $last_seen_uid
+ * @property Carbon|null $inbox_checked_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['user_id', 'address', 'type', 'status', 'daily_limit', 'sent_today', 'sent_today_on', 'warm_up_started_at', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password', 'connection_checked_at', 'connection_error'])]
+#[Fillable(['user_id', 'address', 'type', 'status', 'daily_limit', 'sent_today', 'sent_today_on', 'warm_up_started_at', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password', 'connection_checked_at', 'connection_error', 'last_seen_uid', 'inbox_checked_at'])]
 #[Hidden(['password'])]
 class Mailbox extends Model
 {
@@ -73,6 +75,8 @@ class Mailbox extends Model
             'smtp_port' => 'integer',
             'password' => 'encrypted',
             'connection_checked_at' => 'datetime',
+            'last_seen_uid' => 'integer',
+            'inbox_checked_at' => 'datetime',
         ];
     }
 

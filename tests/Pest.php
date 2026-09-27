@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Support\Enrichment\SiteReader;
+use App\Support\Mail\MailboxReader;
 use App\Support\Mail\MailSender;
 use App\Support\MailboxConnection;
 use App\Support\Places\PlacesPage;
@@ -41,6 +42,9 @@ pest()->extend(TestCase::class)
         }));
         $this->instance(MailSender::class, tap(Mockery::mock(MailSender::class), function ($fake): void {
             $fake->shouldReceive('send')->andReturnNull()->byDefault();
+        }));
+        $this->instance(MailboxReader::class, tap(Mockery::mock(MailboxReader::class), function ($fake): void {
+            $fake->shouldReceive('newMail')->andReturn([])->byDefault();
         }));
 
         $this->user = User::factory()->onboarded()->create();

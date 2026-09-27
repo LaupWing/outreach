@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Support\Enrichment\HttpSiteReader;
 use App\Support\Enrichment\SiteReader;
+use App\Support\Mail\ImapMailboxReader;
+use App\Support\Mail\MailboxReader;
 use App\Support\Mail\MailSender;
 use App\Support\Mail\SmtpMailSender;
 use App\Support\MailboxConnection;
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PlacesSearch::class, GooglePlacesSearch::class);
         $this->app->bind(SiteReader::class, HttpSiteReader::class);
         $this->app->bind(MailSender::class, SmtpMailSender::class);
+        $this->app->bind(MailboxReader::class, ImapMailboxReader::class);
     }
 
     /**
