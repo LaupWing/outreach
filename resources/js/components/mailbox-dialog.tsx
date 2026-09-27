@@ -156,8 +156,11 @@ export function MailboxDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <form onSubmit={submit} className="flex flex-col gap-5">
+            <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-md">
+                <form
+                    onSubmit={submit}
+                    className="flex min-h-0 flex-1 flex-col gap-5"
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {editing ? 'Edit mailbox' : 'New mailbox'}
@@ -169,7 +172,8 @@ export function MailboxDialog({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-4">
+                    {/* The fields scroll; header and footer stay put on a short screen. */}
+                    <div className="-mx-1 grid min-h-0 flex-1 gap-4 overflow-y-auto px-1">
                         <Field
                             label="Address"
                             icon={AtSign}

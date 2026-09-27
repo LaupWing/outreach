@@ -51,9 +51,18 @@ const POSES: Record<'sky' | 'violet' | 'pink', Record<SceneStep, Pose>> = {
 const LEADS: { colour: string; found: Pose }[] = [
     { colour: ENVELOPE_COLOURS.pink, found: { x: 36, y: 56, s: 1.5, o: 0.5 } },
     { colour: ENVELOPE_COLOURS.sky, found: { x: 164, y: 50, s: 1.4, o: 0.5 } },
-    { colour: ENVELOPE_COLOURS.violet, found: { x: 70, y: 150, s: 1.3, o: 0.35 } },
-    { colour: ENVELOPE_COLOURS.pink, found: { x: 134, y: 154, s: 1.5, o: 0.35 } },
-    { colour: ENVELOPE_COLOURS.violet, found: { x: 100, y: 30, s: 1.2, o: 0.3 } },
+    {
+        colour: ENVELOPE_COLOURS.violet,
+        found: { x: 70, y: 150, s: 1.3, o: 0.35 },
+    },
+    {
+        colour: ENVELOPE_COLOURS.pink,
+        found: { x: 134, y: 154, s: 1.5, o: 0.35 },
+    },
+    {
+        colour: ENVELOPE_COLOURS.violet,
+        found: { x: 100, y: 30, s: 1.2, o: 0.3 },
+    },
 ];
 
 const MOVE =
@@ -239,10 +248,7 @@ export function EnvelopeScene({
                         <path d="M-5 -2.6 h10" className="stroke-neutral-300" />
                         <path
                             d="M-5 0 h6"
-                            className={cn(
-                                MOVE,
-                                'stroke-neutral-300',
-                            )}
+                            className={cn(MOVE, 'stroke-neutral-300')}
                             style={{ opacity: step === 3 ? 0 : 1 }}
                         />
                         <path d="M-5 2.6 h7.5" className="stroke-neutral-300" />
