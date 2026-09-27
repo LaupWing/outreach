@@ -25,12 +25,15 @@ use App\Mcp\Tools\UpdateLead;
 use App\Mcp\Tools\UpdateNiche;
 use App\Mcp\Tools\WhoNeedsFollowUp;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Attributes\Icon;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('Snelreach')]
+#[Icon('favicon.svg', mimeType: 'image/svg+xml')]
+#[Icon('apple-touch-icon.png', mimeType: 'image/png', sizes: ['180x180'])]
 #[Version('0.2.0')]
 #[Instructions(<<<'TEXT'
 Snelreach: cold outreach for Dutch SMBs. The app finds businesses, reads their sites, sends mail from the account's mailboxes (spread over the sending hours, with daily limits), reads the inboxes for replies and bounces, and plans follow-ups. You do the thinking and the writing.
