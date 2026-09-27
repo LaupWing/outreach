@@ -28,7 +28,7 @@ use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('send_steps')]
-#[Description('Send a sequence step to one or many leads: per lead the app fills the {{tags}} from its fields and facts and puts the mail in the outbox, which sends at the next free moments inside the sending hours. Per lead: lead_id, optional step (default: the next one), optional values for its custom tags (saved as facts). A lead with an unfilled tag, no email or no offer is reported and skipped; the rest still goes. With draft=true everything is saved as drafts instead.')]
+#[Description('Send a sequence step to one or many leads: per lead the app fills the {{tags}} from its fields and facts and puts the mail in the outbox, which sends at the next free moments inside the sending hours. Per lead: lead_id, optional step (default: the next one), optional values for its custom tags (saved as facts). A lead is refused while any tag of this step OR a later step is unfilled (the follow-ups go out by themselves, so fill every step now); leads without email or offer are skipped too. Skipped leads are reported; the rest still goes. With draft=true everything is saved as drafts instead.')]
 #[RendersApp(resource: LeadListApp::class)]
 class SendSteps extends Tool
 {
@@ -121,10 +121,14 @@ class SendSteps extends Tool
             return "the offer has no step {$number}";
         }
 
-        $missing = Placeholders::missing($step->subject.' '.$step->body, $lead);
+        // This step and every step after it: the follow-ups go out by themselves later,
+        // so their tags have to be filled now, or they would stall on the day they are due.
+        $remaining = $user->sequenceSteps()->where('offer_id', $lead->offer_id)->where('step', '>=', $number)->get();
+        $text = $remaining->map(fn ($later) => $later->subject.' '.$later->body)->implode(' ');
+        $missing = Placeholders::missing($text, $lead);
 
         if ($missing !== []) {
-            return 'unfilled {{'.implode('}}, {{', $missing).'}}';
+            return 'unfilled {{'.implode('}}, {{', $missing).'}} (in this step or a follow-up); pass them in values';
         }
 
         $mailbox = $outbox->pick($user, $shared['mailbox_id'] ?? null);

@@ -344,6 +344,24 @@ test('send answers with a card that says when it goes', function () {
         ->and($card['edit_url'])->toEndWith('/leads?lead='.$lead->id);
 });
 
+test('send_steps refuses step 1 while a follow-up still has an unfilled tag', function () {
+    $offer = Offer::factory()->create(['placeholders' => ['sketch_url' => 'Link to the sketch']]);
+    SequenceStep::factory()->for($offer)->create(['step' => 1, 'subject' => 'Hoi', 'body' => 'Voor {{company}}.']);
+    SequenceStep::factory()->for($offer)->followUp(2)->create(['subject' => 'Re: Hoi', 'body' => 'De schets: {{sketch_url}}']);
+    Mailbox::factory()->create();
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Bos', 'email' => 'info@bos.nl']);
+
+    OutreachServer::actingAs($this->user)
+        ->tool(SendSteps::class, ['leads' => [['lead_id' => $lead->id]]])
+        ->assertOk()
+        ->assertSee('Bos: unfilled {{sketch_url}} (in this step or a follow-up)');
+
+    OutreachServer::actingAs($this->user)
+        ->tool(SendSteps::class, ['leads' => [['lead_id' => $lead->id, 'values' => ['sketch_url' => 'https://x.nl/s']]]])
+        ->assertOk()
+        ->assertSee('1 mails queued');
+});
+
 test('a tool answer carries its data in the text, for hosts that only show the model the text', function () {
     $lead = Lead::factory()->create(['company' => 'Tandarts Bos', 'email' => 'info@bos.nl', 'website' => 'bos.nl']);
 
