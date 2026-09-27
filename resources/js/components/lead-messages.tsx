@@ -9,7 +9,9 @@ import type { Mailbox, Message, MessageStatus } from '@/types';
 
 const statusTones: Record<MessageStatus, { label: string; className: string }> = {
     draft: { label: 'Draft', className: 'text-muted-foreground' },
+    queued: { label: 'Queued', className: 'text-violet-600 dark:text-violet-400' },
     sent: { label: 'Sent', className: 'text-sky-600 dark:text-sky-400' },
+    failed: { label: 'Failed', className: 'text-red-600 dark:text-red-400' },
     bounced: { label: 'Bounced', className: 'text-red-600 dark:text-red-400' },
     replied: { label: 'Replied', className: 'text-amber-600 dark:text-amber-400' },
 };

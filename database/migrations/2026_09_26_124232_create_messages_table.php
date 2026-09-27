@@ -21,10 +21,18 @@ return new class extends Migration
             $table->text('body');
             $table->string('status');
             $table->string('thread_id')->nullable();
+            // The RFC Message-ID header, so replies can be matched by In-Reply-To.
+            $table->string('message_id')->nullable();
             $table->timestamp('sent_at')->nullable();
+            // When the sender may hand it to SMTP; null once it is out.
+            $table->timestamp('send_after')->nullable();
+            // Why the last send attempt failed.
+            $table->string('error')->nullable();
             $table->text('reply_body')->nullable();
             $table->timestamp('reply_received_at')->nullable();
             $table->timestamps();
+
+            $table->index(['status', 'send_after']);
         });
     }
 

@@ -32,10 +32,37 @@ class MessageFactory extends Factory
             'body' => fake()->paragraph(),
             'status' => MessageStatus::Sent,
             'thread_id' => 'thr_'.fake()->unique()->lexify('?????'),
+            'message_id' => '<'.fake()->uuid().'@example.com>',
             'sent_at' => now()->subDays(2),
+            'send_after' => null,
+            'error' => null,
             'reply_body' => null,
             'reply_received_at' => null,
         ];
+    }
+
+    /**
+     * Waiting for the sender; due now unless a moment is given.
+     */
+    public function queued(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => MessageStatus::Queued,
+            'sent_at' => null,
+            'send_after' => now(),
+        ]);
+    }
+
+    /**
+     * The mail server refused it.
+     */
+    public function failed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => MessageStatus::Failed,
+            'sent_at' => null,
+            'error' => 'SMTP: 535 Authentication failed',
+        ]);
     }
 
     /**

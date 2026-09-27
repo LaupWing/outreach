@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Messages;
 
-use App\Enums\MailboxStatus;
 use App\Models\Mailbox;
+use App\Support\Mail\Outbox;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,6 +11,8 @@ use Illuminate\Validation\Validator;
 
 class StoreLeadMessageRequest extends FormRequest
 {
+    private ?Mailbox $mailbox = null;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -63,15 +65,14 @@ class StoreLeadMessageRequest extends FormRequest
     }
 
     /**
-     * The chosen box when it can still send, or the first box with room when none was chosen.
+     * The chosen box when it can still queue for today, or the box with the most room
+     * when none was chosen. Warm-up and what is already waiting count against the room.
      */
     public function mailbox(): ?Mailbox
     {
-        return $this->user()->mailboxes()
-            ->when($this->filled('mailbox_id'), fn ($query) => $query->whereKey($this->integer('mailbox_id')))
-            ->where('status', '!=', MailboxStatus::Paused)
-            ->whereColumn('sent_today', '<', 'daily_limit')
-            ->orderBy('id')
-            ->first();
+        return $this->mailbox ??= app(Outbox::class)->pick(
+            $this->user(),
+            $this->filled('mailbox_id') ? $this->integer('mailbox_id') : null,
+        );
     }
 }

@@ -87,7 +87,7 @@ export type Mailbox = {
     connection_error: string | null;
 };
 
-export type MessageStatus = 'draft' | 'sent' | 'bounced' | 'replied';
+export type MessageStatus = 'draft' | 'queued' | 'sent' | 'failed' | 'bounced' | 'replied';
 
 export type Message = {
     id: number;
@@ -97,6 +97,10 @@ export type Message = {
     subject: string;
     body: string;
     sent_at: string | null;
+    /** When the sender may hand it over; null once it went out. */
+    send_after: string | null;
+    /** Why the mail server refused it, when it did. */
+    error: string | null;
     status: MessageStatus;
     thread_id: string | null;
     /** The reply text, once one came in. Lives on the message for now; the inbox check fills it. */

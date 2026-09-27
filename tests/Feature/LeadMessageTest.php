@@ -9,17 +9,17 @@ use App\Models\Offer;
 use App\Models\SequenceStep;
 use Illuminate\Support\Carbon;
 
-test('sending a step picks a mailbox with room and plans the next step', function () {
-    Carbon::setTestNow('2026-09-26 10:00:00');
+test('sending a step queues it on a mailbox with room; the lead moves once it goes out', function () {
+    Carbon::setTestNow('2026-09-28 10:00:00'); // Monday noon in Amsterdam
 
     $offer = Offer::factory()->create();
     SequenceStep::factory()->for($offer)->create(['step' => 1]);
     SequenceStep::factory()->for($offer)->followUp(2)->create(['days_after_previous' => 4]);
     $lead = Lead::factory()->for($offer->niche)->for($offer)->create();
 
-    $full = Mailbox::factory()->create(['daily_limit' => 10, 'sent_today' => 10]);
+    $full = Mailbox::factory()->create(['daily_limit' => 10, 'sent_today' => 10, 'sent_today_on' => today()]);
     $paused = Mailbox::factory()->paused()->create();
-    $open = Mailbox::factory()->create(['daily_limit' => 40, 'sent_today' => 12]);
+    $open = Mailbox::factory()->create(['daily_limit' => 40, 'sent_today' => 12, 'sent_today_on' => today()]);
 
     $this->actingAs($this->user)
         ->post(route('leads.messages.store', $lead), [
@@ -35,21 +35,34 @@ test('sending a step picks a mailbox with room and plans the next step', functio
 
     expect($message->mailbox_id)->toBe($open->id)
         ->and($message->step)->toBe(1)
-        ->and($message->status)->toBe(MessageStatus::Sent)
-        ->and($message->sent_at?->toDateTimeString())->toBe('2026-09-26 10:00:00')
+        ->and($message->status)->toBe(MessageStatus::Queued)
+        ->and($message->sent_at)->toBeNull()
+        ->and($message->send_after?->greaterThanOrEqualTo(now()))->toBeTrue()
         ->and($message->thread_id)->toMatch('/^thr_[a-z0-9]{5}$/')
-        ->and($open->refresh()->sent_today)->toBe(13)
+        ->and($open->refresh()->sent_today)->toBe(12)
         ->and($full->refresh()->sent_today)->toBe(10)
         ->and($paused->refresh()->sent_today)->toBe(0);
+
+    // Nothing on the lead until the sender has actually handed it over.
+    $lead->refresh();
+
+    expect($lead->status)->toBe(LeadStatus::New)
+        ->and($lead->last_contact_at)->toBeNull();
+
+    // The slot carries some jitter, so the tick runs a little later in the window.
+    Carbon::setTestNow('2026-09-28 11:00:00');
+    $this->artisan('outreach:send')->assertSuccessful();
 
     $lead->refresh();
 
     expect($lead->status)->toBe(LeadStatus::Emailed)
-        ->and($lead->last_contact_at?->toDateTimeString())->toBe('2026-09-26 10:00:00')
-        ->and($lead->next_action_at?->toDateTimeString())->toBe('2026-09-30 10:00:00');
+        ->and($lead->last_contact_at?->toDateTimeString())->toBe('2026-09-28 11:00:00')
+        ->and($lead->next_action_at?->toDateTimeString())->toBe('2026-10-02 11:00:00')
+        ->and($open->refresh()->sent_today)->toBe(13);
 });
 
 test('a later step marks the lead as followed up and ends the plan after the last step', function () {
+    Carbon::setTestNow('2026-09-28 10:00:00');
     $offer = Offer::factory()->create();
     SequenceStep::factory()->for($offer)->create(['step' => 1]);
     SequenceStep::factory()->for($offer)->followUp(2)->create();
@@ -65,6 +78,9 @@ test('a later step marks the lead as followed up and ends the plan after the las
         ])
         ->assertSessionHasNoErrors();
 
+    // The slot carries some jitter, so the tick runs a little later in the window.
+    Carbon::setTestNow('2026-09-28 11:00:00');
+    $this->artisan('outreach:send')->assertSuccessful();
     $lead->refresh();
 
     expect($lead->status)->toBe(LeadStatus::FollowedUp)
@@ -73,6 +89,7 @@ test('a later step marks the lead as followed up and ends the plan after the las
 });
 
 test('a free-form mail only records the contact', function () {
+    Carbon::setTestNow('2026-09-28 10:00:00');
     $lead = Lead::factory()->create();
     Mailbox::factory()->create();
 
@@ -85,6 +102,9 @@ test('a free-form mail only records the contact', function () {
         ])
         ->assertSessionHasNoErrors();
 
+    // The slot carries some jitter, so the tick runs a little later in the window.
+    Carbon::setTestNow('2026-09-28 11:00:00');
+    $this->artisan('outreach:send')->assertSuccessful();
     $lead->refresh();
 
     expect($lead->status)->toBe(LeadStatus::New)
@@ -95,7 +115,7 @@ test('a free-form mail only records the contact', function () {
 
 test('sending fails when every mailbox is full or paused', function () {
     $lead = Lead::factory()->create();
-    Mailbox::factory()->create(['daily_limit' => 5, 'sent_today' => 5]);
+    Mailbox::factory()->create(['daily_limit' => 5, 'sent_today' => 5, 'sent_today_on' => today()]);
     Mailbox::factory()->paused()->create();
 
     $this->actingAs($this->user)
@@ -121,7 +141,7 @@ test('a subject and body are required', function () {
 });
 
 test('a reply lands in the same thread from the same mailbox', function () {
-    Carbon::setTestNow('2026-09-26 10:00:00');
+    Carbon::setTestNow('2026-09-28 10:00:00');
 
     $original = Message::factory()->replied()->create(['subject' => 'Wix en laadtijd', 'step' => 2]);
 
@@ -138,9 +158,16 @@ test('a reply lands in the same thread from the same mailbox', function () {
         ->and($reply->step)->toBe(2)
         ->and($reply->subject)->toBe('Re: Wix en laadtijd')
         ->and($reply->body)->toBe('Komt eraan.')
-        ->and($reply->status)->toBe(MessageStatus::Sent)
-        ->and($reply->reply)->toBeNull()
-        ->and($original->lead->refresh()->last_contact_at?->toDateTimeString())->toBe('2026-09-26 10:00:00');
+        ->and($reply->status)->toBe(MessageStatus::Queued)
+        ->and($reply->send_after?->toDateTimeString())->toBe('2026-09-28 10:00:00')
+        ->and($reply->reply)->toBeNull();
+
+    // The slot carries some jitter, so the tick runs a little later in the window.
+    Carbon::setTestNow('2026-09-28 11:00:00');
+    $this->artisan('outreach:send')->assertSuccessful();
+
+    expect($reply->refresh()->status)->toBe(MessageStatus::Sent)
+        ->and($original->lead->refresh()->last_contact_at?->toDateTimeString())->toBe('2026-09-28 11:00:00');
 });
 
 test('an empty reply is refused', function () {

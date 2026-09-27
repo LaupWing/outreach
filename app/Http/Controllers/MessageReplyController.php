@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\MessageStatus;
 use App\Http\Requests\Messages\StoreMessageReplyRequest;
 use App\Models\Message;
+use App\Support\Mail\Outbox;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class MessageReplyController extends Controller
@@ -14,28 +13,19 @@ class MessageReplyController extends Controller
     /**
      * Answer a lead in the thread they wrote in, from the box that mail went out of.
      *
-     * Recorded as sent; the actual delivery is a later job.
+     * A reply is a conversation, not a campaign: it skips the spreading and goes out
+     * on the sender's next tick, still inside the window.
      */
-    public function store(StoreMessageReplyRequest $request, Message $message): RedirectResponse
+    public function store(StoreMessageReplyRequest $request, Message $message, Outbox $outbox): RedirectResponse
     {
-        $user = $request->user();
+        $outbox->queue($message->lead, $message->mailbox, [
+            'subject' => 'Re: '.$message->subject,
+            'body' => $request->string('body')->toString(),
+            'step' => $message->step,
+            'thread_id' => $message->thread_id,
+        ], rightAway: true);
 
-        DB::transaction(function () use ($request, $message, $user): void {
-            $user->messages()->create([
-                'lead_id' => $message->lead_id,
-                'mailbox_id' => $message->mailbox_id,
-                'step' => $message->step,
-                'subject' => 'Re: '.$message->subject,
-                'body' => $request->string('body')->toString(),
-                'status' => MessageStatus::Sent,
-                'sent_at' => now(),
-                'thread_id' => $message->thread_id,
-            ]);
-
-            $message->lead()->update(['last_contact_at' => now()]);
-        });
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Reply sent.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Reply queued, goes out in a few minutes.')]);
 
         return back();
     }

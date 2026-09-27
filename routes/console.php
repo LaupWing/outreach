@@ -1,8 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Queued mail leaves in small batches through the day; a tick that finds nothing due is free.
+Schedule::command('outreach:send')->everyFiveMinutes()->withoutOverlapping();

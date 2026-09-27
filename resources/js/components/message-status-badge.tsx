@@ -9,6 +9,11 @@ export const messageStatuses: Record<
         label: 'Draft',
         className: 'border-border bg-accent text-foreground/80',
     },
+    queued: {
+        label: 'Queued',
+        className:
+            'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-400',
+    },
     sent: {
         label: 'Sent',
         className:
@@ -18,6 +23,11 @@ export const messageStatuses: Record<
         label: 'Replied',
         className:
             'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    },
+    failed: {
+        label: 'Failed',
+        className:
+            'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-400',
     },
     bounced: {
         label: 'Bounced',

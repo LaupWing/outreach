@@ -99,6 +99,10 @@ export function MessagePanel({
                             <SidePanelRow icon={Calendar} label="Sent">
                                 {message.sent_at ? (
                                     dateTime.format(new Date(message.sent_at))
+                                ) : message.send_after ? (
+                                    <SidePanelEmpty>
+                                        Sends {dateTime.format(new Date(message.send_after))}
+                                    </SidePanelEmpty>
                                 ) : (
                                     <SidePanelEmpty>Not sent yet</SidePanelEmpty>
                                 )}
@@ -135,7 +139,11 @@ export function MessagePanel({
                                 <p className="text-xs text-muted-foreground">
                                     {message.status === 'bounced'
                                         ? 'This address bounced; the lead is marked undeliverable.'
-                                        : 'No reply yet.'}
+                                        : message.status === 'failed'
+                                          ? `The mail server refused it: ${message.error ?? 'unknown error'}`
+                                          : message.status === 'queued'
+                                            ? 'Waiting in the outbox.'
+                                            : 'No reply yet.'}
                                 </p>
                             )}
                         </div>

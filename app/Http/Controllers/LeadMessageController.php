@@ -2,14 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\LeadStatus;
-use App\Enums\MessageStatus;
 use App\Http\Requests\Messages\StoreLeadMessageRequest;
 use App\Models\Lead;
-use Carbon\CarbonInterface;
+use App\Support\Mail\Outbox;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class LeadMessageController extends Controller
@@ -17,62 +13,33 @@ class LeadMessageController extends Controller
     /**
      * Write one mail to a lead: a step of its offer's sequence, or a free-form one-off.
      *
-     * The message is recorded as sent right away and counts against the mailbox's
-     * daily limit. Handing it to the mail provider is a later job; nothing leaves
-     * the app yet.
+     * It joins the outbox and leaves at the mailbox's next free moment in the sending
+     * window; the lead moves along once it has actually gone out.
      */
-    public function store(StoreLeadMessageRequest $request, Lead $lead): RedirectResponse
+    public function store(StoreLeadMessageRequest $request, Lead $lead, Outbox $outbox): RedirectResponse
     {
         // Validation already made sure a box with room exists.
         $mailbox = $request->mailbox();
 
         abort_if($mailbox === null, 422);
 
-        $step = $request->filled('step') ? $request->integer('step') : null;
+        $step = $request->filled('step') ? $request->integer('step') : 0;
 
-        DB::transaction(function () use ($request, $lead, $mailbox, $step): void {
-            $lead->messages()->create([
-                'user_id' => $lead->user_id,
-                ...$request->safe()->only(['subject', 'body']),
-                'mailbox_id' => $mailbox->id,
-                'step' => $step ?? 0,
-                'status' => MessageStatus::Sent,
-                'sent_at' => now(),
-                'thread_id' => 'thr_'.Str::lower(Str::random(5)),
-            ]);
-
-            $mailbox->increment('sent_today');
-
-            $lead->last_contact_at = now();
-
-            if ($step !== null) {
-                $lead->status = $step === 1 ? LeadStatus::Emailed : LeadStatus::FollowedUp;
-                $lead->next_action_at = $this->followUpAt($lead, $step);
-            }
-
-            $lead->save();
-        });
+        $message = $outbox->queue($lead, $mailbox, [
+            ...$request->safe()->only(['subject', 'body']),
+            'step' => $step,
+        ]);
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => $step === null ? __('Mail sent.') : __('Step :step sent.', ['step' => $step]),
+            'message' => __(':what queued, sends :when.', [
+                'what' => $step === 0 ? 'Mail' : "Step {$step}",
+                'when' => $message->send_after->setTimezone(config('outreach.window.timezone'))->isToday()
+                    ? 'at '.$message->send_after->setTimezone(config('outreach.window.timezone'))->format('H:i')
+                    : $message->send_after->setTimezone(config('outreach.window.timezone'))->format('D H:i'),
+            ]),
         ]);
 
         return back();
-    }
-
-    /**
-     * When the next step of the lead's offer is due, or null once the sequence is done.
-     */
-    private function followUpAt(Lead $lead, int $step): ?CarbonInterface
-    {
-        $user = request()->user();
-
-        $next = $user->sequenceSteps()
-            ->where('offer_id', $lead->offer_id)
-            ->where('step', $step + 1)
-            ->first();
-
-        return $next === null ? null : now()->addDays($next->days_after_previous);
     }
 }
