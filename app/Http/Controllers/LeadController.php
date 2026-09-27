@@ -11,6 +11,7 @@ use App\Models\Mailbox;
 use App\Models\Niche;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -50,16 +51,14 @@ class LeadController extends Controller
             ->when($filters['run'] ?? null, fn ($query, int $run) => $query->where('scrape_run_id', $run));
 
         // The address that last mailed each lead rides along as a column; no messages needed for the table.
+        // A scalar "= (subquery limit 1)" on purpose: MySQL refuses LIMIT inside an IN subquery.
         $withSentFrom = fn ($query) => $query->addSelect([
             'sent_from' => Mailbox::query()
                 ->select('address')
-                ->whereColumn('mailboxes.id', 'messages.mailbox_id')
-                ->whereIn('messages.id', fn ($sub) => $sub
-                    ->select('id')->from('messages')
+                ->where('mailboxes.id', '=', DB::table('messages')
+                    ->select('mailbox_id')
                     ->whereColumn('messages.lead_id', 'leads.id')
                     ->orderByDesc('sent_at')->orderByDesc('id')->limit(1))
-                ->from('mailboxes')
-                ->join('messages', 'messages.mailbox_id', '=', 'mailboxes.id')
                 ->limit(1),
         ]);
 
