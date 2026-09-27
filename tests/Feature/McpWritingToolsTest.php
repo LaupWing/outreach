@@ -9,7 +9,7 @@ use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Resources\StatsApp;
 use App\Mcp\Servers\OutreachServer;
 use App\Mcp\Tools\CheckInbox;
-use App\Mcp\Tools\CreateLead;
+use App\Mcp\Tools\CreateLeads;
 use App\Mcp\Tools\CreateOffer;
 use App\Mcp\Tools\LeadContext;
 use App\Mcp\Tools\ListLeads;
@@ -395,25 +395,29 @@ test('create_offer builds the niche, the sequence and the tag explanations; upda
         ->and(structured($updated)['offers'][0]['tag_explanations'])->toBe(['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.']);
 });
 
-test('create_lead adds a lead in its niche and refuses a duplicate address', function () {
-    $response = OutreachServer::actingAs($this->user)->tool(CreateLead::class, [
-        'company' => 'Tandarts Bos', 'niche' => 'Tandartsen', 'email' => 'Info@Bos.nl', 'website' => 'https://www.tandartsbos.nl/contact', 'facts' => ['first_name' => 'Marieke'],
+test('create_leads adds many leads at once and skips known addresses', function () {
+    Lead::factory()->create(['email' => 'known@bos.nl']);
+
+    $response = OutreachServer::actingAs($this->user)->tool(CreateLeads::class, [
+        'niche' => 'Tandartsen',
+        'leads' => [
+            ['company' => 'Tandarts Bos', 'email' => 'Info@Bos.nl', 'website' => 'https://www.tandartsbos.nl/contact', 'facts' => ['first_name' => 'Marieke']],
+            ['company' => 'Mondzorg Zuid', 'niche' => 'Mondhygiëne', 'city' => 'Amsterdam'],
+            ['company' => 'Bekend', 'email' => 'known@bos.nl'],
+        ],
     ]);
 
-    $response->assertOk()->assertSee('Added Tandarts Bos');
+    $response->assertOk()->assertSee('2 leads added')->assertSee('skipped): Bekend');
 
-    $lead = $this->user->leads()->where('company', 'Tandarts Bos')->first();
+    $bos = $this->user->leads()->where('company', 'Tandarts Bos')->first();
 
-    expect($lead->email)->toBe('info@bos.nl')
-        ->and($lead->website)->toBe('tandartsbos.nl')
-        ->and($lead->facts)->toBe(['first_name' => 'Marieke'])
-        ->and($lead->niche->name)->toBe('Tandartsen');
-
-    OutreachServer::actingAs($this->user)
-        ->tool(CreateLead::class, ['company' => 'Bos again', 'niche' => 'Tandartsen', 'email' => 'info@bos.nl'])
-        ->assertOk()->assertSee('already exists');
-
-    expect($this->user->leads()->count())->toBe(1);
+    expect($bos->email)->toBe('info@bos.nl')
+        ->and($bos->website)->toBe('tandartsbos.nl')
+        ->and($bos->facts)->toBe(['first_name' => 'Marieke'])
+        ->and($bos->niche->name)->toBe('Tandartsen')
+        ->and($this->user->leads()->where('company', 'Mondzorg Zuid')->first()->niche->name)->toBe('Mondhygiëne')
+        ->and(structured($response)['leads'])->toHaveCount(2)
+        ->and($this->user->leads()->count())->toBe(3);
 });
 
 test('list_mailboxes shows room and login state', function () {
