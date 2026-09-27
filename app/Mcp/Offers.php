@@ -42,15 +42,15 @@ class Offers
      *
      * @return array<string, array<int, string>>
      */
-    public static function sequenceRules(): array
+    public static function sequenceRules(string $prefix = ''): array
     {
         return [
-            'steps' => ['sometimes', 'array', 'max:20'],
-            'steps.*.subject' => ['required', 'string', 'max:255'],
-            'steps.*.body' => ['required', 'string', 'max:10000'],
-            'steps.*.days_after_previous' => ['sometimes', 'integer', 'min:0', 'max:365'],
-            'placeholders' => ['sometimes', 'array'],
-            'placeholders.*' => ['nullable', 'string', 'max:500'],
+            $prefix.'steps' => ['sometimes', 'array', 'max:20'],
+            $prefix.'steps.*.subject' => ['required', 'string', 'max:255'],
+            $prefix.'steps.*.body' => ['required', 'string', 'max:10000'],
+            $prefix.'steps.*.days_after_previous' => ['sometimes', 'integer', 'min:0', 'max:365'],
+            $prefix.'placeholders' => ['sometimes', 'array'],
+            $prefix.'placeholders.*' => ['nullable', 'string', 'max:500'],
         ];
     }
 

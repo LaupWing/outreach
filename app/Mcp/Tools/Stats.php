@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use App\Mcp\Resources\StatsApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -73,12 +74,12 @@ class Stats extends Tool
 
         $total = $group($user->leads(), $user->messages());
 
-        return Response::make(Response::text(sprintf(
+        return Reply::make(sprintf(
             'Last %d days: %d mails sent, %d replies (%s), %d customers, %d bounced. %d leads in total, %d with email.',
             $validated['days'] ?? 30, $total['sent'], $total['replied'],
             $total['reply_rate'] === null ? 'no rate yet' : round($total['reply_rate'] * 100).'%',
             $total['customers'], $total['bounced'], $total['leads'], $total['with_email'],
-        )))->withStructuredContent([
+        ), [
             'days' => $validated['days'] ?? 30,
             'url' => rtrim(config('app.url'), '/').'/dashboard',
             'total' => $total,

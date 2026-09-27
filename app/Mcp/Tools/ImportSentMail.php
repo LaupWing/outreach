@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Jobs\ImportSentMailJob;
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use App\Models\Niche;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -57,12 +58,12 @@ class ImportSentMail extends Tool
                 }
             }
 
-            return Response::make(Response::text(sprintf(
+            return Reply::make(sprintf(
                 'Import %s (%d of %d mailboxes done): %d sent mails imported, %d skipped, %d leads created; %d replies and %d bounces caught up.%s',
                 $status['state'], count($status['mailboxes']), $status['expected'] ?? 1,
                 $totals['imported'], $totals['skipped'], $totals['created'], $totals['replies'], $totals['bounces'],
                 $errors === [] ? '' : ' Errors: '.implode('; ', $errors),
-            )))->withStructuredContent([...$status, 'totals' => $totals]);
+            ), [...$status, 'totals' => $totals]);
         }
 
         $mailboxes = $user->mailboxes()
@@ -89,10 +90,10 @@ class ImportSentMail extends Tool
             ImportSentMailJob::dispatch($mailbox, $since, $validated['create_leads'] ?? false, $validated['niche_id'] ?? null);
         }
 
-        return Response::make(Response::text(sprintf(
+        return Reply::make(sprintf(
             'Import started for %d mailbox%s since %s. Reading Gmail takes a minute or two; call import_sent_mail with status=true to see the outcome.',
             $mailboxes->count(), $mailboxes->count() === 1 ? '' : 'es', $since->format('j M Y'),
-        )))->withStructuredContent(['state' => 'running', 'mailboxes' => $mailboxes->pluck('address')->all()]);
+        ), ['state' => 'running', 'mailboxes' => $mailboxes->pluck('address')->all()]);
     }
 
     /**

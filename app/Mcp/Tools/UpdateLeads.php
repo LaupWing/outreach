@@ -6,6 +6,7 @@ use App\Enums\LeadStatus;
 use App\Mcp\Account;
 use App\Mcp\Arguments;
 use App\Mcp\LeadSummary;
+use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Models\Offer;
@@ -66,7 +67,7 @@ class UpdateLeads extends Tool
             $text .= ' Not on this account: '.implode(', ', $unknown).'.';
         }
 
-        return Response::make(Response::text($text))->withStructuredContent([
+        return Reply::make($text, [
             'leads' => array_map(fn (Lead $lead) => [...LeadSummary::from($lead), 'facts' => $lead->facts], $updated),
             'unknown' => $unknown,
             'url' => rtrim(config('app.url'), '/').'/leads',

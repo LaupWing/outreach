@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
 use App\Mcp\MessageSummary;
+use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Support\Mail\InboxCheck;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -67,7 +68,7 @@ class CheckInbox extends Tool
             $totals['errors'] === [] ? '' : ' Errors: '.implode('; ', $totals['errors']),
         );
 
-        return Response::make(Response::text($text))->withStructuredContent([
+        return Reply::make($text, [
             'new_replies' => $totals['replies'],
             'new_bounces' => $totals['bounces'],
             'errors' => $totals['errors'],

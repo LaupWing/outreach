@@ -3,7 +3,7 @@
 use App\Enums\ScrapeRunStatus;
 use App\Jobs\EnrichRunLeads;
 use App\Mcp\Servers\OutreachServer;
-use App\Mcp\Tools\EnrichLead;
+use App\Mcp\Tools\EnrichLeads;
 use App\Mcp\Tools\EnrichRun;
 use App\Mcp\Tools\ListLeads;
 use App\Mcp\Tools\ScrapeStatus;
@@ -57,26 +57,41 @@ test('search_leads acts as the configured account when nobody is signed in', fun
         ->and($this->user->scrapeRuns()->count())->toBe(0);
 });
 
-test('enrich_lead reads the site and reports what it found', function () {
+test('enrich_leads reads the sites right away for a few and reports what it found', function () {
     $lead = Lead::factory()->create(['website' => 'tandartsdelinde.nl', 'email' => null, 'signals' => null]);
     app(SiteReader::class)->shouldReceive('fetch')->andReturnUsing(fn (string $url) => $url === 'https://tandartsdelinde.nl'
         ? '<html><meta name="viewport" content="x"><body>© 2017 info@tandartsdelinde.nl wp-content</body></html>'
         : null);
 
     OutreachServer::actingAs($this->user)
-        ->tool(EnrichLead::class, ['lead_id' => $lead->id])
+        ->tool(EnrichLeads::class, ['lead_ids' => [$lead->id]])
         ->assertOk()
-        ->assertSee('Email found: info@tandartsdelinde.nl');
+        ->assertSee('1 leads read, 1 with an email address')
+        ->assertSee('info@tandartsdelinde.nl');
 
     expect($lead->fresh()->signals['copyright_year'])->toBe(2017);
 });
 
-test('enrich_lead only sees the account\'s own leads', function () {
+test('enrich_leads only sees the account\'s own leads', function () {
     $foreign = Lead::factory()->create(['user_id' => User::factory()->create()->id]);
 
     OutreachServer::actingAs($this->user)
-        ->tool(EnrichLead::class, ['lead_id' => $foreign->id])
-        ->assertHasErrors(["No lead with id {$foreign->id} on this account."]);
+        ->tool(EnrichLeads::class, ['lead_ids' => [$foreign->id]])
+        ->assertOk()
+        ->assertSee('0 leads read')
+        ->assertSee("Not on this account: {$foreign->id}");
+});
+
+test('enrich_leads queues bigger sets', function () {
+    Queue::fake();
+    $leads = Lead::factory()->count(6)->create(['website' => 'x.nl']);
+
+    OutreachServer::actingAs($this->user)
+        ->tool(EnrichLeads::class, ['lead_ids' => $leads->modelKeys()])
+        ->assertOk()
+        ->assertSee('6 leads queued');
+
+    Queue::assertPushed(App\Jobs\EnrichLeads::class);
 });
 
 test('enrich_run queues the job for the leads not read yet', function () {

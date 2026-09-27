@@ -10,20 +10,20 @@ use App\Mcp\Resources\StatsApp;
 use App\Mcp\Servers\OutreachServer;
 use App\Mcp\Tools\CheckInbox;
 use App\Mcp\Tools\CreateLeads;
-use App\Mcp\Tools\CreateOffer;
-use App\Mcp\Tools\LeadContext;
+use App\Mcp\Tools\CreateOffers;
+use App\Mcp\Tools\LeadsContext;
 use App\Mcp\Tools\ListLeads;
 use App\Mcp\Tools\ListMailboxes;
 use App\Mcp\Tools\ListNiches;
 use App\Mcp\Tools\ListOffers;
-use App\Mcp\Tools\PreviewMail;
-use App\Mcp\Tools\SendDraft;
-use App\Mcp\Tools\SendMail;
-use App\Mcp\Tools\SendStep;
+use App\Mcp\Tools\PreviewMails;
+use App\Mcp\Tools\SendDrafts;
+use App\Mcp\Tools\SendMails;
+use App\Mcp\Tools\SendSteps;
 use App\Mcp\Tools\Stats;
 use App\Mcp\Tools\UpdateLeads;
-use App\Mcp\Tools\UpdateNiche;
-use App\Mcp\Tools\UpdateOffer;
+use App\Mcp\Tools\UpdateNiches;
+use App\Mcp\Tools\UpdateOffers;
 use App\Mcp\Tools\WhoNeedsFollowUp;
 use App\Models\Lead;
 use App\Models\Mailbox;
@@ -59,19 +59,19 @@ function offerWithTags(): Offer
     return $offer;
 }
 
-test('lead_context bundles the lead, its sequence with tags, the thread and the notes', function () {
+test('leads_context bundles each lead, its sequence with tags, the thread and the notes', function () {
     $offer = offerWithTags();
     $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Tandarts Bos', 'hook' => 'Site is uit 2019.', 'facts' => ['first_name' => 'Marieke']]);
     $lead->notes()->create(['user_id' => $lead->user_id, 'body' => 'Belde: beslist in oktober.']);
     app(SiteReader::class)->shouldReceive('fetch')->once()->andReturn('<html><body><h1>Welkom</h1><script>x()</script><p>Sinds 2009 in Haarlem.</p></body></html>');
 
-    $response = OutreachServer::actingAs($this->user)->tool(LeadContext::class, ['lead_id' => $lead->id, 'with_site_text' => true]);
+    $response = OutreachServer::actingAs($this->user)->tool(LeadsContext::class, ['lead_ids' => [$lead->id], 'with_site_text' => true]);
 
-    $response->assertOk()->assertSee('Tandarts Bos')->assertSee('next step 1');
+    $response->assertOk()->assertSee('1 leads.')->assertSee('Tandarts Bos');
 
-    $context = structured($response);
+    $context = structured($response)['leads'][0];
 
-    expect($context['lead']['facts'])->toBe(['first_name' => 'Marieke'])
+    expect($context['facts'])->toBe(['first_name' => 'Marieke'])
         ->and($context['offer']['tag_explanations'])->toBe(['compliment' => 'One honest sentence about their site.'])
         ->and($context['offer']['steps'][0]['tags'])->toBe(['hook_subject', 'first_name', 'compliment', 'hook'])
         ->and($context['offer']['steps'][0]['missing_tags'])->toBe(['compliment'])
@@ -101,21 +101,23 @@ test('update_leads merges facts, sets the hook and adds a note, for many at once
         ->and($lead->notes()->count())->toBe(1);
 });
 
-test('send_step refuses while a tag is unfilled, then fills and queues the step', function () {
+test('send_steps skips a lead with an unfilled tag, then fills and queues the step', function () {
     $offer = offerWithTags();
     Mailbox::factory()->create(['daily_limit' => 20]);
     $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Tandarts Bos', 'email' => 'info@bos.nl', 'hook' => 'Site is uit 2019.']);
 
     OutreachServer::actingAs($this->user)
-        ->tool(SendStep::class, ['lead_id' => $lead->id, 'values' => ['first_name' => 'Marieke']])
-        ->assertHasErrors(['Still unfilled: {{compliment}}. Pass them in values (see the offer\'s tag_explanations in lead_context).']);
+        ->tool(SendSteps::class, ['leads' => [['lead_id' => $lead->id, 'values' => ['first_name' => 'Marieke']]]])
+        ->assertOk()
+        ->assertSee('0 mails queued')
+        ->assertSee('Tandarts Bos: unfilled {{compliment}}');
 
     expect(Message::query()->count())->toBe(0)
         ->and($lead->refresh()->facts)->toBe(['first_name' => 'Marieke']);
 
-    $response = OutreachServer::actingAs($this->user)->tool(SendStep::class, ['lead_id' => $lead->id, 'values' => ['compliment' => 'Mooie angstpagina.']]);
+    $response = OutreachServer::actingAs($this->user)->tool(SendSteps::class, ['leads' => [['lead_id' => $lead->id, 'values' => ['compliment' => 'Mooie angstpagina.']]]]);
 
-    $response->assertOk()->assertSee('Queued for Tandarts Bos');
+    $response->assertOk()->assertSee('1 mails queued');
 
     $message = Message::query()->sole();
 
@@ -126,13 +128,13 @@ test('send_step refuses while a tag is unfilled, then fills and queues the step'
         ->and($message->send_after)->not->toBeNull();
 });
 
-test('send_step continues the thread for a later step and can assign the offer first', function () {
+test('send_steps continues the thread for a later step and can assign the offer first', function () {
     $offer = offerWithTags();
     $mailbox = Mailbox::factory()->create();
     $lead = Lead::factory()->for($offer->niche)->create(['offer_id' => null, 'email' => 'info@bos.nl', 'status' => LeadStatus::Emailed]);
     Message::factory()->for($lead)->for($mailbox)->create(['step' => 1, 'thread_id' => 'thr_first']);
 
-    $response = OutreachServer::actingAs($this->user)->tool(SendStep::class, ['lead_id' => $lead->id, 'offer_id' => $offer->id]);
+    $response = OutreachServer::actingAs($this->user)->tool(SendSteps::class, ['leads' => [['lead_id' => $lead->id]], 'offer_id' => $offer->id]);
 
     $response->assertOk();
 
@@ -149,10 +151,10 @@ test('send queues a free-form mail and a "Re:" subject continues the thread', fu
     Message::factory()->for($lead)->create(['thread_id' => 'thr_first']);
 
     OutreachServer::actingAs($this->user)
-        ->tool(SendMail::class, ['lead_id' => $lead->id, 'subject' => 'Even iets anders', 'body' => 'Hoi,'])
+        ->tool(SendMails::class, ['mails' => [['lead_id' => $lead->id, 'subject' => 'Even iets anders', 'body' => 'Hoi,']]])
         ->assertOk();
     OutreachServer::actingAs($this->user)
-        ->tool(SendMail::class, ['lead_id' => $lead->id, 'subject' => 'Re: Jullie site', 'body' => 'Dank voor je antwoord.'])
+        ->tool(SendMails::class, ['mails' => [['lead_id' => $lead->id, 'subject' => 'Re: Jullie site', 'body' => 'Dank voor je antwoord.']]])
         ->assertOk();
 
     $queued = Message::query()->where('status', MessageStatus::Queued)->orderBy('id')->get();
@@ -163,39 +165,39 @@ test('send queues a free-form mail and a "Re:" subject continues the thread', fu
         ->and($queued[1]->thread_id)->toBe('thr_first');
 });
 
-test('a draft waits in the app until send_draft releases it', function () {
+test('a draft waits in the app until send_drafts releases it', function () {
     Mailbox::factory()->create();
     $lead = Lead::factory()->create(['email' => 'info@bos.nl']);
 
     $draft = OutreachServer::actingAs($this->user)
-        ->tool(SendMail::class, ['lead_id' => $lead->id, 'subject' => 'Concept', 'body' => 'Tekst', 'draft' => true]);
+        ->tool(SendMails::class, ['mails' => [['lead_id' => $lead->id, 'subject' => 'Concept', 'body' => 'Tekst']], 'draft' => true]);
 
-    $draft->assertOk()->assertSee('Draft');
+    $draft->assertOk()->assertSee('1 mails saved as drafts');
 
-    $id = structured($draft)['id'];
+    $id = structured($draft)['mails'][0]['id'];
 
     expect(Message::query()->find($id)->status)->toBe(MessageStatus::Draft);
 
     OutreachServer::actingAs($this->user)
-        ->tool(SendDraft::class, ['message_id' => $id, 'body' => 'Betere tekst'])
-        ->assertOk()->assertSee('Queued');
+        ->tool(SendDrafts::class, ['drafts' => [['message_id' => $id, 'body' => 'Betere tekst']]])
+        ->assertOk()->assertSee('1 drafts queued');
 
     expect(Message::query()->find($id))->toBeNull()
         ->and(Message::query()->sole()->body)->toBe('Betere tekst')
         ->and(Message::query()->sole()->status)->toBe(MessageStatus::Queued);
 });
 
-test('send refuses a lead without an email or when every mailbox is full', function () {
+test('send_mails skips a lead without an email or when every mailbox is full', function () {
     $noEmail = Lead::factory()->create(['email' => null]);
     Mailbox::factory()->create(['daily_limit' => 1, 'sent_today' => 1, 'sent_today_on' => today()]);
     $full = Lead::factory()->create(['email' => 'x@y.nl']);
 
     OutreachServer::actingAs($this->user)
-        ->tool(SendMail::class, ['lead_id' => $noEmail->id, 'subject' => 'a', 'body' => 'b'])
-        ->assertHasErrors(["{$noEmail->company} has no email address; enrich_lead or update it first."]);
+        ->tool(SendMails::class, ['mails' => [['lead_id' => $noEmail->id, 'subject' => 'a', 'body' => 'b']]])
+        ->assertOk()->assertSee("{$noEmail->company}: no email address");
     OutreachServer::actingAs($this->user)
-        ->tool(SendMail::class, ['lead_id' => $full->id, 'subject' => 'a', 'body' => 'b'])
-        ->assertHasErrors(['Every mailbox is full for today (or paused); try again tomorrow or raise a limit.']);
+        ->tool(SendMails::class, ['mails' => [['lead_id' => $full->id, 'subject' => 'a', 'body' => 'b']]])
+        ->assertOk()->assertSee("{$full->company}: every mailbox is full for today");
 });
 
 test('check_inbox reads the boxes and lists replies waiting for an answer', function () {
@@ -274,20 +276,21 @@ test('tools refuse a lead of another account', function () {
     $foreign = Lead::factory()->create(['user_id' => User::factory()->onboarded()->create()->id]);
 
     OutreachServer::actingAs($this->user)
-        ->tool(LeadContext::class, ['lead_id' => $foreign->id])
-        ->assertHasErrors(["No lead with id {$foreign->id} on this account."]);
+        ->tool(LeadsContext::class, ['lead_ids' => [$foreign->id]])
+        ->assertOk()
+        ->assertSee("Not on this account: {$foreign->id}");
 });
 
 test('niches can be listed, created by name and updated', function () {
-    $response = OutreachServer::actingAs($this->user)->tool(UpdateNiche::class, ['name' => 'Makelaars', 'why' => 'Veel verouderde sites.']);
+    $response = OutreachServer::actingAs($this->user)->tool(UpdateNiches::class, ['niches' => [['name' => 'Makelaars', 'why' => 'Veel verouderde sites.']]]);
 
-    $response->assertOk()->assertSee('Created niche "Makelaars" (idea)');
+    $response->assertOk()->assertSee('1 niches saved (1 new)');
 
-    $id = structured($response)['id'];
+    $id = structured($response)['niches'][0]['id'];
 
     OutreachServer::actingAs($this->user)
-        ->tool(UpdateNiche::class, ['niche_id' => $id, 'status' => 'testing', 'findings' => 'Eerste 20 gemaild.'])
-        ->assertOk()->assertSee('Updated niche "Makelaars" (testing)');
+        ->tool(UpdateNiches::class, ['niches' => [['niche_id' => $id, 'status' => 'testing', 'findings' => 'Eerste 20 gemaild.']]])
+        ->assertOk()->assertSee('1 niches saved (0 new)');
 
     Lead::factory()->count(2)->create(['niche_id' => $id, 'email' => 'x@y.nl']);
 
@@ -306,19 +309,19 @@ test('preview_mail shows the filled step without saving anything', function () {
     Mailbox::factory()->create(['address' => 'loc@snelstack.com']);
     $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Tandarts Bos', 'email' => 'info@bos.nl', 'hook' => 'Site is uit 2019.', 'facts' => ['first_name' => 'Marieke']]);
 
-    $response = OutreachServer::actingAs($this->user)->tool(PreviewMail::class, ['lead_id' => $lead->id, 'values' => ['compliment' => 'Mooie site.']]);
+    $response = OutreachServer::actingAs($this->user)->tool(PreviewMails::class, ['mails' => [['lead_id' => $lead->id, 'values' => ['compliment' => 'Mooie site.']]]]);
 
-    $response->assertOk()->assertSee('Preview of step 1 for Tandarts Bos');
+    $response->assertOk()->assertSee('1 previews');
 
-    $card = structured($response);
+    $card = structured($response)['mails'][0];
 
     expect($card['status'])->toBe('preview')
         ->and($card['body'])->toBe("Hoi Marieke,\n\nMooie site.\n\nSite is uit 2019.")
         ->and($card['missing_tags'])->toBe([])
         ->and($card['mailbox'])->toBe('loc@snelstack.com')
         ->and($card['edit_url'])->toEndWith('/leads?lead='.$lead->id)
-        ->and($card['send_tool'])->toBe('send_step')
-        ->and($card['send_arguments']['values'])->toBe(['compliment' => 'Mooie site.'])
+        ->and($card['send_tool'])->toBe('send_steps')
+        ->and($card['send_arguments']['leads'][0]['values'])->toBe(['compliment' => 'Mooie site.'])
         ->and($lead->refresh()->facts)->toBe(['first_name' => 'Marieke'])
         ->and(Message::query()->count())->toBe(0);
 });
@@ -329,17 +332,27 @@ test('the mail card app renders as an MCP app', function () {
     $response->assertOk()->assertSee('createMcpApp')->assertSee('Edit in Snelreach');
 });
 
-test('send_step answers with a card that says when it goes', function () {
+test('send answers with a card that says when it goes', function () {
     Carbon::setTestNow('2026-09-28 10:00:00');
-    $offer = offerWithTags();
     Mailbox::factory()->create();
-    $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['email' => 'info@bos.nl', 'hook' => 'Site is oud.', 'facts' => ['first_name' => 'M', 'compliment' => 'C']]);
+    $lead = Lead::factory()->create(['email' => 'info@bos.nl']);
 
-    $card = structured(OutreachServer::actingAs($this->user)->tool(SendStep::class, ['lead_id' => $lead->id]));
+    $card = structured(OutreachServer::actingAs($this->user)->tool(SendMails::class, ['mails' => [['lead_id' => $lead->id, 'subject' => 'Hoi', 'body' => 'Tekst']]]))['mails'][0];
 
     expect($card['status'])->toBe('queued')
         ->and($card['sends_at'])->toStartWith('Sends today at')
         ->and($card['edit_url'])->toEndWith('/leads?lead='.$lead->id);
+});
+
+test('a tool answer carries its data in the text, for hosts that only show the model the text', function () {
+    $lead = Lead::factory()->create(['company' => 'Tandarts Bos', 'email' => 'info@bos.nl', 'website' => 'bos.nl']);
+
+    OutreachServer::actingAs($this->user)
+        ->tool(ListLeads::class, [])
+        ->assertOk()
+        ->assertSee('1 leads.')
+        ->assertSee('"email": "info@bos.nl"')
+        ->assertSee('"website": "bos.nl"');
 });
 
 test('every card app renders and every listing tool links back into the app', function () {
@@ -350,32 +363,37 @@ test('every card app renders and every listing tool links back into the app', fu
     $lead = Lead::factory()->create();
 
     expect(structured(OutreachServer::actingAs($this->user)->tool(ListLeads::class, []))['url'])->toEndWith('/leads')
-        ->and(structured(OutreachServer::actingAs($this->user)->tool(LeadContext::class, ['lead_id' => $lead->id]))['lead']['url'])->toEndWith('/leads?lead='.$lead->id)
+        ->and(structured(OutreachServer::actingAs($this->user)->tool(LeadsContext::class, ['lead_ids' => [$lead->id]]))['leads'][0]['url'])->toEndWith('/leads?lead='.$lead->id)
         ->and(structured(OutreachServer::actingAs($this->user)->tool(Stats::class, []))['url'])->toEndWith('/dashboard')
         ->and(structured(OutreachServer::actingAs($this->user)->tool(ListOffers::class, []))['url'])->toEndWith('/offers')
         ->and(structured(OutreachServer::actingAs($this->user)->tool(ListNiches::class, []))['url'])->toEndWith('/niches')
         ->and(structured(OutreachServer::actingAs($this->user)->tool(WhoNeedsFollowUp::class, []))['url'])->toEndWith('/inbox');
 });
 
-test('create_offer builds the niche, the sequence and the tag explanations; update_offer changes them', function () {
+test('create_offers builds niches, sequences and tag explanations; update_offers changes them', function () {
     OutreachServer::actingAs($this->user)
-        ->tool(CreateOffer::class, [
+        ->tool(CreateOffers::class, ['offers' => [[
             'name' => 'Herhaalcheck', 'niche' => 'Opleiders',
             'steps' => [['subject' => '{{hook_subject}}', 'body' => 'Hoi {{first_name}}, {{compliment}}']],
-        ])
-        ->assertHasErrors(['Explain these custom tags in placeholders first: {{first_name}}, {{compliment}}.']);
+        ]]])
+        ->assertOk()
+        ->assertSee('0 offers created')
+        ->assertSee('Herhaalcheck: explain {{first_name}}, {{compliment}} in placeholders');
 
-    $response = OutreachServer::actingAs($this->user)->tool(CreateOffer::class, [
-        'name' => 'Herhaalcheck', 'niche' => 'Opleiders', 'description' => 'Check of hun herhalingen kloppen.',
-        'steps' => [
-            ['subject' => '{{hook_subject}}', 'body' => 'Hoi {{first_name}}, {{compliment}}'],
-            ['subject' => 'Re: {{hook_subject}}', 'body' => 'Nog even.', 'days_after_previous' => 6],
-            ['subject' => 'Re: {{hook_subject}}', 'body' => 'Laatste keer.', 'days_after_previous' => 6],
+    $response = OutreachServer::actingAs($this->user)->tool(CreateOffers::class, ['offers' => [
+        [
+            'name' => 'Herhaalcheck', 'niche' => 'Opleiders', 'description' => 'Check of hun herhalingen kloppen.',
+            'steps' => [
+                ['subject' => '{{hook_subject}}', 'body' => 'Hoi {{first_name}}, {{compliment}}'],
+                ['subject' => 'Re: {{hook_subject}}', 'body' => 'Nog even.', 'days_after_previous' => 6],
+                ['subject' => 'Re: {{hook_subject}}', 'body' => 'Laatste keer.', 'days_after_previous' => 6],
+            ],
+            'placeholders' => ['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.'],
         ],
-        'placeholders' => ['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.'],
-    ]);
+        ['name' => 'Keuringscheck', 'niche' => 'Keuringsbedrijven', 'steps' => [['subject' => 'Hoi', 'body' => 'Voor {{company}}.']]],
+    ]]);
 
-    $response->assertOk()->assertSee('Created offer "Herhaalcheck" for Opleiders with 3 steps');
+    $response->assertOk()->assertSee('2 offers created');
 
     $offer = structured($response)['offers'][0];
 
@@ -383,14 +401,14 @@ test('create_offer builds the niche, the sequence and the tag explanations; upda
         ->and($offer['steps'])->toHaveCount(3)
         ->and($offer['steps'][1]['days_after_previous'])->toBe(6)
         ->and($offer['steps'][0]['days_after_previous'])->toBe(0)
-        ->and($this->user->niches()->where('name', 'Opleiders')->exists())->toBeTrue();
+        ->and($this->user->niches()->whereIn('name', ['Opleiders', 'Keuringsbedrijven'])->count())->toBe(2);
 
-    $updated = OutreachServer::actingAs($this->user)->tool(UpdateOffer::class, [
+    $updated = OutreachServer::actingAs($this->user)->tool(UpdateOffers::class, ['offers' => [[
         'offer_id' => $offer['id'], 'auto_follow_up' => false,
         'steps' => [['subject' => 'Nieuw', 'body' => 'Alleen {{company}}.']],
-    ]);
+    ]]]);
 
-    $updated->assertOk();
+    $updated->assertOk()->assertSee('1 offers updated');
 
     expect(structured($updated)['offers'][0]['steps'])->toHaveCount(1)
         ->and(structured($updated)['offers'][0]['auto_follow_up'])->toBeFalse()

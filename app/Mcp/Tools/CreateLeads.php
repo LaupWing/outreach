@@ -8,6 +8,7 @@ use App\Enums\NicheStatus;
 use App\Mcp\Account;
 use App\Mcp\Arguments;
 use App\Mcp\LeadSummary;
+use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Models\Offer;
@@ -70,7 +71,7 @@ class CreateLeads extends Tool
             $text .= ' Already existed (skipped): '.implode(', ', $skipped).'.';
         }
 
-        return Response::make(Response::text($text))->withStructuredContent([
+        return Reply::make($text, [
             'leads' => array_map(fn ($lead) => [...LeadSummary::from($lead), 'facts' => $lead->facts], $created),
             'skipped' => $skipped,
             'url' => rtrim(config('app.url'), '/').'/leads',

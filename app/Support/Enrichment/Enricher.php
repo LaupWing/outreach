@@ -168,8 +168,6 @@ class Enricher
      */
     private function javascriptOnly(string $html): bool
     {
-        $text = trim(strip_tags(preg_replace('/<(script|style|noscript)[^>]*>.*?<\/\1>/is', '', $html) ?? ''));
-
-        return strlen($text) < 200 && preg_match('/<script/i', $html) === 1;
+        return FallbackSiteReader::looksJavascriptOnly($html);
     }
 }

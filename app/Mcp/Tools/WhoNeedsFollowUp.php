@@ -6,6 +6,7 @@ use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Support\Mail\Placeholders;
@@ -47,8 +48,8 @@ class WhoNeedsFollowUp extends Tool
                 $reason = match (true) {
                     $next === null => 'sequence finished; decide: mark "no", call, or write something else',
                     $lead->email === null => 'no email address',
-                    $missing !== [] => 'unfilled tags: {{'.implode('}}, {{', $missing).'}}; pass them to send_step',
-                    ! $lead->offer->auto_follow_up => 'offer has auto follow-up off; write it with send_step or send',
+                    $missing !== [] => 'unfilled tags: {{'.implode('}}, {{', $missing).'}}; pass them to send_steps',
+                    ! $lead->offer->auto_follow_up => 'offer has auto follow-up off; write it with send_steps or send',
                     default => 'will go out automatically within the hour',
                 };
 
@@ -67,10 +68,9 @@ class WhoNeedsFollowUp extends Tool
             ->orderByDesc('last_contact_at')
             ->limit(50)
             ->get()
-            ->map(fn (Lead $lead) => [...LeadSummary::from($lead), 'reason' => 'replied; answer them (send with a "Re:" subject) or set the status']);
+            ->map(fn (Lead $lead) => [...LeadSummary::from($lead), 'reason' => 'replied; answer them (send_mails with a "Re:" subject) or set the status']);
 
-        return Response::make(Response::text(sprintf('%d leads due for a follow-up, %d replied and waiting.', $due->count(), $replied->count())))
-            ->withStructuredContent(['due' => $due->values()->all(), 'replied' => $replied->values()->all(), 'url' => rtrim(config('app.url'), '/').'/inbox']);
+        return Reply::make(sprintf('%d leads due for a follow-up, %d replied and waiting.', $due->count(), $replied->count()), ['due' => $due->values()->all(), 'replied' => $replied->values()->all(), 'url' => rtrim(config('app.url'), '/').'/inbox']);
     }
 
     /**

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Support\Enrichment\BrowserSiteReader;
+use App\Support\Enrichment\FallbackSiteReader;
 use App\Support\Enrichment\HttpSiteReader;
 use App\Support\Enrichment\SiteReader;
 use App\Support\Mail\ImapMailboxReader;
@@ -29,7 +31,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(MailboxConnection::class, SmtpImapConnection::class);
         $this->app->bind(PlacesSearch::class, GooglePlacesSearch::class);
-        $this->app->bind(SiteReader::class, HttpSiteReader::class);
+        // With a browser on the machine, sites that render with JavaScript get a second read in Chrome.
+        $this->app->bind(SiteReader::class, fn () => config('services.browser.enabled')
+            ? new FallbackSiteReader(new HttpSiteReader, new BrowserSiteReader)
+            : new HttpSiteReader);
         $this->app->bind(MailSender::class, SmtpMailSender::class);
         $this->app->bind(MailboxReader::class, ImapMailboxReader::class);
     }

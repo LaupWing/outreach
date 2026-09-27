@@ -49,7 +49,7 @@ class MailCard
             'mailbox' => $message->mailbox?->address,
             'missing_tags' => [],
             'sends_at' => $sendsAt === null ? null : ($sendsAt->isToday() ? 'Sends today at '.$sendsAt->format('H:i') : 'Sends '.$sendsAt->format('D j M H:i')),
-            'hint' => $message->status->value === 'draft' ? 'Saved as a draft; send it with send_draft or from the app.' : null,
+            'hint' => $message->status->value === 'draft' ? 'Saved as a draft; send it with send_drafts or from the app.' : null,
             'edit_url' => self::editUrl($lead),
         ];
     }

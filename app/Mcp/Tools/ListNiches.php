@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\LeadStatus;
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use App\Mcp\Resources\CatalogApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -37,19 +38,18 @@ class ListNiches extends Tool
             ->orderBy('name')
             ->get();
 
-        return Response::make(Response::text(sprintf('%d niches.', $niches->count())))
-            ->withStructuredContent(['url' => rtrim(config('app.url'), '/').'/niches', 'niches' => $niches->map(fn ($niche) => [
-                'id' => $niche->id,
-                'name' => $niche->name,
-                'status' => $niche->status->value,
-                'why' => $niche->why,
-                'findings' => $niche->findings,
-                'leads' => $niche->leads_count,
-                'with_email' => $niche->with_email_count,
-                'replied' => $niche->replied_count,
-                'customers' => $niche->customers_count,
-                'offers' => $niche->offers_count,
-            ])->all()]);
+        return Reply::make(sprintf('%d niches.', $niches->count()), ['url' => rtrim(config('app.url'), '/').'/niches', 'niches' => $niches->map(fn ($niche) => [
+            'id' => $niche->id,
+            'name' => $niche->name,
+            'status' => $niche->status->value,
+            'why' => $niche->why,
+            'findings' => $niche->findings,
+            'leads' => $niche->leads_count,
+            'with_email' => $niche->with_email_count,
+            'replied' => $niche->replied_count,
+            'customers' => $niche->customers_count,
+            'offers' => $niche->offers_count,
+        ])->all()]);
     }
 
     /**

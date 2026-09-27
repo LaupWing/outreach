@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\LeadStatus;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -46,8 +47,7 @@ class ListLeads extends Tool
             ->limit((int) ($validated['limit'] ?? 25))
             ->get();
 
-        return Response::make(Response::text(sprintf('%d leads.', $leads->count())))
-            ->withStructuredContent(['leads' => $leads->map(fn ($lead) => LeadSummary::from($lead))->all(), 'url' => rtrim(config('app.url'), '/').'/leads']);
+        return Reply::make(sprintf('%d leads.', $leads->count()), ['leads' => $leads->map(fn ($lead) => LeadSummary::from($lead))->all(), 'url' => rtrim(config('app.url'), '/').'/leads']);
     }
 
     /**

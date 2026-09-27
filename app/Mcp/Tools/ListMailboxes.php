@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -35,8 +36,7 @@ class ListMailboxes extends Tool
             'inbox_checked_at' => $mailbox->inbox_checked_at?->toJSON(),
         ]);
 
-        return Response::make(Response::text(sprintf('%d mailboxes.', $mailboxes->count())))
-            ->withStructuredContent(['mailboxes' => $mailboxes->all(), 'url' => rtrim(config('app.url'), '/').'/mailboxes']);
+        return Reply::make(sprintf('%d mailboxes.', $mailboxes->count()), ['mailboxes' => $mailboxes->all(), 'url' => rtrim(config('app.url'), '/').'/mailboxes']);
     }
 
     /**

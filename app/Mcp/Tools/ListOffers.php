@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use App\Mcp\Resources\CatalogApp;
 use App\Support\Mail\Placeholders;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -28,24 +29,23 @@ class ListOffers extends Tool
 
         $offers = $user->offers()->with(['niche', 'steps' => fn ($query) => $query->orderBy('step')])->orderBy('name')->get();
 
-        return Response::make(Response::text(sprintf('%d offers.', $offers->count())))
-            ->withStructuredContent(['url' => rtrim(config('app.url'), '/').'/offers', 'offers' => $offers->map(fn ($offer) => [
-                'id' => $offer->id,
-                'name' => $offer->name,
-                'niche' => $offer->niche?->name,
-                'niche_id' => $offer->niche_id,
-                'status' => $offer->status->value,
-                'description' => $offer->description,
-                'auto_follow_up' => $offer->auto_follow_up,
-                'tag_explanations' => $offer->placeholders,
-                'steps' => $offer->steps->map(fn ($step) => [
-                    'step' => $step->step,
-                    'days_after_previous' => $step->days_after_previous,
-                    'subject' => $step->subject,
-                    'body' => $step->body,
-                    'tags' => Placeholders::tagsIn($step->subject.' '.$step->body),
-                ])->all(),
-            ])->all()]);
+        return Reply::make(sprintf('%d offers.', $offers->count()), ['url' => rtrim(config('app.url'), '/').'/offers', 'offers' => $offers->map(fn ($offer) => [
+            'id' => $offer->id,
+            'name' => $offer->name,
+            'niche' => $offer->niche?->name,
+            'niche_id' => $offer->niche_id,
+            'status' => $offer->status->value,
+            'description' => $offer->description,
+            'auto_follow_up' => $offer->auto_follow_up,
+            'tag_explanations' => $offer->placeholders,
+            'steps' => $offer->steps->map(fn ($step) => [
+                'step' => $step->step,
+                'days_after_previous' => $step->days_after_previous,
+                'subject' => $step->subject,
+                'body' => $step->body,
+                'tags' => Placeholders::tagsIn($step->subject.' '.$step->body),
+            ])->all(),
+        ])->all()]);
     }
 
     /**

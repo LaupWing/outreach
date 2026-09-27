@@ -7,6 +7,19 @@
             const root = document.getElementById('root');
 
             const render = (data) => {
+                const leads = data.leads ?? [data.lead ?? data];
+                root.innerHTML = '';
+                leads.forEach((lead) => {
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.style.marginBottom = '10px';
+                    root.appendChild(el);
+                    one(el, { ...lead, lead });
+                });
+                if (leads.length === 0) root.innerHTML = '<div class="card"><div class="empty">No leads.</div></div>';
+            };
+
+            const one = (root, data) => {
                 const lead = data.lead ?? data;
                 const offer = data.offer ?? null;
                 const signals = lead.signals ?? {};
@@ -59,5 +72,5 @@
         @endverbatim
     </x-slot:head>
 
-    <div id="root" class="card"><div class="empty">Loading…</div></div>
+    <div id="root"><div class="card"><div class="empty">Loading…</div></div></div>
 </x-mcp::app>

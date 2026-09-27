@@ -42,6 +42,13 @@ return [
         'mailbox_password' => env('SEED_MAILBOX_PASSWORD'),
     ],
 
+    // Headless Chrome for sites that render with JavaScript. Off unless the server has Chromium.
+    'browser' => [
+        'enabled' => (bool) env('BROWSER_FETCH', false),
+        'chrome_path' => env('BROWSER_CHROME_PATH'),
+        'node_binary' => env('BROWSER_NODE_BINARY'),
+    ],
+
     'outreach' => [
         // The account the local (stdio) MCP server acts as; the first account when unset.
         'mcp_user' => env('OUTREACH_MCP_USER'),

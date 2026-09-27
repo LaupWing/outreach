@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -33,11 +34,11 @@ class ScrapeStatus extends Tool
         $leads = $run->leads()->count();
         $enriched = $run->leads()->whereNotNull('signals')->count();
 
-        return Response::make(Response::text(sprintf(
+        return Reply::make(sprintf(
             'Run %d (%s in %s): %s. %d found, %d leads, %d enriched, %d with email, %d blocked.%s',
             $run->id, $run->query, $run->place, $run->status->value, $run->found, $leads, $enriched, $run->with_email, $run->blocked,
             $run->error === null ? '' : ' Error: '.$run->error,
-        )))->withStructuredContent([
+        ), [
             'run_id' => $run->id,
             'status' => $run->status->value,
             'query' => $run->query,

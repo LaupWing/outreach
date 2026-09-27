@@ -7,6 +7,7 @@ use App\Enums\ScrapeRunStatus;
 use App\Jobs\ProcessScrapeRun;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Support\PlacesBudget;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -21,7 +22,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
 #[Name('search_leads')]
-#[Description('Search Google Places for businesses in a niche and place, and add them as leads. Runs synchronously and returns the new leads without reading their websites; call enrich_lead or enrich_run for email addresses and signals. Each page is 20 businesses and one request against the free monthly budget.')]
+#[Description('Search Google Places for businesses in a niche and place, and add them as leads. Runs synchronously and returns the new leads without reading their websites; call enrich_leads or enrich_run for email addresses and signals. Each page is 20 businesses and one request against the free monthly budget.')]
 #[IsOpenWorld]
 #[RendersApp(resource: LeadListApp::class)]
 class SearchLeads extends Tool
@@ -76,10 +77,10 @@ class SearchLeads extends Tool
 
         $leads = $run->leads()->orderBy('id')->get();
 
-        return Response::make(Response::text(sprintf(
+        return Reply::make(sprintf(
             '%s in %s: %d businesses found, %d new leads added to niche "%s" (run %d, %d request%s used). None of them are enriched yet.',
             $run->query, $run->place, $run->found, $leads->count(), $niche->name, $run->id, $run->requests, $run->requests === 1 ? '' : 's',
-        )))->withStructuredContent([
+        ), [
             'run_id' => $run->id,
             'run_url' => rtrim(config('app.url'), '/').'/scrape?run='.$run->id,
             'niche_id' => $niche->id,

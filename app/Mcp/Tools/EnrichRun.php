@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Jobs\EnrichRunLeads;
 use App\Mcp\Account;
+use App\Mcp\Reply;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -41,8 +42,7 @@ class EnrichRun extends Tool
 
         EnrichRunLeads::dispatch($run);
 
-        return Response::make(Response::text("Run {$run->id}: enrichment queued for {$pending} leads. Check scrape_status in a minute or two."))
-            ->withStructuredContent(['run_id' => $run->id, 'pending' => $pending]);
+        return Reply::make("Run {$run->id}: enrichment queued for {$pending} leads. Check scrape_status in a minute or two.", ['run_id' => $run->id, 'pending' => $pending]);
     }
 
     /**
