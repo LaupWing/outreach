@@ -78,7 +78,7 @@ class OfferController extends Controller
     public function update(UpdateOfferRequest $request, Offer $offer): RedirectResponse
     {
         $validated = $request->validated();
-        $attributes = $request->safe()->only(['name', 'description', 'status', 'placeholders']);
+        $attributes = $request->safe()->only(['name', 'description', 'status', 'placeholders', 'auto_follow_up']);
 
         if (($validated['niche_id'] ?? null) !== null || ($validated['new_niche'] ?? null) !== null) {
             $attributes['niche_id'] = $this->resolveNicheId($request->user(), $validated);

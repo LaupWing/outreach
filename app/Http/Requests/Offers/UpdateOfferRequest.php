@@ -37,6 +37,7 @@ class UpdateOfferRequest extends FormRequest
             // {tag: what it should say}; tag names as they appear inside {{ }}.
             'placeholders' => ['sometimes', 'nullable', 'array'],
             'placeholders.*' => ['nullable', 'string', 'max:500'],
+            'auto_follow_up' => ['sometimes', 'boolean'],
             'status' => ['sometimes', Rule::enum(OfferStatus::class)],
         ];
     }

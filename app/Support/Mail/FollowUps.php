@@ -27,8 +27,8 @@ class FollowUps
     {
         return $user->leads()
             ->whereIn('status', [LeadStatus::Emailed, LeadStatus::FollowedUp])
-            ->whereNotNull('offer_id')
             ->whereNotNull('email')
+            ->whereHas('offer', fn ($query) => $query->where('auto_follow_up', true))
             ->where('next_action_at', '<=', now())
             ->whereDoesntHave('messages', fn ($query) => $query->where('status', MessageStatus::Queued))
             ->orderBy('next_action_at')

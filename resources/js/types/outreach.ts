@@ -22,6 +22,8 @@ export type Offer = {
     description: string | null;
     /** What each {{tag}} in the sequence should say, tag → description. */
     placeholders: Record<string, string> | null;
+    /** Due follow-ups go out by themselves; off means the AI writes them via MCP. */
+    auto_follow_up: boolean;
     status: OfferStatus;
 };
 

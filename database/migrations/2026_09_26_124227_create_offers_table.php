@@ -19,6 +19,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             // What each {{tag}} in the sequence should say, for whoever fills it: {tag: description}.
             $table->json('placeholders')->nullable();
+            // Whether due follow-ups go out by themselves, or wait for the AI to write them.
+            $table->boolean('auto_follow_up')->default(true);
             $table->string('status');
             $table->timestamps();
         });

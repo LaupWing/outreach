@@ -28,6 +28,7 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { isBuiltIn, tagsIn } from '@/lib/placeholders';
@@ -234,6 +235,32 @@ export function OfferPanel({
                                     offer={offer}
                                     steps={steps}
                                 />
+                                {/* Off means due leads wait for the AI to write the follow-up over MCP. */}
+                                <label className="mx-5 mb-5 flex cursor-pointer items-center gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-3 text-sm shadow-(--raised-shadow)">
+                                    <Checkbox
+                                        checked={offer.auto_follow_up}
+                                        onCheckedChange={(checked) =>
+                                            router.patch(
+                                                update.url(offer.id),
+                                                {
+                                                    auto_follow_up:
+                                                        checked === true,
+                                                },
+                                                { preserveScroll: true },
+                                            )
+                                        }
+                                    />
+                                    <span className="flex flex-col">
+                                        <span className="font-medium">
+                                            Send follow-ups automatically
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            Every hour, due leads get their next
+                                            mail. A mail with an unfilled tag
+                                            waits.
+                                        </span>
+                                    </span>
+                                </label>
                             </>
                         )}
 

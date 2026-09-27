@@ -8,5 +8,6 @@ Schedule::command('outreach:send')->everyFiveMinutes()->withoutOverlapping();
 // Replies and bounces come back on the lead within minutes, not the next morning.
 Schedule::command('outreach:check-inbox')->everyTenMinutes()->withoutOverlapping();
 
-// Follow-ups (`outreach:follow-up`) are not scheduled yet: how the AI fills the
-// sequence tags is still being decided. Run it by hand when you want to.
+// Follow-ups are planned in days, so an hourly look is plenty; the outbox spreads the
+// sending. Offers with auto follow-up off, and steps with an unfilled tag, wait for the AI.
+Schedule::command('outreach:follow-up')->hourly()->withoutOverlapping();

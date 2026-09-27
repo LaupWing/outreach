@@ -102,6 +102,16 @@ test('a step with a tag nobody filled waits for the AI instead of going out half
         ->and(Message::query()->where('status', MessageStatus::Queued)->sole()->body)->toBe('Hoi Marieke, nog even hierop terugkomen.');
 });
 
+test('an offer with auto follow-up off leaves its leads to the AI', function () {
+    $offer = sequenced();
+    $offer->update(['auto_follow_up' => false]);
+    Mailbox::factory()->create();
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->emailed()->create(['next_action_at' => now()->subDay()]);
+    Message::factory()->for($lead)->create(['step' => 1]);
+
+    expect(app(FollowUps::class)->due($this->user))->toHaveCount(0);
+});
+
 test('the command runs for every account and sums it up', function () {
     $offer = sequenced();
     Mailbox::factory()->create();
