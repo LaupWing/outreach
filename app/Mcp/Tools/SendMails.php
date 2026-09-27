@@ -67,12 +67,15 @@ class SendMails extends Tool
             }
 
             $continues = preg_match('/^re:/i', $row['subject']) === 1 || ($row['step'] ?? 1) > 1;
+            // Answering what they wrote back: a reply in the conversation, not a sequence step.
+            $answered = $continues && ! isset($row['step']) ? Sends::repliedTo($lead) : null;
 
             $message = Sends::queue($outbox, $lead, $mailbox, [
                 'subject' => $row['subject'],
                 'body' => $row['body'],
-                'step' => $row['step'] ?? 0,
-                'thread_id' => $continues ? Sends::threadOf($lead) : null,
+                'step' => $answered?->step ?? $row['step'] ?? 0,
+                'is_reply' => $answered !== null,
+                'thread_id' => $answered?->thread_id ?? ($continues ? Sends::threadOf($lead) : null),
             ], $validated['draft'] ?? false);
 
             $cards[] = MailCard::message($user, $message->load(['lead', 'mailbox']));

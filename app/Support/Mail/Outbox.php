@@ -63,7 +63,7 @@ class Outbox
     /**
      * Put a mail in the queue for the next free slot of its mailbox.
      *
-     * @param  array{subject: string, body: string, step: int, thread_id?: string|null}  $attributes
+     * @param  array{subject: string, body: string, step: int, thread_id?: string|null, is_reply?: bool}  $attributes
      */
     public function queue(Lead $lead, Mailbox $mailbox, array $attributes, bool $rightAway = false): Message
     {
@@ -73,6 +73,7 @@ class Outbox
             'subject' => $attributes['subject'],
             'body' => $attributes['body'],
             'step' => $attributes['step'],
+            'is_reply' => $attributes['is_reply'] ?? false,
             'thread_id' => $attributes['thread_id'] ?? 'thr_'.Str::lower(Str::random(5)),
             'message_id' => $this->messageIdFor($mailbox),
             'status' => MessageStatus::Queued,
@@ -196,7 +197,8 @@ class Outbox
 
         $inSequence = in_array($lead->status, [LeadStatus::New, LeadStatus::Emailed, LeadStatus::FollowedUp], true);
 
-        if ($message->step >= 1 && $inSequence) {
+        // An answer in the conversation moves nothing along; only sequence steps do.
+        if ($message->step >= 1 && $inSequence && ! $message->is_reply) {
             $lead->status = $message->step === 1 ? LeadStatus::Emailed : LeadStatus::FollowedUp;
             $lead->next_action_at = $this->nextStepDueAt($lead, $message->step);
         }

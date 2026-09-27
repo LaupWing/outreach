@@ -37,6 +37,7 @@ class SentMailImport
         }
 
         $user = $mailbox->user;
+        $touched = [];
 
         foreach ($sent as $mail) {
             if ($mail->messageId !== null && $user->messages()->where('message_id', $mail->messageId)->exists()) {
@@ -81,6 +82,7 @@ class SentMailImport
             }
 
             $this->record($mailbox, $lead, $mail);
+            $touched[$lead->id] = $lead;
             $counts['imported']++;
         }
 
@@ -90,7 +92,36 @@ class SentMailImport
         $counts['bounces'] = $caughtUp['bounces'];
         $counts['error'] = $caughtUp['error'];
 
+        // Now that the replies are known: what went out after one is an answer, not a step.
+        foreach ($touched as $lead) {
+            $this->markReplies($lead);
+        }
+
         return $counts;
+    }
+
+    /**
+     * A mail sent after the lead replied in the same thread is part of the conversation:
+     * it keeps the step it answers and is marked as a reply.
+     */
+    private function markReplies(Lead $lead): void
+    {
+        $messages = $lead->messages()->reorder()->orderBy('sent_at')->orderBy('id')->get();
+
+        foreach ($messages as $message) {
+            $answered = $messages
+                ->where('thread_id', $message->thread_id)
+                ->filter(fn ($earlier) => $earlier->id !== $message->id
+                    && $earlier->reply_received_at !== null
+                    && $message->sent_at !== null
+                    && $earlier->reply_received_at->lessThanOrEqualTo($message->sent_at))
+                ->sortByDesc('reply_received_at')
+                ->first();
+
+            if ($answered !== null && ! $message->is_reply) {
+                $message->update(['is_reply' => true, 'step' => $answered->step]);
+            }
+        }
     }
 
     private function record(Mailbox $mailbox, Lead $lead, SentMail $mail): void

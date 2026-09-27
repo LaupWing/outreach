@@ -131,7 +131,13 @@ export function MessagesTable({
                                     </span>
                                 </Cell>
                                 <Cell className="text-muted-foreground tabular-nums">
-                                    {message.step}
+                                    {message.is_reply ? (
+                                        <span className="inline-flex items-center rounded-md border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                                            Reply
+                                        </span>
+                                    ) : (
+                                        message.step
+                                    )}
                                 </Cell>
                                 <Cell>{message.subject}</Cell>
                                 <Cell>

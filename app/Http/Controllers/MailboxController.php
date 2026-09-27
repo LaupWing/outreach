@@ -25,7 +25,7 @@ class MailboxController extends Controller
         return Inertia::render('mailboxes/index', [
             'mailboxes' => $user->mailboxes()->orderBy('id')->get(),
             'messages' => $user->messages()
-                ->select(['id', 'lead_id', 'mailbox_id', 'step', 'subject', 'status', 'sent_at', 'reply_body', 'reply_received_at'])
+                ->select(['id', 'lead_id', 'mailbox_id', 'step', 'is_reply', 'subject', 'status', 'sent_at', 'reply_body', 'reply_received_at'])
                 ->orderByDesc('sent_at')
                 ->get()
                 ->makeHidden('reply_body'),

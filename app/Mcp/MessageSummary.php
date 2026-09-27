@@ -19,6 +19,7 @@ class MessageSummary
             'lead_id' => $message->lead_id,
             'mailbox_id' => $message->mailbox_id,
             'step' => $message->step,
+            'is_reply' => $message->is_reply,
             'subject' => $message->subject,
             'body' => $message->body,
             'status' => $message->status->value,

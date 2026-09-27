@@ -22,6 +22,7 @@ class MessageReplyController extends Controller
             'subject' => 'Re: '.$message->subject,
             'body' => $request->string('body')->toString(),
             'step' => $message->step,
+            'is_reply' => true,
             'thread_id' => $message->thread_id,
         ], rightAway: true);
 

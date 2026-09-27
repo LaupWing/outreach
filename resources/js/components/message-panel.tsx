@@ -98,7 +98,9 @@ export function MessagePanel({
                     <div className="min-h-0 flex-1 overflow-auto">
                         <dl className="flex flex-col border-b border-border py-2">
                             <SidePanelRow icon={ListOrdered} label="Step">
-                                {message.step}
+                                {message.is_reply
+                                    ? `Reply to step ${message.step}`
+                                    : message.step}
                             </SidePanelRow>
                             <SidePanelRow icon={Send} label="Sent from">
                                 {mailbox?.address ?? <SidePanelEmpty />}

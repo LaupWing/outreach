@@ -106,6 +106,8 @@ export type Message = {
     lead_id: number;
     mailbox_id: number;
     step: number;
+    /** An answer to the lead's reply, not a step of the sequence. */
+    is_reply: boolean;
     subject: string;
     body: string;
     sent_at: string | null;

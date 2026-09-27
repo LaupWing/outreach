@@ -179,3 +179,11 @@ test('an empty reply is refused', function () {
 
     expect(Message::query()->count())->toBe(1);
 });
+
+test('answering a reply from the app is marked as a reply', function () {
+    $original = Message::factory()->replied()->create(['step' => 1]);
+
+    $this->actingAs($this->user)->post(route('messages.reply.store', $original), ['body' => 'Komt eraan.'])->assertSessionHasNoErrors();
+
+    expect(Message::query()->whereKeyNot($original->id)->sole()->is_reply)->toBeTrue();
+});

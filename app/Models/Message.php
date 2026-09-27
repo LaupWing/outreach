@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int $lead_id
  * @property int $mailbox_id
  * @property int $step
+ * @property bool $is_reply
  * @property string $subject
  * @property string $body
  * @property MessageStatus $status
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read array{body: string, received_at: string}|null $reply
  */
-#[Fillable(['user_id', 'lead_id', 'mailbox_id', 'step', 'subject', 'body', 'status', 'thread_id', 'message_id', 'sent_at', 'send_after', 'error', 'reply_body', 'reply_received_at'])]
+#[Fillable(['user_id', 'lead_id', 'mailbox_id', 'step', 'is_reply', 'subject', 'body', 'status', 'thread_id', 'message_id', 'sent_at', 'send_after', 'error', 'reply_body', 'reply_received_at'])]
 class Message extends Model
 {
     /** @use HasFactory<MessageFactory> */
@@ -54,6 +55,7 @@ class Message extends Model
      */
     protected $attributes = [
         'status' => MessageStatus::Draft->value,
+        'is_reply' => false,
     ];
 
     /**
@@ -65,6 +67,7 @@ class Message extends Model
     {
         return [
             'step' => 'integer',
+            'is_reply' => 'boolean',
             'status' => MessageStatus::class,
             'sent_at' => 'datetime',
             'send_after' => 'datetime',

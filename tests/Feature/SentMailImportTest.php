@@ -95,3 +95,22 @@ test('a sent mail without a Message-ID is still not imported twice', function ()
 
     expect(Message::query()->count())->toBe(1);
 });
+
+test('a mail sent after the lead replied is marked as a reply, not a new step', function () {
+    $lead = Lead::factory()->create(['email' => 'info@bos.nl']);
+    $mailbox = Mailbox::factory()->create();
+
+    readerWith([
+        new SentMail(1, ['info@bos.nl'], 'Jullie site', 'Eerste.', '<one@gmail.com>', CarbonImmutable::parse('2026-08-10 10:00')),
+        new SentMail(2, ['info@bos.nl'], 'Re: Jullie site', 'Dank, hier is meer.', '<two@gmail.com>', CarbonImmutable::parse('2026-08-11 10:00')),
+    ], [
+        new IncomingMail(9, 'info@bos.nl', 'Re: Jullie site', 'Vertel meer.', '<r@bos.nl>', ['<one@gmail.com>'], CarbonImmutable::parse('2026-08-10 15:00')),
+    ]);
+
+    app(SentMailImport::class)->run($mailbox, CarbonImmutable::parse('2026-08-01'));
+
+    $answer = Message::query()->where('message_id', '<two@gmail.com>')->sole();
+
+    expect($answer->is_reply)->toBeTrue()
+        ->and($answer->step)->toBe(1);
+});

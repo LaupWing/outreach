@@ -41,6 +41,7 @@ export type MailboxMessage = Pick<
     | 'lead_id'
     | 'mailbox_id'
     | 'step'
+    | 'is_reply'
     | 'subject'
     | 'status'
     | 'sent_at'
@@ -403,8 +404,10 @@ export function MailboxPanel({
                                                     {companyOf(message.lead_id)}
                                                 </span>
                                                 <span className="block truncate text-xs text-muted-foreground">
-                                                    Step {message.step}:{' '}
-                                                    {message.subject}
+                                                    {message.is_reply
+                                                        ? 'Reply'
+                                                        : `Step ${message.step}`}
+                                                    : {message.subject}
                                                 </span>
                                             </span>
                                             <span

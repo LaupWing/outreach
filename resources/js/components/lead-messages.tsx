@@ -99,7 +99,9 @@ export function LeadMessages({
                                 )}
                             />
                             <span className="w-12 shrink-0 text-xs text-muted-foreground">
-                                Step {message.step}
+                                {message.is_reply
+                                    ? 'Reply'
+                                    : `Step ${message.step}`}
                             </span>
                             <span className="flex min-w-0 flex-1 flex-col">
                                 <span className="truncate font-medium">

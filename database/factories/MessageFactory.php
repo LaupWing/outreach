@@ -28,6 +28,7 @@ class MessageFactory extends Factory
             'lead_id' => fn (array $attributes) => Lead::factory()->state(['user_id' => $attributes['user_id']]),
             'mailbox_id' => fn (array $attributes) => Mailbox::factory()->state(['user_id' => $attributes['user_id']]),
             'step' => 1,
+            'is_reply' => false,
             'subject' => fake()->sentence(4),
             'body' => fake()->paragraph(),
             'status' => MessageStatus::Sent,
