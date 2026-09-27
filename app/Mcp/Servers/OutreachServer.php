@@ -8,12 +8,14 @@ use App\Mcp\Resources\LeadListApp;
 use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Resources\StatsApp;
 use App\Mcp\Tools\CheckInbox;
+use App\Mcp\Tools\CreateLead;
 use App\Mcp\Tools\CreateOffer;
 use App\Mcp\Tools\EnrichLead;
 use App\Mcp\Tools\EnrichRun;
 use App\Mcp\Tools\ImportSentMail;
 use App\Mcp\Tools\LeadContext;
 use App\Mcp\Tools\ListLeads;
+use App\Mcp\Tools\ListMailboxes;
 use App\Mcp\Tools\ListNiches;
 use App\Mcp\Tools\ListOffers;
 use App\Mcp\Tools\PreviewMail;
@@ -41,7 +43,7 @@ use Laravel\Mcp\Server\Tool;
 #[Instructions(<<<'TEXT'
 Snelreach: cold outreach for Dutch SMBs. The app finds businesses, reads their sites, sends mail from the account's mailboxes (spread over the sending hours, with daily limits), reads the inboxes for replies and bounces, and plans follow-ups. You do the thinking and the writing.
 
-Niches are the kinds of business you try (list_niches, update_niche: status idea/testing/proven/dropped, why, findings). Finding leads: search_leads (query, place, niche) → enrich_lead for a few, or enrich_run for all → list_leads with with_email=true. A search costs one of 1,000 free Google requests a month per page of 20.
+Niches are the kinds of business you try (list_niches, update_niche: status idea/testing/proven/dropped, why, findings). Finding leads: search_leads (query, place, niche) → enrich_lead for a few, or enrich_run for all → list_leads with with_email=true. Leads you already know go in with create_lead. A search costs one of 1,000 free Google requests a month per page of 20.
 
 Writing: an offer has a mail sequence (list_offers, create_offer, update_offer). Steps contain {{tags}}. Built-in tags come from the lead itself: company, city, email, phone, website, hook (one sentence about their site, set with update_lead) and hook_subject (the hook as a subject line). Every other tag, like {{compliment}} or {{first_name}}, is yours to fill per lead; the offer's tag_explanations say what it should contain. Get lead_context (with_site_text=true when you need to read the site), then preview_mail to show the mail as a card (the user can press Send or edit it in the app), or send_step / send to queue it straight away. Values you pass are saved as facts on the lead, so later steps reuse them. lead_context lists every step with its missing_tags: fill the tags of ALL steps in one go (pass them all in values, or with update_lead), so the automatic follow-ups can go out without you. Mail lands in the outbox and leaves at the next free moment within the account's sending hours; nothing goes out immediately.
 
@@ -58,6 +60,8 @@ class OutreachServer extends Server
         EnrichRun::class,
         ScrapeStatus::class,
         ListLeads::class,
+        CreateLead::class,
+        ListMailboxes::class,
         ListNiches::class,
         UpdateNiche::class,
         ListOffers::class,

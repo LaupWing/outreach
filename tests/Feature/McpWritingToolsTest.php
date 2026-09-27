@@ -9,9 +9,11 @@ use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Resources\StatsApp;
 use App\Mcp\Servers\OutreachServer;
 use App\Mcp\Tools\CheckInbox;
+use App\Mcp\Tools\CreateLead;
 use App\Mcp\Tools\CreateOffer;
 use App\Mcp\Tools\LeadContext;
 use App\Mcp\Tools\ListLeads;
+use App\Mcp\Tools\ListMailboxes;
 use App\Mcp\Tools\ListNiches;
 use App\Mcp\Tools\ListOffers;
 use App\Mcp\Tools\PreviewMail;
@@ -391,4 +393,35 @@ test('create_offer builds the niche, the sequence and the tag explanations; upda
     expect(structured($updated)['offers'][0]['steps'])->toHaveCount(1)
         ->and(structured($updated)['offers'][0]['auto_follow_up'])->toBeFalse()
         ->and(structured($updated)['offers'][0]['tag_explanations'])->toBe(['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.']);
+});
+
+test('create_lead adds a lead in its niche and refuses a duplicate address', function () {
+    $response = OutreachServer::actingAs($this->user)->tool(CreateLead::class, [
+        'company' => 'Tandarts Bos', 'niche' => 'Tandartsen', 'email' => 'Info@Bos.nl', 'website' => 'https://www.tandartsbos.nl/contact', 'facts' => ['first_name' => 'Marieke'],
+    ]);
+
+    $response->assertOk()->assertSee('Added Tandarts Bos');
+
+    $lead = $this->user->leads()->where('company', 'Tandarts Bos')->first();
+
+    expect($lead->email)->toBe('info@bos.nl')
+        ->and($lead->website)->toBe('tandartsbos.nl')
+        ->and($lead->facts)->toBe(['first_name' => 'Marieke'])
+        ->and($lead->niche->name)->toBe('Tandartsen');
+
+    OutreachServer::actingAs($this->user)
+        ->tool(CreateLead::class, ['company' => 'Bos again', 'niche' => 'Tandartsen', 'email' => 'info@bos.nl'])
+        ->assertOk()->assertSee('already exists');
+
+    expect($this->user->leads()->count())->toBe(1);
+});
+
+test('list_mailboxes shows room and login state', function () {
+    Mailbox::factory()->create(['address' => 'loc@snelstack.com', 'daily_limit' => 30]);
+
+    $response = OutreachServer::actingAs($this->user)->tool(ListMailboxes::class, []);
+
+    $box = collect(structured($response)['mailboxes'])->firstWhere('address', 'loc@snelstack.com');
+
+    expect($box['limit_today'])->toBe(30)->and($box['login_ok'])->toBeTrue();
 });
