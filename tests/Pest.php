@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Support\Enrichment\SiteReader;
 use App\Support\MailboxConnection;
 use App\Support\Places\PlacesPage;
 use App\Support\Places\PlacesSearch;
@@ -33,6 +34,9 @@ pest()->extend(TestCase::class)
         }));
         $this->instance(MailboxConnection::class, tap(Mockery::mock(MailboxConnection::class), function ($fake): void {
             $fake->shouldReceive('check')->andReturn(null)->byDefault();
+        }));
+        $this->instance(SiteReader::class, tap(Mockery::mock(SiteReader::class), function ($fake): void {
+            $fake->shouldReceive('fetch')->andReturn(null)->byDefault();
         }));
 
         $this->user = User::factory()->onboarded()->create();

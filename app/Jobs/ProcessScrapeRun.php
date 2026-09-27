@@ -29,7 +29,10 @@ class ProcessScrapeRun implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public readonly ScrapeRun $run) {}
+    /**
+     * @param  bool  $enrich  Read every site as well; false leaves that to enrich_lead / enrich_run.
+     */
+    public function __construct(public readonly ScrapeRun $run, public readonly bool $enrich = true) {}
 
     public function handle(PlacesSearch $places, Enricher $enricher): void
     {
@@ -60,10 +63,12 @@ class ProcessScrapeRun implements ShouldQueue
                         continue;
                     }
 
-                    $enricher->enrich($lead);
+                    if (! $this->enrich) {
+                        continue;
+                    }
 
-                    $run->increment('with_email', $lead->email === null ? 0 : 1);
-                    $run->increment('blocked', ($lead->signals['blocked'] || $lead->signals['javascript_only']) ? 1 : 0);
+                    $enricher->enrich($lead);
+                    self::count($run, $lead);
                 }
 
                 $token = $result->nextPageToken;
@@ -79,6 +84,15 @@ class ProcessScrapeRun implements ShouldQueue
         }
 
         $run->forceFill(['status' => ScrapeRunStatus::Done, 'finished_at' => now()])->save();
+    }
+
+    /**
+     * Add an enriched lead to the run's email and blocked tallies.
+     */
+    public static function count(ScrapeRun $run, Lead $lead): void
+    {
+        $run->increment('with_email', $lead->email === null ? 0 : 1);
+        $run->increment('blocked', ($lead->signals['blocked'] || $lead->signals['javascript_only']) ? 1 : 0);
     }
 
     /**

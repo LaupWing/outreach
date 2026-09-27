@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    'outreach' => [
+        // The account the local (stdio) MCP server acts as; the first account when unset.
+        'mcp_user' => env('OUTREACH_MCP_USER'),
+    ],
+
     'google' => [
         'places' => [
             'key' => env('GOOGLE_PLACES_KEY'),
