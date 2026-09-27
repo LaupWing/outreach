@@ -276,19 +276,20 @@ export function MailboxDialog({
                                         setSmtpPort(Number(event.target.value))
                                     }
                                 />
-                                {/* Hosting blocks 465; 587 with STARTTLS is what every provider offers anyway. */}
-                                <p
-                                    className={
-                                        smtpPort === 465
-                                            ? 'text-xs text-red-600 dark:text-red-400'
-                                            : 'text-xs text-muted-foreground'
-                                    }
-                                >
-                                    {smtpPort === 465
-                                        ? 'Port 465 is blocked from our server. Use 587.'
-                                        : 'Use 587 (STARTTLS). Port 465 does not work from our server.'}
-                                </p>
                             </Field>
+                            {/* Hosting blocks 465; 587 with STARTTLS is what every provider offers anyway. Spans the row. */}
+                            <p
+                                className={cn(
+                                    '-mt-2 text-xs sm:col-span-2',
+                                    smtpPort === 465
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
+                                {smtpPort === 465
+                                    ? 'Port 465 is blocked from our server. Use 587.'
+                                    : 'SMTP on 587 with STARTTLS. Port 465 does not work from our server.'}
+                            </p>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2">

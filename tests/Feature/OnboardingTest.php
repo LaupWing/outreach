@@ -58,10 +58,10 @@ test('finishing needs both steps and then opens the dashboard', function () {
         ->assertRedirect(route('dashboard'));
 });
 
-test('an onboarded account skips onboarding', function () {
+test('an onboarded account can still open onboarding, for the optional Claude step', function () {
     $this->actingAs(onboardedUser())
         ->get(route('onboarding.show'))
-        ->assertRedirect(route('dashboard'));
+        ->assertOk();
 
     $this->actingAs($this->user)->get(route('dashboard'))->assertOk();
 });

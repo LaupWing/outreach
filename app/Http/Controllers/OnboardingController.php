@@ -19,10 +19,8 @@ class OnboardingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isOnboarded()) {
-            return redirect()->route('dashboard');
-        }
-
+        // An onboarded account only lands here on purpose (the Connect Claude step is
+        // optional), so the page stays reachable; "Open the app" is what leaves it.
         return Inertia::render('onboarding/index', [
             'hasKey' => $user->google_places_key !== null,
             'mailboxes' => $user->mailboxes()->orderBy('id')->get(['id', 'address', 'status', 'daily_limit', 'connection_error', 'connection_checked_at']),
