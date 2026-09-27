@@ -37,7 +37,7 @@ test('sent mail lands on the lead with that address, threads follow-ups, and rep
 
     $result = app(SentMailImport::class)->run($mailbox, CarbonImmutable::parse('2026-08-01'));
 
-    expect($result)->toMatchArray(['imported' => 2, 'skipped' => 1, 'created' => 0, 'replies' => 1, 'bounces' => 0, 'error' => null]);
+    expect($result)->toMatchArray(['imported' => 2, 'skipped' => 1, 'skipped_known' => 0, 'skipped_no_lead' => 1, 'no_lead_addresses' => ['nobody@else.nl'], 'created' => 0, 'replies' => 1, 'bounces' => 0, 'error' => null]);
 
     $messages = $lead->messages()->reorder()->orderBy('sent_at')->get();
 
@@ -51,8 +51,8 @@ test('sent mail lands on the lead with that address, threads follow-ups, and rep
         ->and($lead->last_contact_at?->toDateString())->toBe('2026-08-14');
 });
 
-test('running the import again skips what is already there', function () {
-    Lead::factory()->create(['email' => 'info@bos.nl']);
+test('running the import again skips what is already there, and addresses match regardless of case', function () {
+    Lead::factory()->create(['email' => 'Info@Bos.nl']);
     $mailbox = Mailbox::factory()->create();
     readerWith([new SentMail(1, ['info@bos.nl'], 'Jullie site', 'Hoi.', '<one@gmail.com>', CarbonImmutable::parse('2026-08-10 10:00'))]);
 
@@ -60,7 +60,7 @@ test('running the import again skips what is already there', function () {
     $second = app(SentMailImport::class)->run($mailbox, CarbonImmutable::parse('2026-08-01'));
 
     expect($second['imported'])->toBe(0)
-        ->and($second['skipped'])->toBe(1)
+        ->and($second['skipped_known'])->toBe(1)
         ->and(Message::query()->count())->toBe(1);
 });
 
@@ -76,7 +76,7 @@ test('the tool runs the import in the background, can create leads, and reports 
     // The queue runs sync in tests, so the job has already finished.
     $status = OutreachServer::actingAs($this->user)->tool(ImportSentMail::class, ['status' => true]);
 
-    $status->assertOk()->assertSee('Import done')->assertSee('1 sent mails imported')->assertSee('1 leads created');
+    $status->assertOk()->assertSee('Import done')->assertSee('1 sent mails imported')->assertSee('skipped because they are already in a thread')->assertSee('1 leads created');
 
     $lead = $this->user->leads()->where('email', 'praktijk@mondzorgzuid.nl')->first();
 

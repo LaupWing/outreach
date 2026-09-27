@@ -45,7 +45,8 @@ class ImportSentMail extends Tool
                 return Response::text('No import has been started yet.');
             }
 
-            $totals = ['imported' => 0, 'skipped' => 0, 'created' => 0, 'replies' => 0, 'bounces' => 0];
+            $totals = ['imported' => 0, 'skipped_known' => 0, 'skipped_no_lead' => 0, 'created' => 0, 'replies' => 0, 'bounces' => 0];
+            $noLead = [];
             $errors = [];
 
             foreach ($status['mailboxes'] as $address => $result) {
@@ -53,17 +54,20 @@ class ImportSentMail extends Tool
                     $totals[$key] += $result[$key] ?? 0;
                 }
 
+                $noLead = [...$noLead, ...($result['no_lead_addresses'] ?? [])];
+
                 if (($result['error'] ?? null) !== null) {
                     $errors[] = "{$address}: {$result['error']}";
                 }
             }
 
             return Reply::make(sprintf(
-                'Import %s (%d of %d mailboxes done): %d sent mails imported, %d skipped, %d leads created; %d replies and %d bounces caught up.%s',
+                'Import %s (%d of %d mailboxes done): %d sent mails imported, %d skipped because they are already in a thread, %d skipped because no lead has that address, %d leads created; %d replies and %d bounces caught up.%s%s',
                 $status['state'], count($status['mailboxes']), $status['expected'] ?? 1,
-                $totals['imported'], $totals['skipped'], $totals['created'], $totals['replies'], $totals['bounces'],
+                $totals['imported'], $totals['skipped_known'], $totals['skipped_no_lead'], $totals['created'], $totals['replies'], $totals['bounces'],
+                $noLead === [] ? '' : ' Addresses without a lead: '.implode(', ', array_slice(array_values(array_unique($noLead)), 0, 50)).'.',
                 $errors === [] ? '' : ' Errors: '.implode('; ', $errors),
-            ), [...$status, 'totals' => $totals]);
+            ), [...$status, 'totals' => $totals, 'no_lead_addresses' => array_values(array_unique($noLead))]);
         }
 
         $mailboxes = $user->mailboxes()

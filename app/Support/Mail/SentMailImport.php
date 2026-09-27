@@ -8,6 +8,7 @@ use App\Enums\MessageStatus;
 use App\Models\Lead;
 use App\Models\Mailbox;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -25,7 +26,7 @@ class SentMailImport
      */
     public function run(Mailbox $mailbox, CarbonImmutable $since, bool $createLeads = false, ?int $nicheId = null): array
     {
-        $counts = ['imported' => 0, 'skipped' => 0, 'created' => 0, 'replies' => 0, 'bounces' => 0, 'error' => null];
+        $counts = ['imported' => 0, 'skipped' => 0, 'skipped_known' => 0, 'skipped_no_lead' => 0, 'created' => 0, 'replies' => 0, 'bounces' => 0, 'no_lead_addresses' => [], 'error' => null];
 
         try {
             $sent = $this->reader->sentMail($mailbox, $since);
@@ -40,11 +41,15 @@ class SentMailImport
         foreach ($sent as $mail) {
             if ($mail->messageId !== null && $user->messages()->where('message_id', $mail->messageId)->exists()) {
                 $counts['skipped']++;
+                $counts['skipped_known']++;
 
                 continue;
             }
 
-            $lead = $user->leads()->whereIn('email', $mail->to)->first();
+            // Addresses compared lowercased on both sides, whatever the database collation does.
+            $lead = $mail->to === [] ? null : $user->leads()
+                ->whereIn(DB::raw('lower(email)'), $mail->to)
+                ->first();
 
             // Second net: the same mail to the same lead at the same minute is already in.
             if ($lead !== null && $lead->messages()->reorder()
@@ -52,6 +57,7 @@ class SentMailImport
                 ->whereBetween('sent_at', [$mail->sentAt->subMinute(), $mail->sentAt->addMinute()])
                 ->exists()) {
                 $counts['skipped']++;
+                $counts['skipped_known']++;
 
                 continue;
             }
@@ -68,6 +74,8 @@ class SentMailImport
 
             if ($lead === null) {
                 $counts['skipped']++;
+                $counts['skipped_no_lead']++;
+                $counts['no_lead_addresses'] = array_values(array_unique([...$counts['no_lead_addresses'], ...$mail->to]));
 
                 continue;
             }
