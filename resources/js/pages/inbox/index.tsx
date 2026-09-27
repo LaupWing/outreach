@@ -12,6 +12,7 @@ import { LeadPanel, type LeadWithNotes } from '@/components/lead-panel';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { missing } from '@/lib/placeholders';
 import { index as inboxIndex } from '@/routes/inbox';
 import { index as leadsIndex } from '@/routes/leads';
 import type {
@@ -46,6 +47,8 @@ type Item = {
     lead: LeadWithNotes;
     message: Message | undefined;
     at: string;
+    /** Tags of the due step the lead has no value for; the scheduler holds the mail until they are filled. */
+    waitingFor?: string[];
 };
 
 const kinds: Record<
@@ -98,12 +101,26 @@ export default function InboxIndex() {
                 at: message?.reply?.received_at ?? lead.last_contact_at ?? '',
             };
         }),
-        ...queues.due.map((lead) => ({
-            kind: 'due' as const,
-            lead,
-            message: lastMessageOf(lead),
-            at: lead.next_action_at ?? '',
-        })),
+        ...queues.due.map((lead) => {
+            const message = lastMessageOf(lead);
+            // The step the scheduler wants to send; it holds back while a tag has no value.
+            const next = steps.find(
+                (step) =>
+                    step.offer_id === lead.offer_id &&
+                    step.step === (message?.step ?? 0) + 1,
+            );
+            const waitingFor = next
+                ? missing(`${next.subject}\n${next.body}`, lead)
+                : [];
+
+            return {
+                kind: 'due' as const,
+                lead,
+                message,
+                at: lead.next_action_at ?? '',
+                waitingFor,
+            };
+        }),
         ...queues.bounces.map((lead) => {
             const message = lastMessageOf(lead);
 
@@ -271,7 +288,9 @@ function Row({
         kind === 'reply'
             ? message?.reply?.body
             : kind === 'due'
-              ? `Step ${(message?.step ?? 0) + 1} is due`
+              ? item.waitingFor?.length
+                  ? `Step ${(message?.step ?? 0) + 1} waits for ${item.waitingFor.map((tag) => `{{${tag}}}`).join(', ')}`
+                  : `Step ${(message?.step ?? 0) + 1} is due`
               : `${lead.email ?? 'Address'} bounced`;
 
     return (

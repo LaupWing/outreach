@@ -77,7 +77,7 @@ export function FilterCombobox({
                                                 'flex size-4 items-center justify-center rounded-sm border',
                                                 checked
                                                     ? 'border-primary bg-primary text-primary-foreground'
-                                                    : 'border-border',
+                                                    : 'border-muted-foreground/40',
                                             )}
                                         >
                                             {checked && (

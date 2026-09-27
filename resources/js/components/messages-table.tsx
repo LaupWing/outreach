@@ -14,14 +14,14 @@ import { MessageStatusBadge } from '@/components/message-status-badge';
 import { cn } from '@/lib/utils';
 import type { Lead, Mailbox, Message } from '@/types';
 
-const columns: { title: string; icon: typeof Mail; className: string }[] = [
+const columns: { title: string; icon: typeof Mail; className?: string }[] = [
     { title: 'Lead', icon: Building2, className: 'w-64' },
     { title: 'Step', icon: ListOrdered, className: 'w-20' },
     { title: 'Subject', icon: Mail, className: 'w-80' },
     { title: 'Status', icon: Tag, className: 'w-28' },
     { title: 'Sent from', icon: Send, className: 'w-52' },
     { title: 'Sent', icon: Calendar, className: 'w-36' },
-    { title: 'Reply', icon: Reply, className: 'w-36' },
+    { title: 'Reply', icon: Reply },
 ];
 
 const dateTime = new Intl.DateTimeFormat('en-GB', {
@@ -92,7 +92,7 @@ export function MessagesTable({
                     </div>
                 )}
             >
-                <table className="w-full min-w-[1300px] table-fixed border-separate border-spacing-0">
+                <table className="w-full min-w-[1000px] table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr>
                             {columns.map((column) => (

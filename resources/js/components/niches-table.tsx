@@ -13,7 +13,7 @@ import { NicheStatusBadge } from '@/components/niche-status-badge';
 import { cn } from '@/lib/utils';
 import type { Niche } from '@/types';
 
-const columns: { title: string; icon: typeof Mail; className: string }[] = [
+const columns: { title: string; icon: typeof Mail; className?: string }[] = [
     { title: 'Niche', icon: Target, className: 'w-52' },
     { title: 'Status', icon: Tag, className: 'w-28' },
     { title: 'Leads', icon: Users, className: 'w-24' },
@@ -21,7 +21,7 @@ const columns: { title: string; icon: typeof Mail; className: string }[] = [
     { title: 'Replied', icon: MessageSquare, className: 'w-28' },
     { title: 'Response rate', icon: Percent, className: 'w-36' },
     { title: 'Offers', icon: Tag, className: 'w-24' },
-    { title: 'Why', icon: HelpCircle, className: 'w-96' },
+    { title: 'Why', icon: HelpCircle },
 ];
 
 /** The counts a niche row shows, derived from leads, messages and offers. */
@@ -68,7 +68,7 @@ export function NichesTable({
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[1100px] table-fixed border-separate border-spacing-0">
+                <table className="w-full min-w-[900px] table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr>
                             {columns.map((column) => (

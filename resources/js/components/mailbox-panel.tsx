@@ -417,7 +417,7 @@ export function MailboxPanel({
                                             >
                                                 {message.status}
                                             </span>
-                                            <span className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                                            <span className="w-24 shrink-0 text-right text-xs whitespace-nowrap text-muted-foreground tabular-nums">
                                                 {message.sent_at
                                                     ? dateTime.format(
                                                           new Date(

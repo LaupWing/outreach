@@ -1,12 +1,16 @@
 import { X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
 /**
  * The detail panel beside a table, like the customer card in the reference. It stays
  * mounted and slides open and closed, so the table's width eases along with it.
  */
+/** Below this width a 480px panel next to an expanded sidebar leaves the table one column. */
+const NARROW_SCREEN = 1100;
+
 export function SidePanel({
     open,
     onClose,
@@ -19,6 +23,27 @@ export function SidePanel({
     children: ReactNode;
 }) {
     const ref = useRef<HTMLDivElement>(null);
+    const sidebar = useSidebar();
+
+    // On a narrow screen the panel and the sidebar do not fit next to the table;
+    // the sidebar gives way and comes back when the panel closes.
+    const collapsedForPanel = useRef(false);
+
+    useEffect(() => {
+        if (
+            open &&
+            window.innerWidth < NARROW_SCREEN &&
+            sidebar.state === 'expanded'
+        ) {
+            collapsedForPanel.current = true;
+            sidebar.setOpen(false);
+        }
+
+        if (!open && collapsedForPanel.current) {
+            collapsedForPanel.current = false;
+            sidebar.setOpen(true);
+        }
+    }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!open || !onClose) {
