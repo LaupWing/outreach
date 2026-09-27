@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\OfferStatus;
 use App\Mcp\Account;
+use App\Mcp\Arguments;
 use App\Mcp\Offers;
 use App\Mcp\Resources\CatalogApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -28,6 +29,8 @@ class UpdateOffer extends Tool
     public function handle(Request $request): Response|ResponseFactory
     {
         $user = Account::for($request);
+
+        $request->setArguments(Arguments::decodeObjects($request->all(), ['steps', 'placeholders']));
 
         $validated = $request->validate([
             'offer_id' => ['required', 'integer'],

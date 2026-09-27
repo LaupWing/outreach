@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
+use App\Mcp\Arguments;
 use App\Mcp\MailCard;
 use App\Mcp\Resources\MailCardApp;
 use App\Models\Offer;
@@ -29,6 +30,8 @@ class PreviewMail extends Tool
     public function handle(Request $request, Outbox $outbox): Response|ResponseFactory
     {
         $user = Account::for($request);
+
+        $request->setArguments(Arguments::decodeObjects($request->all(), ['values']));
 
         $validated = $request->validate([
             'lead_id' => ['required', 'integer'],

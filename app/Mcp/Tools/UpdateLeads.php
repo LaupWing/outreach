@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\LeadStatus;
 use App\Mcp\Account;
+use App\Mcp\Arguments;
 use App\Mcp\LeadSummary;
 use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
@@ -29,6 +30,8 @@ class UpdateLeads extends Tool
     public function handle(Request $request): Response|ResponseFactory
     {
         $user = Account::for($request);
+
+        $request->setArguments(Arguments::decodeObjectsIn($request->all(), 'leads', ['facts']));
 
         $validated = $request->validate([
             'leads' => ['required', 'array', 'min:1', 'max:200'],

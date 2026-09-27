@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\MessageStatus;
 use App\Mcp\Account;
+use App\Mcp\Arguments;
 use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Sends;
 use App\Models\Offer;
@@ -28,6 +29,8 @@ class SendStep extends Tool
     public function handle(Request $request, Outbox $outbox): Response|ResponseFactory
     {
         $user = Account::for($request);
+
+        $request->setArguments(Arguments::decodeObjects($request->all(), ['values']));
 
         $validated = $request->validate([
             'lead_id' => ['required', 'integer'],

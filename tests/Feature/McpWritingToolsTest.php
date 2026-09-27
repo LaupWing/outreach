@@ -431,3 +431,14 @@ test('list_mailboxes shows room and login state', function () {
 
     expect($box['limit_today'])->toBe(30)->and($box['login_ok'])->toBeTrue();
 });
+
+test('object arguments sent as JSON strings are accepted', function () {
+    $response = OutreachServer::actingAs($this->user)->tool(CreateLeads::class, [
+        'niche' => 'Keuringsbedrijven',
+        'leads' => '[{"company":"Drost","email":"info@drost.nl","facts":"{\"first_name\":\"Tim\"}"}]',
+    ]);
+
+    $response->assertOk()->assertSee('1 leads added');
+
+    expect($this->user->leads()->where('company', 'Drost')->first()->facts)->toBe(['first_name' => 'Tim']);
+});
