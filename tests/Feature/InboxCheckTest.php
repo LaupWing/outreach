@@ -140,6 +140,20 @@ test('the command reads every mailbox and sums it up', function () {
     expect($two->refresh()->last_seen_uid)->toBe(3);
 });
 
+test('a box whose login never passed the check is not read', function () {
+    $unchecked = Mailbox::factory()->create(['connection_checked_at' => null]);
+    $broken = Mailbox::factory()->create(['connection_error' => 'IMAP: login refused']);
+
+    $this->instance(MailboxReader::class, tap(Mockery::mock(MailboxReader::class), function ($fake) use ($unchecked, $broken): void {
+        $fake->shouldReceive('newMail')->withArgs(fn (Mailbox $mailbox) => ! $mailbox->is($unchecked) && ! $mailbox->is($broken))->andReturn([]);
+    }));
+
+    $this->artisan('outreach:check-inbox')->assertSuccessful();
+
+    expect($unchecked->refresh()->inbox_checked_at)->toBeNull()
+        ->and($broken->refresh()->inbox_checked_at)->toBeNull();
+});
+
 test('the quoted mail underneath a reply is stripped', function () {
     expect(ReplyText::strip("Ja graag.\n\nOp ma 28 sep 2026 om 10:00 schreef Loc <loc@snelstack.com>:\n> Hoi,"))->toBe('Ja graag.')
         ->and(ReplyText::strip("Top\r\n\r\n-----Original Message-----\r\nFrom: Loc"))->toBe('Top')

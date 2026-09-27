@@ -37,6 +37,9 @@ class MailboxFactory extends Factory
             'sent_today' => 0,
             'sent_today_on' => null,
             'warm_up_started_at' => null,
+            // A factory box passed its check; the sender and the inbox check trust it.
+            'connection_checked_at' => now(),
+            'connection_error' => null,
         ];
     }
 

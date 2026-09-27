@@ -23,13 +23,22 @@ class CheckInboxes extends Command
     protected $description = 'Read every mailbox for replies and bounces and book them on the leads';
 
     /**
-     * Paused boxes are read too: a lead may still answer a mail sent last week.
+     * Paused boxes are read too: a lead may still answer a mail sent last week. Boxes
+     * whose login never passed the connection check are left alone; they would only
+     * fail again every ten minutes.
      */
     public function handle(InboxCheck $check): int
     {
         $totals = ['replies' => 0, 'bounces' => 0, 'skipped' => 0];
 
-        foreach (Mailbox::query()->with('user')->orderBy('id')->cursor() as $mailbox) {
+        $mailboxes = Mailbox::query()
+            ->with('user')
+            ->whereNotNull('connection_checked_at')
+            ->whereNull('connection_error')
+            ->orderBy('id')
+            ->cursor();
+
+        foreach ($mailboxes as $mailbox) {
             $result = $check->run($mailbox);
 
             if ($result['error'] !== null) {

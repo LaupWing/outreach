@@ -35,6 +35,13 @@ return [
         ],
     ],
 
+    // Local only: what `db:seed` gives the test account so it skips onboarding after migrate:fresh.
+    'seed' => [
+        'google_places_key' => env('SEED_GOOGLE_PLACES_KEY'),
+        'mailbox_address' => env('SEED_MAILBOX_ADDRESS'),
+        'mailbox_password' => env('SEED_MAILBOX_PASSWORD'),
+    ],
+
     'outreach' => [
         // The account the local (stdio) MCP server acts as; the first account when unset.
         'mcp_user' => env('OUTREACH_MCP_USER'),
