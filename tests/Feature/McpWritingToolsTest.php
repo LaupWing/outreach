@@ -9,6 +9,7 @@ use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Resources\StatsApp;
 use App\Mcp\Servers\OutreachServer;
 use App\Mcp\Tools\CheckInbox;
+use App\Mcp\Tools\CreateOffer;
 use App\Mcp\Tools\LeadContext;
 use App\Mcp\Tools\ListLeads;
 use App\Mcp\Tools\ListNiches;
@@ -20,6 +21,7 @@ use App\Mcp\Tools\SendStep;
 use App\Mcp\Tools\Stats;
 use App\Mcp\Tools\UpdateLead;
 use App\Mcp\Tools\UpdateNiche;
+use App\Mcp\Tools\UpdateOffer;
 use App\Mcp\Tools\WhoNeedsFollowUp;
 use App\Models\Lead;
 use App\Models\Mailbox;
@@ -349,4 +351,44 @@ test('every card app renders and every listing tool links back into the app', fu
         ->and(structured(OutreachServer::actingAs($this->user)->tool(ListOffers::class, []))['url'])->toEndWith('/offers')
         ->and(structured(OutreachServer::actingAs($this->user)->tool(ListNiches::class, []))['url'])->toEndWith('/niches')
         ->and(structured(OutreachServer::actingAs($this->user)->tool(WhoNeedsFollowUp::class, []))['url'])->toEndWith('/inbox');
+});
+
+test('create_offer builds the niche, the sequence and the tag explanations; update_offer changes them', function () {
+    OutreachServer::actingAs($this->user)
+        ->tool(CreateOffer::class, [
+            'name' => 'Herhaalcheck', 'niche' => 'Opleiders',
+            'steps' => [['subject' => '{{hook_subject}}', 'body' => 'Hoi {{first_name}}, {{compliment}}']],
+        ])
+        ->assertHasErrors(['Explain these custom tags in placeholders first: {{first_name}}, {{compliment}}.']);
+
+    $response = OutreachServer::actingAs($this->user)->tool(CreateOffer::class, [
+        'name' => 'Herhaalcheck', 'niche' => 'Opleiders', 'description' => 'Check of hun herhalingen kloppen.',
+        'steps' => [
+            ['subject' => '{{hook_subject}}', 'body' => 'Hoi {{first_name}}, {{compliment}}'],
+            ['subject' => 'Re: {{hook_subject}}', 'body' => 'Nog even.', 'days_after_previous' => 6],
+            ['subject' => 'Re: {{hook_subject}}', 'body' => 'Laatste keer.', 'days_after_previous' => 6],
+        ],
+        'placeholders' => ['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.'],
+    ]);
+
+    $response->assertOk()->assertSee('Created offer "Herhaalcheck" for Opleiders with 3 steps');
+
+    $offer = structured($response)['offers'][0];
+
+    expect($offer['status'])->toBe('active')
+        ->and($offer['steps'])->toHaveCount(3)
+        ->and($offer['steps'][1]['days_after_previous'])->toBe(6)
+        ->and($offer['steps'][0]['days_after_previous'])->toBe(0)
+        ->and($this->user->niches()->where('name', 'Opleiders')->exists())->toBeTrue();
+
+    $updated = OutreachServer::actingAs($this->user)->tool(UpdateOffer::class, [
+        'offer_id' => $offer['id'], 'auto_follow_up' => false,
+        'steps' => [['subject' => 'Nieuw', 'body' => 'Alleen {{company}}.']],
+    ]);
+
+    $updated->assertOk();
+
+    expect(structured($updated)['offers'][0]['steps'])->toHaveCount(1)
+        ->and(structured($updated)['offers'][0]['auto_follow_up'])->toBeFalse()
+        ->and(structured($updated)['offers'][0]['tag_explanations'])->toBe(['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.']);
 });
