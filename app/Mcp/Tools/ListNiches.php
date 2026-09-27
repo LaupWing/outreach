@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\LeadStatus;
 use App\Mcp\Account;
+use App\Mcp\Resources\CatalogApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -11,12 +12,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list_niches')]
 #[Description('The niches (kinds of business) the account works, with status (idea, testing, proven, dropped), why it was picked, what was learned, and lead counts.')]
 #[IsReadOnly]
+#[RendersApp(resource: CatalogApp::class)]
 class ListNiches extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -35,7 +38,7 @@ class ListNiches extends Tool
             ->get();
 
         return Response::make(Response::text(sprintf('%d niches.', $niches->count())))
-            ->withStructuredContent(['niches' => $niches->map(fn ($niche) => [
+            ->withStructuredContent(['url' => rtrim(config('app.url'), '/').'/niches', 'niches' => $niches->map(fn ($niche) => [
                 'id' => $niche->id,
                 'name' => $niche->name,
                 'status' => $niche->status->value,

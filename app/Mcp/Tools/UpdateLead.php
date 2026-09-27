@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\LeadStatus;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Resources\LeadCardApp;
 use App\Models\Offer;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -14,12 +15,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_lead')]
 #[Description('Change a lead: set the email address, set or merge facts (the values for {{tags}} in its offer\'s mails, e.g. {"compliment": "…"}), the hook, the offer, the status, or add a note. Only the fields given are touched. Facts merge into what is there; a fact set to an empty string is removed.')]
 #[IsIdempotent]
+#[RendersApp(resource: LeadCardApp::class)]
 class UpdateLead extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -67,7 +70,7 @@ class UpdateLead extends Tool
         }
 
         return Response::make(Response::text(sprintf('%s updated: %s.', $lead->company, $changed === [] ? 'nothing given' : implode(', ', $changed))))
-            ->withStructuredContent([...LeadSummary::from($lead), 'facts' => $lead->facts]);
+            ->withStructuredContent(['lead' => [...LeadSummary::from($lead), 'facts' => $lead->facts]]);
     }
 
     /**

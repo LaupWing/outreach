@@ -2,7 +2,11 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Resources\CatalogApp;
+use App\Mcp\Resources\LeadCardApp;
+use App\Mcp\Resources\LeadListApp;
 use App\Mcp\Resources\MailCardApp;
+use App\Mcp\Resources\StatsApp;
 use App\Mcp\Tools\CheckInbox;
 use App\Mcp\Tools\EnrichLead;
 use App\Mcp\Tools\EnrichRun;
@@ -64,6 +68,10 @@ class OutreachServer extends Server
 
     protected array $resources = [
         MailCardApp::class,
+        LeadCardApp::class,
+        LeadListApp::class,
+        StatsApp::class,
+        CatalogApp::class,
     ];
 
     protected array $prompts = [];

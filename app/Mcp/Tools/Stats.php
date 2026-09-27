@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
 use App\Mcp\Account;
+use App\Mcp\Resources\StatsApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -12,12 +13,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('stats')]
 #[Description('How the outreach is doing: per niche, per offer and per mailbox, for the last N days (default 30). Leads, mails sent, replies, customers, bounces and reply rate, plus today\'s room per mailbox.')]
 #[IsReadOnly]
+#[RendersApp(resource: StatsApp::class)]
 class Stats extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -77,6 +80,7 @@ class Stats extends Tool
             $total['customers'], $total['bounced'], $total['leads'], $total['with_email'],
         )))->withStructuredContent([
             'days' => $validated['days'] ?? 30,
+            'url' => rtrim(config('app.url'), '/').'/dashboard',
             'total' => $total,
             'niches' => $niches->all(),
             'offers' => $offers->all(),

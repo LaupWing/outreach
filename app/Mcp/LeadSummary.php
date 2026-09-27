@@ -30,6 +30,8 @@ class LeadSummary
             'signals' => $lead->signals,
             'last_contact_at' => $lead->last_contact_at?->toJSON(),
             'next_action_at' => $lead->next_action_at?->toJSON(),
+            // Where the lead's panel opens in the app.
+            'url' => rtrim(config('app.url'), '/').'/leads?lead='.$lead->id,
         ];
     }
 }

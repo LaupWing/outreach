@@ -6,6 +6,7 @@ use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Support\Mail\Placeholders;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,12 +16,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('who_needs_follow_up')]
 #[Description('Leads whose next sequence step is due and has not gone out: with the step, why it is waiting (offer has auto follow-up off, a tag is unfilled, no mailbox room) and what to do. Also lists leads that replied and are waiting for an answer.')]
 #[IsReadOnly]
+#[RendersApp(resource: LeadListApp::class)]
 class WhoNeedsFollowUp extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -67,7 +70,7 @@ class WhoNeedsFollowUp extends Tool
             ->map(fn (Lead $lead) => [...LeadSummary::from($lead), 'reason' => 'replied; answer them (send with a "Re:" subject) or set the status']);
 
         return Response::make(Response::text(sprintf('%d leads due for a follow-up, %d replied and waiting.', $due->count(), $replied->count())))
-            ->withStructuredContent(['due' => $due->values()->all(), 'replied' => $replied->values()->all()]);
+            ->withStructuredContent(['due' => $due->values()->all(), 'replied' => $replied->values()->all(), 'url' => rtrim(config('app.url'), '/').'/inbox']);
     }
 
     /**

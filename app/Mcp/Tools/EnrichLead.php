@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Resources\LeadCardApp;
 use App\Support\Enrichment\Enricher;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -12,6 +13,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
@@ -20,6 +22,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 #[Description('Read one lead\'s website for an email address and the signals a hook is built from: copyright year, mobile viewport, software (WordPress, Wix, …) and the newest dated content. Sites that block us or render with JavaScript are flagged, not dropped. Takes a few seconds.')]
 #[IsOpenWorld]
 #[IsIdempotent]
+#[RendersApp(resource: LeadCardApp::class)]
 class EnrichLead extends Tool
 {
     public function handle(Request $request, Enricher $enricher): Response|ResponseFactory
@@ -49,7 +52,7 @@ class EnrichLead extends Tool
         };
 
         return Response::make(Response::text("{$lead->company} ({$lead->website}): {$note}"))
-            ->withStructuredContent(LeadSummary::from($lead));
+            ->withStructuredContent(['lead' => LeadSummary::from($lead)]);
     }
 
     /**

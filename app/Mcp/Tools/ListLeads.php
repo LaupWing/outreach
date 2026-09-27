@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\LeadStatus;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
+use App\Mcp\Resources\LeadListApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\Rule;
@@ -13,12 +14,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list_leads')]
 #[Description('List leads, newest first, optionally narrowed to a status, niche, scrape run, or only those with an email address. Returns at most 50 at a time.')]
 #[IsReadOnly]
+#[RendersApp(resource: LeadListApp::class)]
 class ListLeads extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -44,7 +47,7 @@ class ListLeads extends Tool
             ->get();
 
         return Response::make(Response::text(sprintf('%d leads.', $leads->count())))
-            ->withStructuredContent(['leads' => $leads->map(fn ($lead) => LeadSummary::from($lead))->all()]);
+            ->withStructuredContent(['leads' => $leads->map(fn ($lead) => LeadSummary::from($lead))->all(), 'url' => rtrim(config('app.url'), '/').'/leads']);
     }
 
     /**

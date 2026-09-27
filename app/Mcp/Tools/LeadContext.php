@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Mcp\Account;
 use App\Mcp\LeadSummary;
 use App\Mcp\MessageSummary;
+use App\Mcp\Resources\LeadCardApp;
 use App\Models\SequenceStep;
 use App\Support\Enrichment\SiteReader;
 use App\Support\Mail\Placeholders;
@@ -16,12 +17,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('lead_context')]
 #[Description('Everything needed to write to one lead: the lead with its signals, hook and facts, the offer with its sequence (each step with the {{tags}} it uses and which ones the lead still lacks), the mail thread so far, the notes, and optionally the text of the lead\'s homepage. Call this before send_step or send.')]
 #[IsReadOnly]
+#[RendersApp(resource: LeadCardApp::class)]
 class LeadContext extends Tool
 {
     public function handle(Request $request, SiteReader $reader): Response|ResponseFactory

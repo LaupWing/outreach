@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
 use App\Mcp\MessageSummary;
+use App\Mcp\Resources\LeadListApp;
 use App\Support\Mail\InboxCheck;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -12,6 +13,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
@@ -20,6 +22,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 #[Description('Read every mailbox now for replies and bounces (the app also does this every ten minutes) and return the replies that are waiting for an answer: each with the lead, what was sent and what they wrote back.')]
 #[IsOpenWorld]
 #[IsIdempotent]
+#[RendersApp(resource: LeadListApp::class)]
 class CheckInbox extends Tool
 {
     public function handle(Request $request, InboxCheck $check): Response|ResponseFactory
@@ -68,6 +71,7 @@ class CheckInbox extends Tool
             'new_replies' => $totals['replies'],
             'new_bounces' => $totals['bounces'],
             'errors' => $totals['errors'],
+            'url' => rtrim(config('app.url'), '/').'/inbox',
             'waiting' => $waiting->map(fn ($message) => [
                 ...MessageSummary::from($message),
                 'company' => $message->lead?->company,

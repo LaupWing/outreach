@@ -2,10 +2,15 @@
 
 use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
+use App\Mcp\Resources\CatalogApp;
+use App\Mcp\Resources\LeadCardApp;
+use App\Mcp\Resources\LeadListApp;
 use App\Mcp\Resources\MailCardApp;
+use App\Mcp\Resources\StatsApp;
 use App\Mcp\Servers\OutreachServer;
 use App\Mcp\Tools\CheckInbox;
 use App\Mcp\Tools\LeadContext;
+use App\Mcp\Tools\ListLeads;
 use App\Mcp\Tools\ListNiches;
 use App\Mcp\Tools\ListOffers;
 use App\Mcp\Tools\PreviewMail;
@@ -329,4 +334,19 @@ test('send_step answers with a card that says when it goes', function () {
     expect($card['status'])->toBe('queued')
         ->and($card['sends_at'])->toStartWith('Sends today at')
         ->and($card['edit_url'])->toEndWith('/leads?lead='.$lead->id);
+});
+
+test('every card app renders and every listing tool links back into the app', function () {
+    foreach ([LeadCardApp::class, LeadListApp::class, StatsApp::class, CatalogApp::class] as $app) {
+        OutreachServer::actingAs($this->user)->resource($app)->assertOk()->assertSee('createMcpApp')->assertSee('Open');
+    }
+
+    $lead = Lead::factory()->create();
+
+    expect(structured(OutreachServer::actingAs($this->user)->tool(ListLeads::class, []))['url'])->toEndWith('/leads')
+        ->and(structured(OutreachServer::actingAs($this->user)->tool(LeadContext::class, ['lead_id' => $lead->id]))['lead']['url'])->toEndWith('/leads?lead='.$lead->id)
+        ->and(structured(OutreachServer::actingAs($this->user)->tool(Stats::class, []))['url'])->toEndWith('/dashboard')
+        ->and(structured(OutreachServer::actingAs($this->user)->tool(ListOffers::class, []))['url'])->toEndWith('/offers')
+        ->and(structured(OutreachServer::actingAs($this->user)->tool(ListNiches::class, []))['url'])->toEndWith('/niches')
+        ->and(structured(OutreachServer::actingAs($this->user)->tool(WhoNeedsFollowUp::class, []))['url'])->toEndWith('/inbox');
 });

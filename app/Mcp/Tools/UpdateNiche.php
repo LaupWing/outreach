@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\NicheStatus;
 use App\Mcp\Account;
+use App\Mcp\Resources\CatalogApp;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\Rule;
@@ -12,12 +13,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_niche')]
 #[Description('Create or change a niche: by id, or by name (created when new). Set the status (idea, testing, proven, dropped), why it was picked, or what was learned. Only the fields given are touched.')]
 #[IsIdempotent]
+#[RendersApp(resource: CatalogApp::class)]
 class UpdateNiche extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -51,6 +54,7 @@ class UpdateNiche extends Tool
                 'status' => $niche->status->value,
                 'why' => $niche->why,
                 'findings' => $niche->findings,
+                'url' => rtrim(config('app.url'), '/').'/niches',
             ]);
     }
 
