@@ -6,6 +6,7 @@ use App\Models\Mailbox;
 use Carbon\CarbonImmutable;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
+use Webklex\PHPIMAP\Folder;
 use Webklex\PHPIMAP\Message;
 
 /**
@@ -14,9 +15,9 @@ use Webklex\PHPIMAP\Message;
 class ImapMailboxReader implements MailboxReader
 {
     /**
-     * Folder names providers use for sent mail, most common first.
+     * Folder names providers use for sent mail when the server does not flag it, most common first.
      */
-    private const SENT_FOLDERS = ['[Gmail]/Sent Mail', '[Gmail]/Verzonden', 'Sent', 'Sent Items', 'Sent Messages', 'INBOX.Sent'];
+    private const SENT_FOLDERS = ['[Gmail]/Sent Mail', '[Gmail]/Verzonden berichten', 'Sent', 'Sent Items', 'Sent Messages', 'INBOX.Sent', 'Verzonden', 'Verzonden items'];
 
     public function newMail(Mailbox $mailbox): array
     {
@@ -79,19 +80,7 @@ class ImapMailboxReader implements MailboxReader
         $client = $this->connect($mailbox);
 
         try {
-            $folder = null;
-
-            foreach (self::SENT_FOLDERS as $name) {
-                $folder = $client->getFolderByName($name, true);
-
-                if ($folder !== null) {
-                    break;
-                }
-            }
-
-            if ($folder === null) {
-                throw new \RuntimeException('No sent folder found; looked for '.implode(', ', self::SENT_FOLDERS).'.');
-            }
+            $folder = $this->sentFolder($client);
 
             $messages = $folder->query()->leaveUnread()->whereSince($since->startOfDay())->get();
 
@@ -133,6 +122,37 @@ class ImapMailboxReader implements MailboxReader
         } finally {
             $client->disconnect();
         }
+    }
+
+    /**
+     * The sent folder, whatever language the account is in: the server marks it with
+     * the \Sent attribute (RFC 6154); only when it does not, fall back to known names.
+     */
+    private function sentFolder(Client $client): Folder
+    {
+        $listing = $client->getConnection()->folders('', '*')->data();
+
+        foreach ($listing as $name => $item) {
+            $flags = array_map('strtolower', $item['flags'] ?? []);
+
+            if (in_array('\sent', $flags, true)) {
+                $folder = $client->getFolder($name, $item['delimiter'] ?? null);
+
+                if ($folder !== null) {
+                    return $folder;
+                }
+            }
+        }
+
+        foreach (self::SENT_FOLDERS as $name) {
+            $folder = $client->getFolderByName($name, true);
+
+            if ($folder !== null) {
+                return $folder;
+            }
+        }
+
+        throw new \RuntimeException('No sent folder found; the server did not flag one and none of the usual names exist: '.implode(', ', array_keys($listing)).'.');
     }
 
     private function connect(Mailbox $mailbox): Client

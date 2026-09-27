@@ -21,7 +21,7 @@ use App\Mcp\Tools\SendDraft;
 use App\Mcp\Tools\SendMail;
 use App\Mcp\Tools\SendStep;
 use App\Mcp\Tools\Stats;
-use App\Mcp\Tools\UpdateLead;
+use App\Mcp\Tools\UpdateLeads;
 use App\Mcp\Tools\UpdateNiche;
 use App\Mcp\Tools\UpdateOffer;
 use App\Mcp\Tools\WhoNeedsFollowUp;
@@ -80,17 +80,19 @@ test('lead_context bundles the lead, its sequence with tags, the thread and the 
         ->and($context['site_text'])->toBe("Welkom\nSinds 2009 in Haarlem.");
 });
 
-test('update_lead merges facts, sets the hook and adds a note', function () {
+test('update_leads merges facts, sets the hook and adds a note, for many at once', function () {
     $lead = Lead::factory()->create(['facts' => ['first_name' => 'Marieke', 'old' => 'x']]);
+    $other = Lead::factory()->create();
 
-    $response = OutreachServer::actingAs($this->user)->tool(UpdateLead::class, [
-        'lead_id' => $lead->id,
-        'facts' => ['compliment' => 'Mooie reviews.', 'old' => ''],
-        'hook' => 'Site is niet mobiel.',
-        'note' => 'Eigenaar heet Marieke.',
-    ]);
+    $response = OutreachServer::actingAs($this->user)->tool(UpdateLeads::class, ['leads' => [
+        ['lead_id' => $lead->id, 'facts' => ['compliment' => 'Mooie reviews.', 'old' => ''], 'hook' => 'Site is niet mobiel.', 'note' => 'Eigenaar heet Marieke.'],
+        ['lead_id' => $other->id, 'status' => 'no'],
+        ['lead_id' => 999999, 'status' => 'no'],
+    ]]);
 
-    $response->assertOk()->assertSee('facts, hook, note');
+    $response->assertOk()->assertSee('2 leads updated')->assertSee('Not on this account: 999999');
+
+    expect($other->refresh()->status)->toBe(LeadStatus::No);
 
     $lead->refresh();
 

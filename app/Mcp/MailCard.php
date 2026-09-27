@@ -27,7 +27,7 @@ class MailCard
             'body' => $body,
             'missing_tags' => $missing,
             'sends_at' => null,
-            'hint' => $missing === [] ? 'Nothing is sent until you press Send.' : 'Fill the tags first (update_lead, or Edit in Snelreach).',
+            'hint' => $missing === [] ? 'Nothing is sent until you press Send.' : 'Fill the tags first (update_leads, or Edit in Snelreach).',
             'edit_url' => self::editUrl($lead),
             'send_tool' => $sendTool,
             'send_arguments' => $sendArguments,
