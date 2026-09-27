@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Account;
+use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Sends;
 use App\Support\Mail\Outbox;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -12,10 +13,12 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('send')]
 #[Description('Send a mail you wrote yourself to a lead: subject and body as they should go out, plain text. A subject starting with "Re:" continues the lead\'s existing thread. Pass step to count it as that step of the sequence (so follow-ups continue from there); without it the mail is a one-off. With draft=true it is saved as a draft instead.')]
+#[RendersApp(resource: MailCardApp::class)]
 class SendMail extends Tool
 {
     public function handle(Request $request, Outbox $outbox): Response|ResponseFactory

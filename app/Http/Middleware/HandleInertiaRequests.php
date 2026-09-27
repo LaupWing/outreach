@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ClaudeConnections;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -44,6 +45,8 @@ class HandleInertiaRequests extends Middleware
                 'hasGoogleKey' => $request->user()?->google_places_key !== null,
                 'mailboxCount' => $request->user()?->mailboxes()->count() ?? 0,
                 'sending' => $request->user()?->only(['send_timezone', 'send_from', 'send_until', 'send_weekdays_only']),
+                // The hosted MCP URL and which Claude clients are connected to it.
+                'claude' => $request->user() === null ? null : ClaudeConnections::for($request->user()),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

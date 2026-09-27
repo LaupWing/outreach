@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\ClaudeController;
 use App\Http\Controllers\Settings\GoogleController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -31,4 +32,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('settings/google', [GoogleController::class, 'update'])->name('google.update');
 
     Route::patch('settings/sending', [SendingController::class, 'update'])->name('sending.update');
+
+    Route::delete('settings/claude/{client}', [ClaudeController::class, 'destroy'])->name('claude.destroy');
 });

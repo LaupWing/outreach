@@ -4,10 +4,12 @@ import {
     Check,
     KeyRound,
     Mailbox as MailboxIcon,
+    Plug,
     Plus,
 } from 'lucide-react';
 import type { SubmitEvent } from 'react';
 import AppLogo from '@/components/app-logo';
+import { ConnectClaude } from '@/components/connect-claude';
 import InputError from '@/components/input-error';
 import { MailboxDialog } from '@/components/mailbox-dialog';
 import { MailboxStatusBadge } from '@/components/mailbox-status-badge';
@@ -35,7 +37,7 @@ type PageProps = {
  * scraper, and a mailbox to send from. Both steps stay visible so it is clear what is left.
  */
 export default function Onboarding() {
-    const { hasKey, mailboxes } = usePage<PageProps>().props;
+    const { hasKey, mailboxes, auth } = usePage<PageProps>().props;
     const form = useForm({ google_places_key: '' });
 
     const saveKey = (event: SubmitEvent<HTMLFormElement>) => {
@@ -65,11 +67,11 @@ export default function Onboarding() {
             <div className="flex w-full max-w-lg flex-col gap-4">
                 <div className="mb-2">
                     <h1 className="text-xl font-semibold tracking-tight">
-                        Two things before you start
+                        Before you start
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         The scraper needs a Google key, the sender needs a
-                        mailbox. That is all.
+                        mailbox. Connecting Claude can wait until later.
                     </p>
                 </div>
 
@@ -191,6 +193,22 @@ export default function Onboarding() {
                                 </Button>
                             }
                         />
+                    </div>
+                </Step>
+
+                {/* Optional, so it never holds the Finish button back. */}
+                <Step
+                    number={3}
+                    title="Connect Claude"
+                    done={auth.claude.connections.length > 0}
+                    icon={Plug}
+                >
+                    <div className="flex flex-col gap-3">
+                        <p className="text-sm text-muted-foreground">
+                            Optional: connect Claude Code or claude.ai now, or
+                            later from Settings.
+                        </p>
+                        <ConnectClaude compact />
                     </div>
                 </Step>
 

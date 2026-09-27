@@ -40,7 +40,7 @@ class Sends
             ]);
 
             return Response::make(Response::text("Draft {$message->id} saved for {$lead->company}; send it with send_draft or from the app."))
-                ->withStructuredContent(MessageSummary::from($message));
+                ->withStructuredContent(MailCard::message($user, $message->load(['lead', 'mailbox'])));
         }
 
         $message = $outbox->queue($lead, $mailbox, $attributes);
@@ -49,7 +49,7 @@ class Sends
         return Response::make(Response::text(sprintf(
             'Queued for %s from %s, sends %s at %s.',
             $lead->company, $mailbox->address, $sendsAt->isToday() ? 'today' : $sendsAt->format('D j M'), $sendsAt->format('H:i'),
-        )))->withStructuredContent(MessageSummary::from($message));
+        )))->withStructuredContent(MailCard::message($user, $message->load(['lead', 'mailbox'])));
     }
 
     /**

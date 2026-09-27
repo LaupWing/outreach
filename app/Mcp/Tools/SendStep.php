@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Enums\MessageStatus;
 use App\Mcp\Account;
+use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Sends;
 use App\Models\Offer;
 use App\Support\Mail\Outbox;
@@ -16,10 +17,12 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('send_step')]
 #[Description('Send a step of the lead\'s offer sequence: the app fills the {{tags}} from the lead\'s fields and facts and puts the mail in the outbox, which sends it at the next free moment inside the account\'s sending hours. Pass values for the custom tags (they are saved as facts). Refuses when a tag is still unfilled. With draft=true the mail is saved as a draft instead, to send later with send_draft.')]
+#[RendersApp(resource: MailCardApp::class)]
 class SendStep extends Tool
 {
     public function handle(Request $request, Outbox $outbox): Response|ResponseFactory

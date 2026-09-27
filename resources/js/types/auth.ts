@@ -20,4 +20,14 @@ export type Auth = {
         send_until: number;
         send_weekdays_only: boolean;
     };
+    /** The hosted MCP endpoint and the Claude clients holding a token for it. */
+    claude: {
+        url: string;
+        connections: {
+            client_id: string;
+            name: string;
+            connected_at: string | null;
+            last_used_at: string | null;
+        }[];
+    };
 };

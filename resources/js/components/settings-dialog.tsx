@@ -4,6 +4,7 @@ import {
     KeyRound,
     Mailbox as MailboxIcon,
     Palette,
+    Plug,
     ShieldCheck,
     UserRound,
 } from 'lucide-react';
@@ -11,6 +12,7 @@ import { useState, type ComponentType } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import AppearanceToggleTab from '@/components/appearance-tabs';
+import { ConnectClaude } from '@/components/connect-claude';
 import InputError from '@/components/input-error';
 import { MailboxDialog } from '@/components/mailbox-dialog';
 import PasswordInput from '@/components/password-input';
@@ -36,6 +38,7 @@ type Section =
     | 'password'
     | 'appearance'
     | 'google'
+    | 'claude'
     | 'mailboxes'
     | 'sending';
 
@@ -59,6 +62,7 @@ const sections: {
     { id: 'password', label: 'Password', icon: ShieldCheck },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'google', label: 'Google', icon: KeyRound },
+    { id: 'claude', label: 'Connect Claude', icon: Plug },
     { id: 'mailboxes', label: 'Mailboxes', icon: MailboxIcon },
     { id: 'sending', label: 'Sending', icon: Clock },
 ];
@@ -250,6 +254,18 @@ function GoogleSection() {
     );
 }
 
+function ClaudeSection() {
+    return (
+        <div className="grid gap-5">
+            <SectionHeading
+                title="Connect Claude"
+                description="Let Claude work in this account over MCP. It logs in here and you approve once."
+            />
+            <ConnectClaude />
+        </div>
+    );
+}
+
 function MailboxesSection() {
     const { auth } = usePage().props;
 
@@ -384,7 +400,7 @@ export function SettingsDialog() {
     return (
         <Dialog open={open} onOpenChange={setSettingsOpen}>
             <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-3xl">
-                <div className="grid min-h-[30rem] sm:grid-cols-[13rem_1fr]">
+                <div className="grid min-h-[30rem] sm:grid-cols-[13rem_minmax(0,1fr)]">
                     <nav className="flex flex-col gap-1 border-b border-border bg-sidebar p-3 sm:border-r sm:border-b-0">
                         <DialogTitle className="px-3 pt-2 pb-3 text-sm font-semibold">
                             Settings
@@ -420,11 +436,12 @@ export function SettingsDialog() {
                             Two-factor authentication
                         </Link>
                     </nav>
-                    <div className="p-6 sm:p-8">
+                    <div className="min-w-0 p-6 sm:p-8">
                         {section === 'profile' && <ProfileSection />}
                         {section === 'password' && <PasswordSection />}
                         {section === 'appearance' && <AppearanceSection />}
                         {section === 'google' && <GoogleSection />}
+                        {section === 'claude' && <ClaudeSection />}
                         {section === 'mailboxes' && <MailboxesSection />}
                         {section === 'sending' && <SendingSection />}
                     </div>

@@ -2,15 +2,19 @@
 
 use App\Enums\LeadStatus;
 use App\Enums\MessageStatus;
+use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Servers\OutreachServer;
 use App\Mcp\Tools\CheckInbox;
 use App\Mcp\Tools\LeadContext;
+use App\Mcp\Tools\ListNiches;
 use App\Mcp\Tools\ListOffers;
+use App\Mcp\Tools\PreviewMail;
 use App\Mcp\Tools\SendDraft;
 use App\Mcp\Tools\SendMail;
 use App\Mcp\Tools\SendStep;
 use App\Mcp\Tools\Stats;
 use App\Mcp\Tools\UpdateLead;
+use App\Mcp\Tools\UpdateNiche;
 use App\Mcp\Tools\WhoNeedsFollowUp;
 use App\Models\Lead;
 use App\Models\Mailbox;
@@ -261,4 +265,68 @@ test('tools refuse a lead of another account', function () {
     OutreachServer::actingAs($this->user)
         ->tool(LeadContext::class, ['lead_id' => $foreign->id])
         ->assertHasErrors(["No lead with id {$foreign->id} on this account."]);
+});
+
+test('niches can be listed, created by name and updated', function () {
+    $response = OutreachServer::actingAs($this->user)->tool(UpdateNiche::class, ['name' => 'Makelaars', 'why' => 'Veel verouderde sites.']);
+
+    $response->assertOk()->assertSee('Created niche "Makelaars" (idea)');
+
+    $id = structured($response)['id'];
+
+    OutreachServer::actingAs($this->user)
+        ->tool(UpdateNiche::class, ['niche_id' => $id, 'status' => 'testing', 'findings' => 'Eerste 20 gemaild.'])
+        ->assertOk()->assertSee('Updated niche "Makelaars" (testing)');
+
+    Lead::factory()->count(2)->create(['niche_id' => $id, 'email' => 'x@y.nl']);
+
+    $list = OutreachServer::actingAs($this->user)->tool(ListNiches::class, []);
+
+    $niche = collect(structured($list)['niches'])->firstWhere('id', $id);
+
+    expect($niche['status'])->toBe('testing')
+        ->and($niche['findings'])->toBe('Eerste 20 gemaild.')
+        ->and($niche['leads'])->toBe(2)
+        ->and($niche['with_email'])->toBe(2);
+});
+
+test('preview_mail shows the filled step without saving anything', function () {
+    $offer = offerWithTags();
+    Mailbox::factory()->create(['address' => 'loc@snelstack.com']);
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Tandarts Bos', 'email' => 'info@bos.nl', 'hook' => 'Site is uit 2019.', 'facts' => ['first_name' => 'Marieke']]);
+
+    $response = OutreachServer::actingAs($this->user)->tool(PreviewMail::class, ['lead_id' => $lead->id, 'values' => ['compliment' => 'Mooie site.']]);
+
+    $response->assertOk()->assertSee('Preview of step 1 for Tandarts Bos');
+
+    $card = structured($response);
+
+    expect($card['status'])->toBe('preview')
+        ->and($card['body'])->toBe("Hoi Marieke,\n\nMooie site.\n\nSite is uit 2019.")
+        ->and($card['missing_tags'])->toBe([])
+        ->and($card['mailbox'])->toBe('loc@snelstack.com')
+        ->and($card['edit_url'])->toEndWith('/leads?lead='.$lead->id)
+        ->and($card['send_tool'])->toBe('send_step')
+        ->and($card['send_arguments']['values'])->toBe(['compliment' => 'Mooie site.'])
+        ->and($lead->refresh()->facts)->toBe(['first_name' => 'Marieke'])
+        ->and(Message::query()->count())->toBe(0);
+});
+
+test('the mail card app renders as an MCP app', function () {
+    $response = OutreachServer::actingAs($this->user)->resource(MailCardApp::class);
+
+    $response->assertOk()->assertSee('createMcpApp')->assertSee('Edit in Snelreach');
+});
+
+test('send_step answers with a card that says when it goes', function () {
+    Carbon::setTestNow('2026-09-28 10:00:00');
+    $offer = offerWithTags();
+    Mailbox::factory()->create();
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['email' => 'info@bos.nl', 'hook' => 'Site is oud.', 'facts' => ['first_name' => 'M', 'compliment' => 'C']]);
+
+    $card = structured(OutreachServer::actingAs($this->user)->tool(SendStep::class, ['lead_id' => $lead->id]));
+
+    expect($card['status'])->toBe('queued')
+        ->and($card['sends_at'])->toStartWith('Sends today at')
+        ->and($card['edit_url'])->toEndWith('/leads?lead='.$lead->id);
 });
