@@ -48,12 +48,26 @@ export default function Dashboard() {
     const { leads, messages, mailboxes, niches, offers, usage } = props;
 
     const sent = messages.filter((message) => message.sent_at !== null);
-    const emailedLeadIds = new Set(sent.map((message) => message.lead_id));
-    const repliedLeadIds = new Set(
-        sent
+    // A lead counts as mailed or replied by its messages, or by its status when the
+    // mails were sent outside the app (imported or entered by hand).
+    const emailedLeadIds = new Set([
+        ...sent.map((message) => message.lead_id),
+        ...leads
+            .filter((lead) =>
+                ['emailed', 'followed_up', 'replied', 'customer'].includes(
+                    lead.status,
+                ),
+            )
+            .map((lead) => lead.id),
+    ]);
+    const repliedLeadIds = new Set([
+        ...sent
             .filter((message) => message.reply)
             .map((message) => message.lead_id),
-    );
+        ...leads
+            .filter((lead) => ['replied', 'customer'].includes(lead.status))
+            .map((lead) => lead.id),
+    ]);
 
     const emailed = emailedLeadIds.size;
     const replied = repliedLeadIds.size;
