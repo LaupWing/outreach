@@ -49,7 +49,11 @@ export function FilterCombobox({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <FilterTrigger label={label} icon={icon} active={selected.length > 0}>
+                <FilterTrigger
+                    label={label}
+                    icon={icon}
+                    active={selected.length > 0}
+                >
                     {summarize(options, selected)}
                 </FilterTrigger>
             </PopoverTrigger>
@@ -76,7 +80,9 @@ export function FilterCombobox({
                                                     : 'border-border',
                                             )}
                                         >
-                                            {checked && <Check className="size-3" />}
+                                            {checked && (
+                                                <Check className="size-3" />
+                                            )}
                                         </span>
                                         {option.label}
                                     </CommandItem>

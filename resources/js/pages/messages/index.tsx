@@ -28,7 +28,12 @@ const statusOptions: FilterOption[] = (
 const iconClassName = 'size-3.5 text-muted-foreground';
 
 export default function MessagesIndex() {
-    const { messages, counts, linked: linkedProp, mailboxes } = usePage<PageProps>().props;
+    const {
+        messages,
+        counts,
+        linked: linkedProp,
+        mailboxes,
+    } = usePage<PageProps>().props;
     const mailboxOptions: FilterOption[] = mailboxes.map((mailbox) => ({
         value: String(mailbox.id),
         label: mailbox.address,
@@ -65,7 +70,9 @@ export default function MessagesIndex() {
 
     const [selected, setSelected] = useState<MessageWithLead | null>(linked);
     // Keeps the last message while the panel slides shut.
-    const [panelMessage, setPanelMessage] = useState<MessageWithLead | null>(linked);
+    const [panelMessage, setPanelMessage] = useState<MessageWithLead | null>(
+        linked,
+    );
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
@@ -81,7 +88,10 @@ export default function MessagesIndex() {
 
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                    <div
+                        data-keeps-panel
+                        className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4"
+                    >
                         <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
                             <SlidersHorizontal className="size-4" />
                             Filters:

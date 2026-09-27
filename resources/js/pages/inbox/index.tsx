@@ -14,7 +14,14 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { index as inboxIndex } from '@/routes/inbox';
 import { index as leadsIndex } from '@/routes/leads';
-import type { Lead, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
+import type {
+    Lead,
+    Mailbox,
+    Message,
+    Niche,
+    Offer,
+    SequenceStep,
+} from '@/types';
 
 type Kind = 'reply' | 'due' | 'bounce';
 
@@ -22,7 +29,11 @@ type PageProps = {
     /** Every lead that sits in one of the queues, so the panel can show it. */
     leads: LeadWithNotes[];
     /** The server sorts the leads into the three queues against its own clock. */
-    queues: { replies: LeadWithNotes[]; due: LeadWithNotes[]; bounces: LeadWithNotes[] };
+    queues: {
+        replies: LeadWithNotes[];
+        due: LeadWithNotes[];
+        bounces: LeadWithNotes[];
+    };
     messages: Message[];
     mailboxes: Mailbox[];
     niches: Niche[];
@@ -69,7 +80,8 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
 });
 
 export default function InboxIndex() {
-    const { leads, queues, messages, mailboxes, niches, offers, steps } = usePage<PageProps>().props;
+    const { leads, queues, messages, mailboxes, niches, offers, steps } =
+        usePage<PageProps>().props;
 
     const lastMessageOf = (lead: Lead) =>
         messages.filter((message) => message.lead_id === lead.id).at(-1);
@@ -112,7 +124,9 @@ export default function InboxIndex() {
     // After a save the props come back fresh; the panel shows the new copy of its lead.
     useEffect(() => {
         setPanelLead((current) =>
-            current ? (leads.find((lead) => lead.id === current.id) ?? current) : current,
+            current
+                ? (leads.find((lead) => lead.id === current.id) ?? current)
+                : current,
         );
     }, [leads]);
 
@@ -133,58 +147,83 @@ export default function InboxIndex() {
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                     {/* Counts double as the filter, like the pipeline in the sidebar of a CRM. Nothing waiting: no bar either. */}
                     {items.length > 0 && (
-                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-4">
-                        <Chip active={kind === null} onClick={() => setKind(null)}>
-                            All ({items.length})
-                        </Chip>
-                        {(Object.keys(kinds) as Kind[]).map((key) => (
+                        <div
+                            data-keeps-panel
+                            className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-4"
+                        >
                             <Chip
-                                key={key}
-                                active={kind === key}
-                                onClick={() => setKind(key)}
+                                active={kind === null}
+                                onClick={() => setKind(null)}
                             >
-                                {kinds[key].label} (
-                                {items.filter((item) => item.kind === key).length})
+                                All ({items.length})
                             </Chip>
-                        ))}
-                    </div>
+                            {(Object.keys(kinds) as Kind[]).map((key) => (
+                                <Chip
+                                    key={key}
+                                    active={kind === key}
+                                    onClick={() => setKind(key)}
+                                >
+                                    {kinds[key].label} (
+                                    {
+                                        items.filter(
+                                            (item) => item.kind === key,
+                                        ).length
+                                    }
+                                    )
+                                </Chip>
+                            ))}
+                        </div>
                     )}
 
                     <div className="min-h-0 flex-1 overflow-auto">
                         {items.length === 0 ? (
                             <Done />
-                        ) : shown.map((key) => {
-                            const group = items
-                                .filter((item) => item.kind === key)
-                                .sort((a, b) => b.at.localeCompare(a.at));
-                            const meta = kinds[key];
+                        ) : (
+                            shown.map((key) => {
+                                const group = items
+                                    .filter((item) => item.kind === key)
+                                    .sort((a, b) => b.at.localeCompare(a.at));
+                                const meta = kinds[key];
 
-                            return (
-                                <section key={key}>
-                                    <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-border bg-background px-4 text-xs text-muted-foreground uppercase">
-                                        <meta.icon className={cn('size-3.5', meta.className)} />
-                                        {meta.label}
-                                        <span className="tabular-nums">{group.length}</span>
-                                    </h2>
-                                    {group.length === 0 ? (
-                                        <p className="border-b border-border px-4 py-3 text-sm text-muted-foreground/60">
-                                            {meta.empty}
-                                        </p>
-                                    ) : (
-                                        <ul data-keeps-panel>
-                                            {group.map((item) => (
-                                                <Row
-                                                    key={`${key}-${item.lead.id}`}
-                                                    item={item}
-                                                    selected={item.lead.id === selectedId}
-                                                    onSelect={() => select(item.lead)}
-                                                />
-                                            ))}
-                                        </ul>
-                                    )}
-                                </section>
-                            );
-                        })}
+                                return (
+                                    <section key={key}>
+                                        <h2 className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-border bg-background px-4 text-xs text-muted-foreground uppercase">
+                                            <meta.icon
+                                                className={cn(
+                                                    'size-3.5',
+                                                    meta.className,
+                                                )}
+                                            />
+                                            {meta.label}
+                                            <span className="tabular-nums">
+                                                {group.length}
+                                            </span>
+                                        </h2>
+                                        {group.length === 0 ? (
+                                            <p className="border-b border-border px-4 py-3 text-sm text-muted-foreground/60">
+                                                {meta.empty}
+                                            </p>
+                                        ) : (
+                                            <ul data-keeps-panel>
+                                                {group.map((item) => (
+                                                    <Row
+                                                        key={`${key}-${item.lead.id}`}
+                                                        item={item}
+                                                        selected={
+                                                            item.lead.id ===
+                                                            selectedId
+                                                        }
+                                                        onSelect={() =>
+                                                            select(item.lead)
+                                                        }
+                                                    />
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </section>
+                                );
+                            })
+                        )}
                     </div>
 
                     <div className="flex h-14 shrink-0 items-center gap-6 border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground tabular-nums">
@@ -194,11 +233,17 @@ export default function InboxIndex() {
 
                 <LeadPanel
                     lead={panelLead}
-                    niche={niches.find((niche) => niche.id === panelLead?.niche_id)}
-                    offer={offers.find((offer) => offer.id === panelLead?.offer_id)}
+                    niche={niches.find(
+                        (niche) => niche.id === panelLead?.niche_id,
+                    )}
+                    offer={offers.find(
+                        (offer) => offer.id === panelLead?.offer_id,
+                    )}
                     niches={niches}
                     offers={offers}
-                    messages={messages.filter((message) => message.lead_id === panelLead?.id)}
+                    messages={messages.filter(
+                        (message) => message.lead_id === panelLead?.id,
+                    )}
                     mailboxes={mailboxes}
                     steps={steps}
                     open={selectedId !== null}
@@ -240,8 +285,13 @@ function Row({
                 <CompanyAvatar name={lead.company} className="size-8 text-xs" />
                 <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
-                        <span className="truncate font-medium">{lead.company}</span>
-                        <LeadStatusBadge status={lead.status} className="shrink-0" />
+                        <span className="truncate font-medium">
+                            {lead.company}
+                        </span>
+                        <LeadStatusBadge
+                            status={lead.status}
+                            className="shrink-0"
+                        />
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
                         {summary}

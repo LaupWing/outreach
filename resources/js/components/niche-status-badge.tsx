@@ -12,11 +12,13 @@ export const nicheStatuses: Record<
     },
     testing: {
         label: 'Testing',
-        className: 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400',
+        className:
+            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400',
     },
     proven: {
         label: 'Proven',
-        className: 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-400',
+        className:
+            'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-400',
     },
     dropped: {
         label: 'Dropped',

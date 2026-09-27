@@ -46,10 +46,13 @@ export default function OffersIndex() {
     // Search deep-links here with ?offer=ID.
     const { url } = usePage();
     const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('offer');
-    const linked = allOffers.find((item) => String(item.id) === linkedId) ?? null;
+    const linked =
+        allOffers.find((item) => String(item.id) === linkedId) ?? null;
 
     // Ids, not objects: the rows come from props and change under the panel after every save.
-    const [selectedId, setSelectedId] = useState<number | null>(linked?.id ?? null);
+    const [selectedId, setSelectedId] = useState<number | null>(
+        linked?.id ?? null,
+    );
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
@@ -76,7 +79,9 @@ export default function OffersIndex() {
 
     const counts: Record<number, OfferCounts> = Object.fromEntries(
         allOffers.map((offer) => {
-            const offerLeads = leads.filter((lead) => lead.offer_id === offer.id);
+            const offerLeads = leads.filter(
+                (lead) => lead.offer_id === offer.id,
+            );
 
             return [
                 offer.id,
@@ -84,10 +89,12 @@ export default function OffersIndex() {
                     steps: steps.filter((step) => step.offer_id === offer.id)
                         .length,
                     leads: offerLeads.length,
-                    emailed: offerLeads.filter((lead) => emailedLeadIds.has(lead.id))
-                        .length,
-                    replied: offerLeads.filter((lead) => lead.status === 'replied')
-                        .length,
+                    emailed: offerLeads.filter((lead) =>
+                        emailedLeadIds.has(lead.id),
+                    ).length,
+                    replied: offerLeads.filter(
+                        (lead) => lead.status === 'replied',
+                    ).length,
                 },
             ];
         }),
@@ -105,7 +112,10 @@ export default function OffersIndex() {
 
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                    <div
+                        data-keeps-panel
+                        className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4"
+                    >
                         <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
                             <SlidersHorizontal className="size-4" />
                             Filters:
@@ -139,10 +149,16 @@ export default function OffersIndex() {
                 </div>
                 <OfferPanel
                     offer={panelOffer}
-                    niche={allNiches.find((niche) => niche.id === panelOffer?.niche_id)}
+                    niche={allNiches.find(
+                        (niche) => niche.id === panelOffer?.niche_id,
+                    )}
                     niches={allNiches}
-                    steps={steps.filter((step) => step.offer_id === panelOffer?.id)}
-                    leads={leads.filter((lead) => lead.offer_id === panelOffer?.id)}
+                    steps={steps.filter(
+                        (step) => step.offer_id === panelOffer?.id,
+                    )}
+                    leads={leads.filter(
+                        (lead) => lead.offer_id === panelOffer?.id,
+                    )}
                     emailed={panelOffer ? counts[panelOffer.id].emailed : 0}
                     open={selectedId !== null && panelOffer !== null}
                     onClose={() => setSelectedId(null)}

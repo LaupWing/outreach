@@ -62,7 +62,9 @@ export function AddNoteDialog({
                     <div className="grid gap-1.5">
                         <textarea
                             value={form.data.body}
-                            onChange={(event) => form.setData('body', event.target.value)}
+                            onChange={(event) =>
+                                form.setData('body', event.target.value)
+                            }
                             placeholder="Belde: de praktijkmanager beslist, terug in oktober."
                             aria-label="Note"
                             className={textareaClassName}
@@ -83,7 +85,9 @@ export function AddNoteDialog({
                         <Button
                             key="submit"
                             type="submit"
-                            disabled={form.data.body.trim() === '' || form.processing}
+                            disabled={
+                                form.data.body.trim() === '' || form.processing
+                            }
                         >
                             <StickyNote />
                             Add note

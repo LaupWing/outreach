@@ -6,6 +6,7 @@ import {
     Database,
     FileText,
     ExternalLink,
+    Braces,
     Trash2,
     Globe,
     Mail,
@@ -25,6 +26,7 @@ import { ComposeEmailDialog } from '@/components/compose-email-dialog';
 import { AddNoteDialog } from '@/components/add-note-dialog';
 import { LeadActivity, type LeadNote } from '@/components/lead-activity';
 import { LeadDialog } from '@/components/lead-dialog';
+import { LeadFactsDialog } from '@/components/lead-facts-dialog';
 import { LeadMessages } from '@/components/lead-messages';
 import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
 import {
@@ -42,9 +44,18 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { tagsIn } from '@/lib/placeholders';
 import { cn } from '@/lib/utils';
 import { destroy as destroyLead, update as updateLead } from '@/routes/leads';
-import type { Lead, LeadStatus, Mailbox, Message, Niche, Offer, SequenceStep } from '@/types';
+import type {
+    Lead,
+    LeadStatus,
+    Mailbox,
+    Message,
+    Niche,
+    Offer,
+    SequenceStep,
+} from '@/types';
 
 /** A lead as the leads and inbox pages receive it: with its notes eager-loaded. */
 export type LeadWithNotes = Lead & { notes?: LeadNote[] };
@@ -125,17 +136,26 @@ export function LeadPanel({
     const offerId = lead?.offer_id ?? null;
     const status = lead?.status ?? 'new';
     const notes = lead?.notes ?? [];
-    const nicheOffers = offers.filter((item) => item.niche_id === lead?.niche_id);
+    const nicheOffers = offers.filter(
+        (item) => item.niche_id === lead?.niche_id,
+    );
     // The pages that pass no `offers` list still pass the matched `offer`.
     const currentOffer =
-        offers.length > 0
-            ? offers.find((item) => item.id === offerId)
-            : offer;
+        offers.length > 0 ? offers.find((item) => item.id === offerId) : offer;
+    // The lead's own sequence; its tags decide which facts the dialog asks for.
+    const leadSteps = steps.filter((step) => step.offer_id === offerId);
+    const sequenceTags = tagsIn(
+        leadSteps.map((step) => `${step.subject}\n${step.body}`).join('\n'),
+    );
 
     // The header dropdowns save straight away; the lead comes back fresh with the page props.
-    const patch = (data: { status: LeadStatus } | { offer_id: number | null }) => {
+    const patch = (
+        data: { status: LeadStatus } | { offer_id: number | null },
+    ) => {
         if (lead) {
-            router.patch(updateLead.url(lead.id), data, { preserveScroll: true });
+            router.patch(updateLead.url(lead.id), data, {
+                preserveScroll: true,
+            });
         }
     };
 
@@ -203,9 +223,18 @@ export function LeadPanel({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start">
                                         <DropdownMenuRadioGroup
-                                            value={offerId === null ? '' : String(offerId)}
+                                            value={
+                                                offerId === null
+                                                    ? ''
+                                                    : String(offerId)
+                                            }
                                             onValueChange={(value) =>
-                                                patch({ offer_id: value === '' ? null : Number(value) })
+                                                patch({
+                                                    offer_id:
+                                                        value === ''
+                                                            ? null
+                                                            : Number(value),
+                                                })
                                             }
                                         >
                                             {nicheOffers.map((item) => (
@@ -239,11 +268,24 @@ export function LeadPanel({
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuRadioGroup
                                         value={status}
-                                        onValueChange={(value) => patch({ status: value as LeadStatus })}
+                                        onValueChange={(value) =>
+                                            patch({
+                                                status: value as LeadStatus,
+                                            })
+                                        }
                                     >
-                                        {(Object.keys(leadStatuses) as LeadStatus[]).map((item) => (
-                                            <DropdownMenuRadioItem key={item} value={item}>
-                                                <LeadStatusBadge status={item} />
+                                        {(
+                                            Object.keys(
+                                                leadStatuses,
+                                            ) as LeadStatus[]
+                                        ).map((item) => (
+                                            <DropdownMenuRadioItem
+                                                key={item}
+                                                value={item}
+                                            >
+                                                <LeadStatusBadge
+                                                    status={item}
+                                                />
                                             </DropdownMenuRadioItem>
                                         ))}
                                     </DropdownMenuRadioGroup>
@@ -255,11 +297,15 @@ export function LeadPanel({
                             <ComposeEmailDialog
                                 lead={lead}
                                 offer={currentOffer}
-                                steps={steps.filter((step) => step.offer_id === offerId)}
+                                steps={leadSteps}
                                 messages={messages}
                                 mailboxes={mailboxes}
                                 trigger={
-                                    <Button variant="outline" size="sm" disabled={!lead.email}>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!lead.email}
+                                    >
                                         <Mail />
                                         Email
                                     </Button>
@@ -290,7 +336,11 @@ export function LeadPanel({
                                 size="sm"
                                 onClick={remove}
                                 disabled={deleting}
-                                aria-label={confirmingDelete ? 'Click again to delete this lead' : 'Delete this lead'}
+                                aria-label={
+                                    confirmingDelete
+                                        ? 'Click again to delete this lead'
+                                        : 'Delete this lead'
+                                }
                                 className={cn(
                                     'ml-auto text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400',
                                     confirmingDelete && 'bg-red-500/10',
@@ -305,7 +355,10 @@ export function LeadPanel({
                     <SidePanelTabs
                         tabs={tabs.map((item) => ({
                             ...item,
-                            badge: item.key === 'messages' ? messages.length : undefined,
+                            badge:
+                                item.key === 'messages'
+                                    ? messages.length
+                                    : undefined,
                         }))}
                         value={tab}
                         onChange={setTab}
@@ -315,7 +368,11 @@ export function LeadPanel({
                         {tab === 'details' && (
                             <dl className="flex flex-col py-2">
                                 <SidePanelRow icon={Mail} label="Email">
-                                    {lead.email ?? <SidePanelEmpty>No email found</SidePanelEmpty>}
+                                    {lead.email ?? (
+                                        <SidePanelEmpty>
+                                            No email found
+                                        </SidePanelEmpty>
+                                    )}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Phone} label="Phone">
                                     {lead.phone ?? <SidePanelEmpty />}
@@ -342,7 +399,11 @@ export function LeadPanel({
                                     {niche?.name ?? <SidePanelEmpty />}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Tag} label="Offer">
-                                    {currentOffer?.name ?? <SidePanelEmpty>No offer yet</SidePanelEmpty>}
+                                    {currentOffer?.name ?? (
+                                        <SidePanelEmpty>
+                                            No offer yet
+                                        </SidePanelEmpty>
+                                    )}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Database} label="Source">
                                     {sourceLabels[lead.source]}
@@ -352,18 +413,39 @@ export function LeadPanel({
                                         (mailbox) =>
                                             mailbox.id ===
                                             messages.at(-1)?.mailbox_id,
-                                    )?.address ?? <SidePanelEmpty>Not mailed yet</SidePanelEmpty>}
+                                    )?.address ?? (
+                                        <SidePanelEmpty>
+                                            Not mailed yet
+                                        </SidePanelEmpty>
+                                    )}
                                 </SidePanelRow>
-                                <SidePanelRow icon={Calendar} label="Last contact">
+                                <SidePanelRow
+                                    icon={Calendar}
+                                    label="Last contact"
+                                >
                                     {formatDate(lead.last_contact_at) ?? (
-                                        <SidePanelEmpty>Not contacted</SidePanelEmpty>
+                                        <SidePanelEmpty>
+                                            Not contacted
+                                        </SidePanelEmpty>
                                     )}
                                 </SidePanelRow>
-                                <SidePanelRow icon={Calendar} label="Next action">
+                                <SidePanelRow
+                                    icon={Calendar}
+                                    label="Next action"
+                                >
                                     {formatDate(lead.next_action_at) ?? (
-                                        <SidePanelEmpty>Nothing planned</SidePanelEmpty>
+                                        <SidePanelEmpty>
+                                            Nothing planned
+                                        </SidePanelEmpty>
                                     )}
                                 </SidePanelRow>
+
+                                <Facts
+                                    key={lead.id}
+                                    lead={lead}
+                                    offer={currentOffer}
+                                    tags={sequenceTags}
+                                />
                             </dl>
                         )}
 
@@ -377,12 +459,72 @@ export function LeadPanel({
                         )}
 
                         {tab === 'activity' && (
-                            <LeadActivity lead={lead} messages={messages} notes={notes} />
+                            <LeadActivity
+                                lead={lead}
+                                messages={messages}
+                                notes={notes}
+                            />
                         )}
                     </div>
                 </>
             )}
         </SidePanel>
+    );
+}
+
+/** The values behind the sequence's {{tags}} for this lead, with the button to edit them. */
+function Facts({
+    lead,
+    offer,
+    tags,
+}: {
+    lead: Lead;
+    offer: Offer | undefined;
+    tags: string[];
+}) {
+    const facts = Object.entries(lead.facts ?? {});
+
+    return (
+        <div className="mt-2 flex flex-col border-t border-border pt-2">
+            <div className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                    <Braces className="size-4 shrink-0" />
+                    Facts
+                </span>
+                <LeadFactsDialog
+                    lead={lead}
+                    offer={offer}
+                    tags={tags}
+                    trigger={
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="ml-auto h-7"
+                        >
+                            <Pencil />
+                            Edit facts
+                        </Button>
+                    }
+                />
+            </div>
+            {facts.length === 0 ? (
+                <p className="px-5 py-1 text-sm text-muted-foreground/60">
+                    No facts yet.
+                </p>
+            ) : (
+                facts.map(([tag, value]) => (
+                    <div
+                        key={tag}
+                        className="flex items-center gap-3 px-5 py-2.5 text-sm"
+                    >
+                        <dt className="w-32 shrink-0 truncate font-mono text-xs text-muted-foreground">
+                            {`{{${tag}}}`}
+                        </dt>
+                        <dd className="min-w-0 truncate">{value}</dd>
+                    </div>
+                ))
+            )}
+        </div>
     );
 }
 
@@ -401,7 +543,9 @@ function Signals({ lead }: { lead: Lead }) {
                     Hook
                 </div>
                 <p className="text-sm">
-                    {lead.hook ?? <SidePanelEmpty>No hook written yet</SidePanelEmpty>}
+                    {lead.hook ?? (
+                        <SidePanelEmpty>No hook written yet</SidePanelEmpty>
+                    )}
                 </p>
             </div>
 
@@ -423,7 +567,9 @@ function Signals({ lead }: { lead: Lead }) {
                     ) : signals.viewport ? (
                         'Yes'
                     ) : (
-                        <span className="text-amber-600 dark:text-amber-400">Missing</span>
+                        <span className="text-amber-600 dark:text-amber-400">
+                            Missing
+                        </span>
                     )}
                 </SidePanelRow>
                 <SidePanelRow icon={Database} label="Software">
@@ -434,7 +580,9 @@ function Signals({ lead }: { lead: Lead }) {
                     )}
                 </SidePanelRow>
                 <SidePanelRow icon={FileText} label="Last news">
-                    {formatDate(signals.last_news_at) ?? <SidePanelEmpty>No news found</SidePanelEmpty>}
+                    {formatDate(signals.last_news_at) ?? (
+                        <SidePanelEmpty>No news found</SidePanelEmpty>
+                    )}
                 </SidePanelRow>
             </dl>
         </div>
@@ -442,7 +590,5 @@ function Signals({ lead }: { lead: Lead }) {
 }
 
 function Placeholder({ children }: { children: ReactNode }) {
-    return (
-        <p className="p-5 text-sm text-muted-foreground">{children}</p>
-    );
+    return <p className="p-5 text-sm text-muted-foreground">{children}</p>;
 }

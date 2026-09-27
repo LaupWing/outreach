@@ -22,7 +22,7 @@ test('the dashboard shows the numbers home is built from', function () {
             ->component('dashboard')
             ->has('leads', 12)
             ->has('messages', 10)
-            ->has('mailboxes', 4)
+            ->has('mailboxes', 1)
             ->where('due', 1)
             ->where('usage.free_limit', 1000)
         );
@@ -41,7 +41,7 @@ test('the messages page lists every mail newest first', function () {
             ->where('messages.data.0.lead.company', 'Tandarts Bos & Partners')
             ->where('counts.total', 10)
             ->where('linked', null)
-            ->has('mailboxes', 4)
+            ->has('mailboxes', 1)
         );
 });
 

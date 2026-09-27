@@ -31,7 +31,13 @@ import { index as mailboxesIndex } from '@/routes/mailboxes';
 import { edit as editSecurity } from '@/routes/security';
 import { update as updateSending } from '@/routes/sending';
 
-type Section = 'profile' | 'password' | 'appearance' | 'google' | 'mailboxes' | 'sending';
+type Section =
+    | 'profile'
+    | 'password'
+    | 'appearance'
+    | 'google'
+    | 'mailboxes'
+    | 'sending';
 
 /** Enough for a Dutch agency and its clients; the field is free text for anything else. */
 const timezones = [
@@ -44,7 +50,11 @@ const timezones = [
     'UTC',
 ];
 
-const sections: { id: Section; label: string; icon: ComponentType<{ className?: string }> }[] = [
+const sections: {
+    id: Section;
+    label: string;
+    icon: ComponentType<{ className?: string }>;
+}[] = [
     { id: 'profile', label: 'Profile', icon: UserRound },
     { id: 'password', label: 'Password', icon: ShieldCheck },
     { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -53,7 +63,13 @@ const sections: { id: Section; label: string; icon: ComponentType<{ className?: 
     { id: 'sending', label: 'Sending', icon: Clock },
 ];
 
-function SectionHeading({ title, description }: { title: string; description: string }) {
+function SectionHeading({
+    title,
+    description,
+}: {
+    title: string;
+    description: string;
+}) {
     return (
         <div className="grid gap-1">
             <h3 className="text-base font-semibold tracking-tight">{title}</h3>
@@ -73,18 +89,38 @@ function ProfileSection() {
         >
             {({ processing, errors }) => (
                 <>
-                    <SectionHeading title="Profile" description="Your name and the address you sign in with." />
+                    <SectionHeading
+                        title="Profile"
+                        description="Your name and the address you sign in with."
+                    />
                     <div className="grid gap-2">
                         <Label htmlFor="settings-name">Name</Label>
-                        <Input id="settings-name" name="name" defaultValue={auth.user.name} required autoComplete="name" />
+                        <Input
+                            id="settings-name"
+                            name="name"
+                            defaultValue={auth.user.name}
+                            required
+                            autoComplete="name"
+                        />
                         <InputError message={errors.name} />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="settings-email">Email address</Label>
-                        <Input id="settings-email" name="email" type="email" defaultValue={auth.user.email} required autoComplete="username" />
+                        <Input
+                            id="settings-email"
+                            name="email"
+                            type="email"
+                            defaultValue={auth.user.email}
+                            required
+                            autoComplete="username"
+                        />
                         <InputError message={errors.email} />
                     </div>
-                    <Button size="sm" className="justify-self-start" disabled={processing}>
+                    <Button
+                        size="sm"
+                        className="justify-self-start"
+                        disabled={processing}
+                    >
                         Save
                     </Button>
                 </>
@@ -98,29 +134,56 @@ function PasswordSection() {
         <Form
             {...SecurityController.update.form()}
             options={{ preserveScroll: true, preserveState: true }}
-            resetOnError={['password', 'password_confirmation', 'current_password']}
+            resetOnError={[
+                'password',
+                'password_confirmation',
+                'current_password',
+            ]}
             resetOnSuccess
             className="grid gap-5"
         >
             {({ processing, errors }) => (
                 <>
-                    <SectionHeading title="Password" description="A long, unique one keeps the account safe." />
+                    <SectionHeading
+                        title="Password"
+                        description="A long, unique one keeps the account safe."
+                    />
                     <div className="grid gap-2">
-                        <Label htmlFor="settings-current-password">Current password</Label>
-                        <PasswordInput id="settings-current-password" name="current_password" autoComplete="current-password" />
+                        <Label htmlFor="settings-current-password">
+                            Current password
+                        </Label>
+                        <PasswordInput
+                            id="settings-current-password"
+                            name="current_password"
+                            autoComplete="current-password"
+                        />
                         <InputError message={errors.current_password} />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="settings-password">New password</Label>
-                        <PasswordInput id="settings-password" name="password" autoComplete="new-password" />
+                        <PasswordInput
+                            id="settings-password"
+                            name="password"
+                            autoComplete="new-password"
+                        />
                         <InputError message={errors.password} />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="settings-password-confirmation">Repeat the new password</Label>
-                        <PasswordInput id="settings-password-confirmation" name="password_confirmation" autoComplete="new-password" />
+                        <Label htmlFor="settings-password-confirmation">
+                            Repeat the new password
+                        </Label>
+                        <PasswordInput
+                            id="settings-password-confirmation"
+                            name="password_confirmation"
+                            autoComplete="new-password"
+                        />
                         <InputError message={errors.password_confirmation} />
                     </div>
-                    <Button size="sm" className="justify-self-start" disabled={processing}>
+                    <Button
+                        size="sm"
+                        className="justify-self-start"
+                        disabled={processing}
+                    >
                         Change password
                     </Button>
                 </>
@@ -132,7 +195,10 @@ function PasswordSection() {
 function AppearanceSection() {
     return (
         <div className="grid gap-5">
-            <SectionHeading title="Appearance" description="Dark is the default; light and system follow your Mac." />
+            <SectionHeading
+                title="Appearance"
+                description="Dark is the default; light and system follow your Mac."
+            />
             <AppearanceToggleTab />
         </div>
     );
@@ -142,7 +208,12 @@ function GoogleSection() {
     const { auth } = usePage().props;
 
     return (
-        <Form {...updateGoogle.form()} options={{ preserveScroll: true, preserveState: true }} resetOnSuccess className="grid gap-5">
+        <Form
+            {...updateGoogle.form()}
+            options={{ preserveScroll: true, preserveState: true }}
+            resetOnSuccess
+            className="grid gap-5"
+        >
             {({ processing, errors }) => (
                 <>
                     <SectionHeading
@@ -150,17 +221,27 @@ function GoogleSection() {
                         description="The key the scraper searches with. Checked against Google before it is saved; stored encrypted. The first 1,000 searches a month are free."
                     />
                     <div className="grid gap-2">
-                        <Label htmlFor="settings-places-key">Places API key</Label>
+                        <Label htmlFor="settings-places-key">
+                            Places API key
+                        </Label>
                         <Input
                             id="settings-places-key"
                             name="google_places_key"
                             className="font-mono text-xs"
-                            placeholder={auth.hasGoogleKey ? 'A key is set; paste a new one to replace it' : 'AIza…'}
+                            placeholder={
+                                auth.hasGoogleKey
+                                    ? 'A key is set; paste a new one to replace it'
+                                    : 'AIza…'
+                            }
                             autoComplete="off"
                         />
                         <InputError message={errors.google_places_key} />
                     </div>
-                    <Button size="sm" className="justify-self-start" disabled={processing}>
+                    <Button
+                        size="sm"
+                        className="justify-self-start"
+                        disabled={processing}
+                    >
                         Save
                     </Button>
                 </>
@@ -193,7 +274,11 @@ function MailboxesSection() {
                     }
                 />
                 <Button size="sm" variant="outline" asChild>
-                    <Link href={mailboxesIndex()} onClick={() => setSettingsOpen(false)} prefetch>
+                    <Link
+                        href={mailboxesIndex()}
+                        onClick={() => setSettingsOpen(false)}
+                        prefetch
+                    >
                         Manage mailboxes
                     </Link>
                 </Button>
@@ -204,11 +289,16 @@ function MailboxesSection() {
 
 function SendingSection() {
     const { auth } = usePage().props;
-    const { send_timezone, send_from, send_until, send_weekdays_only } = auth.sending;
+    const { send_timezone, send_from, send_until, send_weekdays_only } =
+        auth.sending;
     const [weekdaysOnly, setWeekdaysOnly] = useState(send_weekdays_only);
 
     return (
-        <Form {...updateSending.form()} options={{ preserveScroll: true, preserveState: true }} className="grid gap-5">
+        <Form
+            {...updateSending.form()}
+            options={{ preserveScroll: true, preserveState: true }}
+            className="grid gap-5"
+        >
             {({ processing, errors }) => (
                 <>
                     <SectionHeading
@@ -234,26 +324,50 @@ function SendingSection() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="settings-send-from">From</Label>
-                            <Input id="settings-send-from" name="send_from" type="number" min={0} max={23} defaultValue={send_from} />
+                            <Input
+                                id="settings-send-from"
+                                name="send_from"
+                                type="number"
+                                min={0}
+                                max={23}
+                                defaultValue={send_from}
+                            />
                             <InputError message={errors.send_from} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="settings-send-until">Until</Label>
-                            <Input id="settings-send-until" name="send_until" type="number" min={1} max={24} defaultValue={send_until} />
+                            <Input
+                                id="settings-send-until"
+                                name="send_until"
+                                type="number"
+                                min={1}
+                                max={24}
+                                defaultValue={send_until}
+                            />
                             <InputError message={errors.send_until} />
                         </div>
                     </div>
                     <label className="flex items-center gap-2 text-sm">
                         {/* The checkbox is not a native input; the hidden field carries the value. */}
-                        <input type="hidden" name="send_weekdays_only" value={weekdaysOnly ? '1' : '0'} />
+                        <input
+                            type="hidden"
+                            name="send_weekdays_only"
+                            value={weekdaysOnly ? '1' : '0'}
+                        />
                         <Checkbox
                             checked={weekdaysOnly}
-                            onCheckedChange={(checked) => setWeekdaysOnly(checked === true)}
+                            onCheckedChange={(checked) =>
+                                setWeekdaysOnly(checked === true)
+                            }
                         />
                         Weekdays only
                     </label>
                     <InputError message={errors.send_weekdays_only} />
-                    <Button size="sm" className="justify-self-start" disabled={processing}>
+                    <Button
+                        size="sm"
+                        className="justify-self-start"
+                        disabled={processing}
+                    >
                         Save
                     </Button>
                 </>
@@ -272,17 +386,24 @@ export function SettingsDialog() {
             <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-3xl">
                 <div className="grid min-h-[30rem] sm:grid-cols-[13rem_1fr]">
                     <nav className="flex flex-col gap-1 border-b border-border bg-sidebar p-3 sm:border-r sm:border-b-0">
-                        <DialogTitle className="px-3 pt-2 pb-3 text-sm font-semibold">Settings</DialogTitle>
-                        <DialogDescription className="sr-only">Manage your account, keys and mailboxes.</DialogDescription>
+                        <DialogTitle className="px-3 pt-2 pb-3 text-sm font-semibold">
+                            Settings
+                        </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Manage your account, keys and mailboxes.
+                        </DialogDescription>
                         {sections.map(({ id, label, icon: Icon }) => (
                             <button
                                 key={id}
                                 type="button"
                                 onClick={() => setSection(id)}
-                                aria-current={section === id ? 'page' : undefined}
+                                aria-current={
+                                    section === id ? 'page' : undefined
+                                }
                                 className={cn(
                                     'flex h-9 items-center gap-2 rounded-md border border-transparent px-3 text-left text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
-                                    section === id && 'border-(--raised-border) bg-sidebar-accent text-foreground shadow-(--raised-shadow)',
+                                    section === id &&
+                                        'border-(--raised-border) bg-sidebar-accent text-foreground shadow-(--raised-shadow)',
                                 )}
                             >
                                 <Icon className="size-4 shrink-0" />

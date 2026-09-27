@@ -46,15 +46,31 @@ const pages = [
 
 /** What the search endpoint returns, five per group. */
 type Results = {
-    leads: { id: number; company: string; city: string | null; status: LeadStatus }[];
+    leads: {
+        id: number;
+        company: string;
+        city: string | null;
+        status: LeadStatus;
+    }[];
     niches: { id: number; name: string }[];
     offers: { id: number; name: string; niche: { name: string } | null }[];
     mailboxes: { id: number; address: string }[];
-    messages: { id: number; subject: string; lead: { company: string } | null }[];
+    messages: {
+        id: number;
+        subject: string;
+        lead: { company: string } | null;
+    }[];
     runs: { id: number; query: string; place: string }[];
 };
 
-const empty: Results = { leads: [], niches: [], offers: [], mailboxes: [], messages: [], runs: [] };
+const empty: Results = {
+    leads: [],
+    niches: [],
+    offers: [],
+    mailboxes: [],
+    messages: [],
+    runs: [],
+};
 
 /** Every word of the query has to appear somewhere in the haystack. */
 function matches(query: string, haystack: string): boolean {
@@ -131,7 +147,14 @@ export function SearchCommand() {
     const foundPages = typing
         ? pages.filter((page) => matches(query, page.title))
         : pages;
-    const { leads: foundLeads, niches: foundNiches, offers: foundOffers, mailboxes: foundMailboxes, messages: foundMessages, runs: foundRuns } = results;
+    const {
+        leads: foundLeads,
+        niches: foundNiches,
+        offers: foundOffers,
+        mailboxes: foundMailboxes,
+        messages: foundMessages,
+        runs: foundRuns,
+    } = results;
 
     const nothing =
         typing &&
@@ -172,151 +195,191 @@ export function SearchCommand() {
                             )}
 
                             {foundPages.length > 0 && (
-                            <CommandGroup heading="Pages">
-                                {foundPages.map((page) => (
-                                    <CommandItem
-                                        key={page.url}
-                                        value={`page ${page.title}`}
-                                        onSelect={() => go(page.url)}
-                                    >
-                                        <page.icon />
-                                        {page.title}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                <CommandGroup heading="Pages">
+                                    {foundPages.map((page) => (
+                                        <CommandItem
+                                            key={page.url}
+                                            value={`page ${page.title}`}
+                                            onSelect={() => go(page.url)}
+                                        >
+                                            <page.icon />
+                                            {page.title}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
 
                             {foundLeads.length > 0 && (
-                            <CommandGroup heading="Leads">
-                                {foundLeads.map((lead) => (
-                                    <CommandItem
-                                        key={lead.id}
-                                        value={`lead ${lead.id}`}
-                                        onSelect={() =>
-                                            go(leadsIndex({ query: { lead: lead.id } }).url)
-                                        }
-                                    >
-                                        <CompanyAvatar name={lead.company} className="size-5 text-[9px]" />
-                                        <span className="min-w-0 flex-1 truncate">
-                                            {lead.company}
-                                            {lead.city && (
-                                                <span className="text-muted-foreground">
-                                                    {' '}
-                                                    · {lead.city}
-                                                </span>
-                                            )}
-                                        </span>
-                                        <LeadStatusBadge status={lead.status} className="shrink-0" />
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                <CommandGroup heading="Leads">
+                                    {foundLeads.map((lead) => (
+                                        <CommandItem
+                                            key={lead.id}
+                                            value={`lead ${lead.id}`}
+                                            onSelect={() =>
+                                                go(
+                                                    leadsIndex({
+                                                        query: {
+                                                            lead: lead.id,
+                                                        },
+                                                    }).url,
+                                                )
+                                            }
+                                        >
+                                            <CompanyAvatar
+                                                name={lead.company}
+                                                className="size-5 text-[9px]"
+                                            />
+                                            <span className="min-w-0 flex-1 truncate">
+                                                {lead.company}
+                                                {lead.city && (
+                                                    <span className="text-muted-foreground">
+                                                        {' '}
+                                                        · {lead.city}
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <LeadStatusBadge
+                                                status={lead.status}
+                                                className="shrink-0"
+                                            />
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
 
                             {foundNiches.length > 0 && (
-                            <CommandGroup heading="Niches">
-                                {foundNiches.map((niche) => (
-                                    <CommandItem
-                                        key={niche.id}
-                                        value={`niche ${niche.id}`}
-                                        onSelect={() =>
-                                            go(nichesIndex({ query: { niche: niche.id } }).url)
-                                        }
-                                    >
-                                        <Target />
-                                        {niche.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                <CommandGroup heading="Niches">
+                                    {foundNiches.map((niche) => (
+                                        <CommandItem
+                                            key={niche.id}
+                                            value={`niche ${niche.id}`}
+                                            onSelect={() =>
+                                                go(
+                                                    nichesIndex({
+                                                        query: {
+                                                            niche: niche.id,
+                                                        },
+                                                    }).url,
+                                                )
+                                            }
+                                        >
+                                            <Target />
+                                            {niche.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
 
                             {foundOffers.length > 0 && (
-                            <CommandGroup heading="Offers">
-                                {foundOffers.map((offer) => (
-                                    <CommandItem
-                                        key={offer.id}
-                                        value={`offer ${offer.id}`}
-                                        onSelect={() =>
-                                            go(offersIndex({ query: { offer: offer.id } }).url)
-                                        }
-                                    >
-                                        <Tag />
-                                        <span className="min-w-0 flex-1 truncate">
-                                            {offer.name}
-                                            {offer.niche && (
-                                                <span className="text-muted-foreground">
-                                                    {' '}
-                                                    · {offer.niche.name}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                <CommandGroup heading="Offers">
+                                    {foundOffers.map((offer) => (
+                                        <CommandItem
+                                            key={offer.id}
+                                            value={`offer ${offer.id}`}
+                                            onSelect={() =>
+                                                go(
+                                                    offersIndex({
+                                                        query: {
+                                                            offer: offer.id,
+                                                        },
+                                                    }).url,
+                                                )
+                                            }
+                                        >
+                                            <Tag />
+                                            <span className="min-w-0 flex-1 truncate">
+                                                {offer.name}
+                                                {offer.niche && (
+                                                    <span className="text-muted-foreground">
+                                                        {' '}
+                                                        · {offer.niche.name}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
 
                             {foundMailboxes.length > 0 && (
-                            <CommandGroup heading="Mailboxes">
-                                {foundMailboxes.map((mailbox) => (
-                                    <CommandItem
-                                        key={mailbox.id}
-                                        value={`mailbox ${mailbox.id}`}
-                                        onSelect={() =>
-                                            go(mailboxesIndex({ query: { mailbox: mailbox.id } }).url)
-                                        }
-                                    >
-                                        <Mailbox />
-                                        {mailbox.address}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                <CommandGroup heading="Mailboxes">
+                                    {foundMailboxes.map((mailbox) => (
+                                        <CommandItem
+                                            key={mailbox.id}
+                                            value={`mailbox ${mailbox.id}`}
+                                            onSelect={() =>
+                                                go(
+                                                    mailboxesIndex({
+                                                        query: {
+                                                            mailbox: mailbox.id,
+                                                        },
+                                                    }).url,
+                                                )
+                                            }
+                                        >
+                                            <Mailbox />
+                                            {mailbox.address}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
 
                             {foundMessages.length > 0 && (
-                            <CommandGroup heading="Messages">
-                                {foundMessages.map((message) => (
-                                    <CommandItem
-                                        key={message.id}
-                                        value={`message ${message.id}`}
-                                        onSelect={() =>
-                                            go(messagesIndex({ query: { message: message.id } }).url)
-                                        }
-                                    >
-                                        <Mail />
-                                        <span className="min-w-0 flex-1 truncate">
-                                            {message.subject}
-                                            {message.lead && (
-                                                <span className="text-muted-foreground">
-                                                    {' '}
-                                                    · {message.lead.company}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                <CommandGroup heading="Messages">
+                                    {foundMessages.map((message) => (
+                                        <CommandItem
+                                            key={message.id}
+                                            value={`message ${message.id}`}
+                                            onSelect={() =>
+                                                go(
+                                                    messagesIndex({
+                                                        query: {
+                                                            message: message.id,
+                                                        },
+                                                    }).url,
+                                                )
+                                            }
+                                        >
+                                            <Mail />
+                                            <span className="min-w-0 flex-1 truncate">
+                                                {message.subject}
+                                                {message.lead && (
+                                                    <span className="text-muted-foreground">
+                                                        {' '}
+                                                        · {message.lead.company}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
 
                             {foundRuns.length > 0 && (
-                            <CommandGroup heading="Scrapes">
-                                {foundRuns.map((run) => (
-                                    <CommandItem
-                                        key={run.id}
-                                        value={`scrape ${run.id}`}
-                                        onSelect={() =>
-                                            go(scrapeIndex({ query: { run: run.id } }).url)
-                                        }
-                                    >
-                                        <Radar />
-                                        <span className="min-w-0 flex-1 truncate">
-                                            {run.query}
-                                            <span className="text-muted-foreground">
-                                                {' '}
-                                                in {run.place}
+                                <CommandGroup heading="Scrapes">
+                                    {foundRuns.map((run) => (
+                                        <CommandItem
+                                            key={run.id}
+                                            value={`scrape ${run.id}`}
+                                            onSelect={() =>
+                                                go(
+                                                    scrapeIndex({
+                                                        query: { run: run.id },
+                                                    }).url,
+                                                )
+                                            }
+                                        >
+                                            <Radar />
+                                            <span className="min-w-0 flex-1 truncate">
+                                                {run.query}
+                                                <span className="text-muted-foreground">
+                                                    {' '}
+                                                    in {run.place}
+                                                </span>
                                             </span>
-                                        </span>
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
                             )}
                         </CommandList>
                     </Command>

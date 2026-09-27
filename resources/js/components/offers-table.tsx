@@ -97,7 +97,9 @@ export function OffersTable({
                             const count = counts[offer.id];
                             const rate =
                                 count.emailed > 0
-                                    ? Math.round((count.replied / count.emailed) * 100)
+                                    ? Math.round(
+                                          (count.replied / count.emailed) * 100,
+                                      )
                                     : null;
 
                             return (
@@ -119,7 +121,9 @@ export function OffersTable({
                                         {nicheName(offer.niche_id)}
                                     </Cell>
                                     <Cell>
-                                        <OfferStatusBadge status={offer.status} />
+                                        <OfferStatusBadge
+                                            status={offer.status}
+                                        />
                                     </Cell>
                                     <Cell className="tabular-nums">
                                         {count.steps > 0 ? (
@@ -142,7 +146,8 @@ export function OffersTable({
                                     <Cell
                                         className={cn(
                                             'tabular-nums',
-                                            rate === null && 'text-muted-foreground/60',
+                                            rate === null &&
+                                                'text-muted-foreground/60',
                                             rate !== null &&
                                                 rate >= 10 &&
                                                 'text-green-700 dark:text-green-400',

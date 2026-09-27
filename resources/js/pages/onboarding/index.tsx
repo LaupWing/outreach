@@ -1,5 +1,11 @@
 import { Head, useForm, usePage, router } from '@inertiajs/react';
-import { ArrowRight, Check, KeyRound, Mailbox as MailboxIcon, Plus } from 'lucide-react';
+import {
+    ArrowRight,
+    Check,
+    KeyRound,
+    Mailbox as MailboxIcon,
+    Plus,
+} from 'lucide-react';
 import type { SubmitEvent } from 'react';
 import AppLogo from '@/components/app-logo';
 import InputError from '@/components/input-error';
@@ -13,7 +19,15 @@ import type { Mailbox } from '@/types';
 
 type PageProps = {
     hasKey: boolean;
-    mailboxes: Pick<Mailbox, 'id' | 'address' | 'status' | 'daily_limit' | 'connection_error' | 'connection_checked_at'>[];
+    mailboxes: Pick<
+        Mailbox,
+        | 'id'
+        | 'address'
+        | 'status'
+        | 'daily_limit'
+        | 'connection_error'
+        | 'connection_checked_at'
+    >[];
 };
 
 /**
@@ -26,11 +40,18 @@ export default function Onboarding() {
 
     const saveKey = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        form.post(storeKey.url(), { preserveScroll: true, onSuccess: () => form.reset() });
+        form.post(storeKey.url(), {
+            preserveScroll: true,
+            onSuccess: () => form.reset(),
+        });
     };
 
     // Both steps have to actually work: a key Google accepts, and a box that logs in.
-    const working = mailboxes.filter((mailbox) => mailbox.connection_checked_at !== null && mailbox.connection_error === null);
+    const working = mailboxes.filter(
+        (mailbox) =>
+            mailbox.connection_checked_at !== null &&
+            mailbox.connection_error === null,
+    );
     const done = hasKey && working.length > 0;
 
     return (
@@ -43,52 +64,93 @@ export default function Onboarding() {
 
             <div className="flex w-full max-w-lg flex-col gap-4">
                 <div className="mb-2">
-                    <h1 className="text-xl font-semibold tracking-tight">Two things before you start</h1>
+                    <h1 className="text-xl font-semibold tracking-tight">
+                        Two things before you start
+                    </h1>
                     <p className="text-sm text-muted-foreground">
-                        The scraper needs a Google key, the sender needs a mailbox. That is all.
+                        The scraper needs a Google key, the sender needs a
+                        mailbox. That is all.
                     </p>
                 </div>
 
-                <Step number={1} title="Google Places API key" done={hasKey} icon={KeyRound}>
+                <Step
+                    number={1}
+                    title="Google Places API key"
+                    done={hasKey}
+                    icon={KeyRound}
+                >
                     {hasKey ? (
                         <p className="text-sm text-muted-foreground">
-                            Saved and encrypted. Change it later under Settings → Google.
+                            Saved and encrypted. Change it later under Settings
+                            → Google.
                         </p>
                     ) : (
-                        <form onSubmit={saveKey} className="flex flex-col gap-3">
+                        <form
+                            onSubmit={saveKey}
+                            className="flex flex-col gap-3"
+                        >
                             <p className="text-sm text-muted-foreground">
-                                In Google Cloud Console: enable <span className="text-foreground">Places API (New)</span>,
-                                turn on billing (the first 1,000 searches a month are free), then Credentials → API key.
+                                In Google Cloud Console: enable{' '}
+                                <span className="text-foreground">
+                                    Places API (New)
+                                </span>
+                                , turn on billing (the first 1,000 searches a
+                                month are free), then Credentials → API key.
                             </p>
                             <div className="flex gap-2">
                                 <Input
                                     value={form.data.google_places_key}
-                                    onChange={(event) => form.setData('google_places_key', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'google_places_key',
+                                            event.target.value,
+                                        )
+                                    }
                                     placeholder="AIza…"
                                     className="font-mono text-xs"
                                     autoFocus
                                 />
-                                <Button type="submit" disabled={form.processing || form.data.google_places_key.trim() === ''}>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        form.processing ||
+                                        form.data.google_places_key.trim() ===
+                                            ''
+                                    }
+                                >
                                     Save
                                 </Button>
                             </div>
-                            <InputError message={form.errors.google_places_key} />
+                            <InputError
+                                message={form.errors.google_places_key}
+                            />
                         </form>
                     )}
                 </Step>
 
-                <Step number={2} title="A mailbox to send from" done={working.length > 0} icon={MailboxIcon}>
+                <Step
+                    number={2}
+                    title="A mailbox to send from"
+                    done={working.length > 0}
+                    icon={MailboxIcon}
+                >
                     <div className="flex flex-col gap-3">
                         {mailboxes.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                                Gmail with an app password works out of the box. Add more later to spread the load.
+                                Gmail with an app password works out of the box.
+                                Add more later to spread the load.
                             </p>
                         ) : (
                             <ul className="flex flex-col divide-y divide-border rounded-md border border-border">
                                 {mailboxes.map((mailbox) => (
-                                    <li key={mailbox.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                                    <li
+                                        key={mailbox.id}
+                                        className="flex items-center gap-3 px-3 py-2 text-sm"
+                                    >
                                         <span className="flex min-w-0 flex-1 flex-col">
-                                            <span className="truncate">{mailbox.address}</span>
+                                            <span className="truncate">
+                                                {mailbox.address}
+                                            </span>
                                             <span
                                                 className={cn(
                                                     'truncate text-xs',
@@ -97,23 +159,35 @@ export default function Onboarding() {
                                                         : 'text-green-600 dark:text-green-400',
                                                 )}
                                             >
-                                                {mailbox.connection_error ?? 'Logs in over SMTP and IMAP'}
+                                                {mailbox.connection_error ??
+                                                    'Logs in over SMTP and IMAP'}
                                             </span>
                                         </span>
                                         <span className="text-xs text-muted-foreground tabular-nums">
                                             {mailbox.daily_limit} a day
                                         </span>
-                                        <MailboxStatusBadge status={mailbox.status} />
+                                        <MailboxStatusBadge
+                                            status={mailbox.status}
+                                        />
                                     </li>
                                 ))}
                             </ul>
                         )}
                         <MailboxDialog
-                            onSaved={() => router.reload({ only: ['mailboxes'] })}
+                            onSaved={() =>
+                                router.reload({ only: ['mailboxes'] })
+                            }
                             trigger={
-                                <Button type="button" variant="outline" size="sm" className="self-start">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="self-start"
+                                >
                                     <Plus />
-                                    {mailboxes.length === 0 ? 'Add mailbox' : 'Add another'}
+                                    {mailboxes.length === 0
+                                        ? 'Add mailbox'
+                                        : 'Add another'}
                                 </Button>
                             }
                         />

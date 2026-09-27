@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignId('niche_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
+            // What each {{tag}} in the sequence should say, for whoever fills it: {tag: description}.
+            $table->json('placeholders')->nullable();
             $table->string('status');
             $table->timestamps();
         });

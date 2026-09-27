@@ -81,14 +81,18 @@ export function RateList({
                                                   : '',
                                         )}
                                     >
-                                        {row.rate === null ? '—' : `${percent}%`}
+                                        {row.rate === null
+                                            ? '—'
+                                            : `${percent}%`}
                                     </span>
                                 </span>
                                 <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-border">
                                     <span
                                         className={cn(
                                             'block h-full rounded-full',
-                                            percent >= 15 ? 'bg-green-500' : 'lava',
+                                            percent >= 15
+                                                ? 'bg-green-500'
+                                                : 'lava',
                                         )}
                                         style={{ width: `${percent}%` }}
                                     />
@@ -107,7 +111,9 @@ export function RateList({
                                         {inner}
                                     </Link>
                                 ) : (
-                                    <div className="px-2 py-2 text-sm">{inner}</div>
+                                    <div className="px-2 py-2 text-sm">
+                                        {inner}
+                                    </div>
                                 )}
                             </li>
                         );

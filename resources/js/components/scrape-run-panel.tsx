@@ -32,7 +32,13 @@ import type { Lead, Niche, PlacesUsage, ScrapeRun } from '@/types';
 /** What the run panel needs of a lead: enough to list it and flag the sites that blocked us. */
 export type ScrapeLead = Pick<
     Lead,
-    'id' | 'company' | 'email' | 'status' | 'scrape_run_id' | 'website' | 'signals'
+    | 'id'
+    | 'company'
+    | 'email'
+    | 'status'
+    | 'scrape_run_id'
+    | 'website'
+    | 'signals'
 >;
 
 const tabs = [
@@ -138,7 +144,9 @@ export function ScrapeRunPanel({
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" asChild>
                                 <Link
-                                    href={leadsIndex({ query: { run: run.id } })}
+                                    href={leadsIndex({
+                                        query: { run: run.id },
+                                    })}
                                     prefetch
                                 >
                                     <Users />
@@ -149,7 +157,11 @@ export function ScrapeRunPanel({
                                 key={run.id}
                                 niches={niches}
                                 usage={usage}
-                                prefill={{ query: run.query, place: run.place, niche_id: run.niche_id }}
+                                prefill={{
+                                    query: run.query,
+                                    place: run.place,
+                                    niche_id: run.niche_id,
+                                }}
                                 trigger={
                                     <Button variant="outline" size="sm">
                                         <Search />
@@ -163,7 +175,8 @@ export function ScrapeRunPanel({
                     <SidePanelTabs
                         tabs={tabs.map((item) => ({
                             ...item,
-                            badge: item.key === 'leads' ? leads.length : undefined,
+                            badge:
+                                item.key === 'leads' ? leads.length : undefined,
                         }))}
                         value={tab}
                         onChange={setTab}
@@ -188,23 +201,33 @@ export function ScrapeRunPanel({
                                 <SidePanelRow icon={Timer} label="Duration">
                                     {duration(run) ?? (
                                         <SidePanelEmpty>
-                                            {run.status === 'queued' ? 'Waiting for the queue' : 'Still running'}
+                                            {run.status === 'queued'
+                                                ? 'Waiting for the queue'
+                                                : 'Still running'}
                                         </SidePanelEmpty>
                                     )}
                                 </SidePanelRow>
                                 {run.error && (
-                                    <SidePanelRow icon={ShieldAlert} label="Failed">
+                                    <SidePanelRow
+                                        icon={ShieldAlert}
+                                        label="Failed"
+                                    >
                                         <span className="text-red-600 dark:text-red-400">
                                             {run.error}
                                         </span>
                                     </SidePanelRow>
                                 )}
                                 <SidePanelRow icon={Mail} label="Email rate">
-                                    {run.found > 0
-                                        ? `${run.with_email} of ${run.found}`
-                                        : <SidePanelEmpty />}
+                                    {run.found > 0 ? (
+                                        `${run.with_email} of ${run.found}`
+                                    ) : (
+                                        <SidePanelEmpty />
+                                    )}
                                 </SidePanelRow>
-                                <SidePanelRow icon={ShieldAlert} label="Blocked">
+                                <SidePanelRow
+                                    icon={ShieldAlert}
+                                    label="Blocked"
+                                >
                                     {run.blocked > 0 ? (
                                         `${run.blocked} sites flagged, kept for a manual look`
                                     ) : (
@@ -227,7 +250,9 @@ export function ScrapeRunPanel({
                                     <div className="flex items-center gap-1 border-b border-border px-4 py-2">
                                         <Toggle
                                             active={!blockedOnly}
-                                            onClick={() => setBlockedOnly(false)}
+                                            onClick={() =>
+                                                setBlockedOnly(false)
+                                            }
                                         >
                                             All ({leads.length})
                                         </Toggle>
@@ -245,7 +270,9 @@ export function ScrapeRunPanel({
                                                 key={lead.id}
                                                 className="flex items-center gap-3 border-b border-border px-5 py-2.5 text-sm"
                                             >
-                                                <CompanyAvatar name={lead.company} />
+                                                <CompanyAvatar
+                                                    name={lead.company}
+                                                />
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block truncate font-medium">
                                                         {lead.company}
@@ -253,17 +280,20 @@ export function ScrapeRunPanel({
                                                     {isFlagged(lead) ? (
                                                         <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                                                             <ShieldAlert className="size-3" />
-                                                            {lead.signals?.blocked
+                                                            {lead.signals
+                                                                ?.blocked
                                                                 ? 'Blocked the scraper'
                                                                 : 'JavaScript only'}
                                                         </span>
                                                     ) : (
                                                         <span className="block truncate text-xs text-muted-foreground">
-                                                            {lead.email ?? 'No email found'}
+                                                            {lead.email ??
+                                                                'No email found'}
                                                         </span>
                                                     )}
                                                 </span>
-                                                {isFlagged(lead) && lead.website ? (
+                                                {isFlagged(lead) &&
+                                                lead.website ? (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"

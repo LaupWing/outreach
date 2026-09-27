@@ -9,7 +9,10 @@ import {
     type MailboxMessage,
 } from '@/components/mailbox-panel';
 import { mailboxStatuses } from '@/components/mailbox-status-badge';
-import { MailboxesTable, type MailboxCounts } from '@/components/mailboxes-table';
+import {
+    MailboxesTable,
+    type MailboxCounts,
+} from '@/components/mailboxes-table';
 import { MailboxDialog } from '@/components/mailbox-dialog';
 import { index as mailboxesIndex } from '@/routes/mailboxes';
 import type { Mailbox, MailboxStatus } from '@/types';
@@ -26,8 +29,11 @@ const statusOptions: FilterOption[] = (
 ).map((value) => ({ value, label: mailboxStatuses[value].label }));
 
 export default function MailboxesIndex() {
-    const { mailboxes: allMailboxes, messages, leads } =
-        usePage<PageProps>().props;
+    const {
+        mailboxes: allMailboxes,
+        messages,
+        leads,
+    } = usePage<PageProps>().props;
     const [statuses, setStatuses] = useState<string[]>([]);
 
     // Per mailbox: what went out, what came back, what bounced. Bounces per box show which address lands in spam.
@@ -60,7 +66,9 @@ export default function MailboxesIndex() {
 
     // Search deep-links here with ?mailbox=ID.
     const { url } = usePage();
-    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('mailbox');
+    const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get(
+        'mailbox',
+    );
     const linked =
         allMailboxes.find((item) => String(item.id) === linkedId) ?? null;
 
@@ -80,7 +88,8 @@ export default function MailboxesIndex() {
     useEffect(() => {
         setPanelMailbox((current) =>
             current
-                ? (allMailboxes.find((item) => item.id === current.id) ?? current)
+                ? (allMailboxes.find((item) => item.id === current.id) ??
+                  current)
                 : current,
         );
         setSelected((current) =>
@@ -91,8 +100,7 @@ export default function MailboxesIndex() {
     }, [allMailboxes]);
 
     const mailboxes = allMailboxes.filter(
-        (mailbox) =>
-            statuses.length === 0 || statuses.includes(mailbox.status),
+        (mailbox) => statuses.length === 0 || statuses.includes(mailbox.status),
     );
 
     return (
@@ -101,14 +109,19 @@ export default function MailboxesIndex() {
 
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                    <div
+                        data-keeps-panel
+                        className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4"
+                    >
                         <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
                             <SlidersHorizontal className="size-4" />
                             Filters:
                         </span>
                         <FilterMenu
                             label="Status"
-                            icon={<Tag className="size-3.5 text-muted-foreground" />}
+                            icon={
+                                <Tag className="size-3.5 text-muted-foreground" />
+                            }
                             options={statusOptions}
                             selected={statuses}
                             onChange={setStatuses}

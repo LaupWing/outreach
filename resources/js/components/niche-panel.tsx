@@ -13,7 +13,10 @@ import { useEffect, useState } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge, leadStatuses } from '@/components/lead-status-badge';
 import { NicheDialog } from '@/components/niche-dialog';
-import { NicheStatusBadge, nicheStatuses } from '@/components/niche-status-badge';
+import {
+    NicheStatusBadge,
+    nicheStatuses,
+} from '@/components/niche-status-badge';
 import { OfferStatusBadge } from '@/components/offer-status-badge';
 import {
     SidePanel,
@@ -72,7 +75,11 @@ export function NichePanel({
 
     const setStatus = (status: NicheStatus) => {
         if (niche) {
-            router.patch(update.url(niche.id), { status }, { preserveScroll: true });
+            router.patch(
+                update.url(niche.id),
+                { status },
+                { preserveScroll: true },
+            );
         }
     };
 
@@ -136,7 +143,10 @@ export function NichePanel({
                                         : undefined
                                 }
                             />
-                            <SidePanelStat label="Offers" value={offers.length} />
+                            <SidePanelStat
+                                label="Offers"
+                                value={offers.length}
+                            />
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -219,7 +229,10 @@ export function NichePanel({
                                         {nicheStatuses[niche.status].label}
                                     </SidePanelRow>
                                     {perStatus.length === 0 ? (
-                                        <SidePanelRow icon={Users} label="Leads">
+                                        <SidePanelRow
+                                            icon={Users}
+                                            label="Leads"
+                                        >
                                             <SidePanelEmpty>
                                                 None yet
                                             </SidePanelEmpty>
@@ -229,7 +242,10 @@ export function NichePanel({
                                             <SidePanelRow
                                                 key={item.status}
                                                 icon={Users}
-                                                label={leadStatuses[item.status].label}
+                                                label={
+                                                    leadStatuses[item.status]
+                                                        .label
+                                                }
                                             >
                                                 <span className="tabular-nums">
                                                     {item.count}
@@ -290,13 +306,16 @@ export function NichePanel({
                                             key={lead.id}
                                             className="flex items-center gap-3 border-b border-border px-5 py-2.5 text-sm"
                                         >
-                                            <CompanyAvatar name={lead.company} />
+                                            <CompanyAvatar
+                                                name={lead.company}
+                                            />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate font-medium">
                                                     {lead.company}
                                                 </span>
                                                 <span className="block truncate text-xs text-muted-foreground">
-                                                    {lead.email ?? 'No email found'}
+                                                    {lead.email ??
+                                                        'No email found'}
                                                 </span>
                                             </span>
                                             <LeadStatusBadge

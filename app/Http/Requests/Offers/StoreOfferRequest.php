@@ -5,9 +5,11 @@ namespace App\Http\Requests\Offers;
 use App\Enums\OfferStatus;
 use App\Models\Niche;
 use App\Models\Offer;
+use App\Support\Mail\Placeholders;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * An offer needs a niche: either an existing `niche_id` or a `new_niche` name to create one.
@@ -36,9 +38,40 @@ class StoreOfferRequest extends FormRequest
             'new_niche' => ['required_without:niche_id', 'nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'status' => ['sometimes', Rule::enum(OfferStatus::class)],
-            'first_step' => ['sometimes', 'array:subject,body'],
-            'first_step.subject' => ['required_with:first_step', 'string', 'max:255'],
-            'first_step.body' => ['required_with:first_step', 'string', 'max:10000'],
+            // The sequence, first mail first. Optional: without mails the offer is an idea.
+            'steps' => ['sometimes', 'array', 'max:20'],
+            'steps.*.subject' => ['required', 'string', 'max:255'],
+            'steps.*.body' => ['required', 'string', 'max:10000'],
+            'steps.*.days_after_previous' => ['sometimes', 'integer', 'min:0', 'max:365'],
+            // What each custom {{tag}} in the mails should say; required for every custom tag used.
+            'placeholders' => ['sometimes', 'array'],
+            'placeholders.*' => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    /**
+     * Every tag the mails use that is not a lead field needs an explanation, or
+     * whoever fills it later has to guess.
+     *
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $text = collect($this->input('steps', []))
+                    ->map(fn (array $step) => ($step['subject'] ?? '').' '.($step['body'] ?? ''))
+                    ->implode(' ');
+
+                $custom = array_diff(Placeholders::tagsIn($text), Placeholders::BUILT_IN);
+                $described = array_filter($this->input('placeholders', []), fn ($value) => is_string($value) && trim($value) !== '');
+
+                foreach ($custom as $tag) {
+                    if (! isset($described[$tag])) {
+                        $validator->errors()->add("placeholders.{$tag}", __('Explain what {{:tag}} should say.', ['tag' => $tag]));
+                    }
+                }
+            },
         ];
     }
 }

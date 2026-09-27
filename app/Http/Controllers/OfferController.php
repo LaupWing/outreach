@@ -51,17 +51,21 @@ class OfferController extends Controller
         $user = $request->user();
 
         DB::transaction(function () use ($request, $user): void {
+            $placeholders = array_filter($request->validated('placeholders', []), fn (?string $value) => $value !== null && trim($value) !== '');
+
             $offer = $user->offers()->create([
                 ...$request->safe()->only(['name', 'description', 'status']),
                 'niche_id' => $this->resolveNicheId($user, $request->validated()),
+                'placeholders' => $placeholders === [] ? null : $placeholders,
             ]);
 
-            if ($request->has('first_step')) {
+            foreach (array_values($request->validated('steps', [])) as $index => $step) {
                 $offer->steps()->create([
                     'user_id' => $offer->user_id,
-                    'step' => 1,
-                    'days_after_previous' => 0,
-                    ...$request->validated('first_step'),
+                    'step' => $index + 1,
+                    'days_after_previous' => $index === 0 ? 0 : ($step['days_after_previous'] ?? 3),
+                    'subject' => $step['subject'],
+                    'body' => $step['body'],
                 ]);
             }
         });
@@ -74,7 +78,7 @@ class OfferController extends Controller
     public function update(UpdateOfferRequest $request, Offer $offer): RedirectResponse
     {
         $validated = $request->validated();
-        $attributes = $request->safe()->only(['name', 'description', 'status']);
+        $attributes = $request->safe()->only(['name', 'description', 'status', 'placeholders']);
 
         if (($validated['niche_id'] ?? null) !== null || ($validated['new_niche'] ?? null) !== null) {
             $attributes['niche_id'] = $this->resolveNicheId($request->user(), $validated);

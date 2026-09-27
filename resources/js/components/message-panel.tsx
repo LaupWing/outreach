@@ -101,10 +101,15 @@ export function MessagePanel({
                                     dateTime.format(new Date(message.sent_at))
                                 ) : message.send_after ? (
                                     <SidePanelEmpty>
-                                        Sends {dateTime.format(new Date(message.send_after))}
+                                        Sends{' '}
+                                        {dateTime.format(
+                                            new Date(message.send_after),
+                                        )}
                                     </SidePanelEmpty>
                                 ) : (
-                                    <SidePanelEmpty>Not sent yet</SidePanelEmpty>
+                                    <SidePanelEmpty>
+                                        Not sent yet
+                                    </SidePanelEmpty>
                                 )}
                             </SidePanelRow>
                             <SidePanelRow icon={Tag} label="Thread">

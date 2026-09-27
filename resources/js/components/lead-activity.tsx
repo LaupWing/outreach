@@ -38,7 +38,11 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
  * There is no activity table in the briefing; the timeline is read off the lead
  * and its messages. If this earns its place, it becomes a table of its own.
  */
-function eventsFor(lead: Lead, messages: Message[], notes: LeadNote[]): Event[] {
+function eventsFor(
+    lead: Lead,
+    messages: Message[],
+    notes: LeadNote[],
+): Event[] {
     const events: Event[] = [
         {
             at: lead.created_at,

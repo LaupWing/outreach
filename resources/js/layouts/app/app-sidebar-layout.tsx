@@ -15,7 +15,10 @@ export default function AppSidebarLayout({
         <AppShell variant="sidebar">
             <AppSidebar />
             {/* One viewport high, so a page can pin its header and footer and scroll only its table. */}
-            <AppContent variant="sidebar" className="h-svh min-w-0 overflow-hidden">
+            <AppContent
+                variant="sidebar"
+                className="h-svh min-w-0 overflow-hidden"
+            >
                 <AppSidebarHeader breadcrumbs={breadcrumbs} actions={actions} />
                 {children}
             </AppContent>

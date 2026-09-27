@@ -65,7 +65,8 @@ export function NewScrapeDialog({
     const hasNiche = creatingNiche
         ? data.new_niche.trim() !== ''
         : data.niche_id !== '';
-    const ready = data.query.trim() !== '' && data.place.trim() !== '' && hasNiche;
+    const ready =
+        data.query.trim() !== '' && data.place.trim() !== '' && hasNiche;
 
     // The server wants one of the two: an existing id or the name of a new niche.
     form.transform((values) => ({
@@ -169,7 +170,10 @@ export function NewScrapeDialog({
                                         id="scrape-niche"
                                         value={data.new_niche}
                                         onChange={(event) =>
-                                            setData('new_niche', event.target.value)
+                                            setData(
+                                                'new_niche',
+                                                event.target.value,
+                                            )
                                         }
                                         placeholder="Name of the new niche"
                                         autoFocus
@@ -191,7 +195,9 @@ export function NewScrapeDialog({
                             ) : (
                                 <Select
                                     value={data.niche_id}
-                                    onValueChange={(value) => setData('niche_id', value)}
+                                    onValueChange={(value) =>
+                                        setData('niche_id', value)
+                                    }
                                 >
                                     <SelectTrigger
                                         id="scrape-niche"
@@ -236,7 +242,7 @@ export function NewScrapeDialog({
                                         aria-checked={data.pages === count}
                                         onClick={() => setData('pages', count)}
                                         className={cn(
-                                            'flex flex-1 flex-col items-center rounded-[5px] border px-2 py-1.5 text-sm transition-colors tabular-nums',
+                                            'flex flex-1 flex-col items-center rounded-[5px] border px-2 py-1.5 text-sm tabular-nums transition-colors',
                                             data.pages === count
                                                 ? 'border-(--raised-border) bg-background text-foreground shadow-(--raised-shadow)'
                                                 : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -258,8 +264,10 @@ export function NewScrapeDialog({
                         <div className="flex items-center justify-between rounded-lg border border-(--raised-border) bg-accent/40 px-4 py-3 text-sm shadow-(--raised-shadow)">
                             <div className="flex flex-col gap-0.5">
                                 <span>
-                                    {data.pages} {data.pages === 1 ? 'request' : 'requests'},
-                                    up to {data.pages * RESULTS_PER_PAGE} businesses
+                                    {data.pages}{' '}
+                                    {data.pages === 1 ? 'request' : 'requests'},
+                                    up to {data.pages * RESULTS_PER_PAGE}{' '}
+                                    businesses
                                 </span>
                                 <span className="text-xs text-muted-foreground">
                                     {overBudget
@@ -336,7 +344,9 @@ function Field({
             </Label>
             {children}
             {error && (
-                <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                    {error}
+                </p>
             )}
         </div>
     );

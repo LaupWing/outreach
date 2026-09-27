@@ -22,15 +22,23 @@ const statusOptions: FilterOption[] = (
 ).map((value) => ({ value, label: nicheStatuses[value].label }));
 
 export default function NichesIndex() {
-    const { niches: allNiches, leads, messages, offers } = usePage<PageProps>().props;
+    const {
+        niches: allNiches,
+        leads,
+        messages,
+        offers,
+    } = usePage<PageProps>().props;
     const [statuses, setStatuses] = useState<string[]>([]);
     // Search deep-links here with ?niche=ID.
     const { url } = usePage();
     const linkedId = new URLSearchParams(url.split('?')[1] ?? '').get('niche');
-    const linked = allNiches.find((item) => String(item.id) === linkedId) ?? null;
+    const linked =
+        allNiches.find((item) => String(item.id) === linkedId) ?? null;
 
     // Ids, not objects: the rows come from props and change under the panel after every save.
-    const [selectedId, setSelectedId] = useState<number | null>(linked?.id ?? null);
+    const [selectedId, setSelectedId] = useState<number | null>(
+        linked?.id ?? null,
+    );
 
     // Same page, new ?id: the component stays mounted, so follow the link by hand.
     useEffect(() => {
@@ -52,18 +60,23 @@ export default function NichesIndex() {
 
     const counts: Record<number, NicheCounts> = Object.fromEntries(
         allNiches.map((niche) => {
-            const nicheLeads = leads.filter((lead) => lead.niche_id === niche.id);
+            const nicheLeads = leads.filter(
+                (lead) => lead.niche_id === niche.id,
+            );
 
             return [
                 niche.id,
                 {
                     leads: nicheLeads.length,
-                    emailed: nicheLeads.filter((lead) => emailedLeadIds.has(lead.id))
-                        .length,
-                    replied: nicheLeads.filter((lead) => lead.status === 'replied')
-                        .length,
-                    offers: offers.filter((offer) => offer.niche_id === niche.id)
-                        .length,
+                    emailed: nicheLeads.filter((lead) =>
+                        emailedLeadIds.has(lead.id),
+                    ).length,
+                    replied: nicheLeads.filter(
+                        (lead) => lead.status === 'replied',
+                    ).length,
+                    offers: offers.filter(
+                        (offer) => offer.niche_id === niche.id,
+                    ).length,
                 },
             ];
         }),
@@ -79,14 +92,19 @@ export default function NichesIndex() {
 
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                    <div
+                        data-keeps-panel
+                        className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4"
+                    >
                         <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
                             <SlidersHorizontal className="size-4" />
                             Filters:
                         </span>
                         <FilterMenu
                             label="Status"
-                            icon={<Tag className="size-3.5 text-muted-foreground" />}
+                            icon={
+                                <Tag className="size-3.5 text-muted-foreground" />
+                            }
                             options={statusOptions}
                             selected={statuses}
                             onChange={setStatuses}
@@ -104,8 +122,12 @@ export default function NichesIndex() {
                 </div>
                 <NichePanel
                     niche={panelNiche}
-                    offers={offers.filter((offer) => offer.niche_id === panelNiche?.id)}
-                    leads={leads.filter((lead) => lead.niche_id === panelNiche?.id)}
+                    offers={offers.filter(
+                        (offer) => offer.niche_id === panelNiche?.id,
+                    )}
+                    leads={leads.filter(
+                        (lead) => lead.niche_id === panelNiche?.id,
+                    )}
                     emailed={panelNiche ? counts[panelNiche.id].emailed : 0}
                     open={selectedId !== null && panelNiche !== null}
                     onClose={() => setSelectedId(null)}

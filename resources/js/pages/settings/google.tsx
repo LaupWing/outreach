@@ -36,7 +36,10 @@ export default function Google() {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="google_places_key" className="flex items-center gap-1.5">
+                                <Label
+                                    htmlFor="google_places_key"
+                                    className="flex items-center gap-1.5"
+                                >
                                     <KeyRound className="size-3.5 text-muted-foreground" />
                                     Places API key
                                 </Label>
@@ -44,10 +47,17 @@ export default function Google() {
                                     id="google_places_key"
                                     name="google_places_key"
                                     className="mt-1 block w-full font-mono text-xs"
-                                    placeholder={hasKey ? 'A key is set; paste a new one to replace it' : 'AIza…'}
+                                    placeholder={
+                                        hasKey
+                                            ? 'A key is set; paste a new one to replace it'
+                                            : 'AIza…'
+                                    }
                                     autoComplete="off"
                                 />
-                                <InputError className="mt-2" message={errors.google_places_key} />
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.google_places_key}
+                                />
                             </div>
 
                             <div className="flex items-center gap-4">

@@ -37,7 +37,14 @@ import type { Lead, Mailbox, Message, MessageStatus } from '@/types';
 /** What the mailboxes page needs of a message: enough to list it and count it. */
 export type MailboxMessage = Pick<
     Message,
-    'id' | 'lead_id' | 'mailbox_id' | 'step' | 'subject' | 'status' | 'sent_at' | 'reply'
+    | 'id'
+    | 'lead_id'
+    | 'mailbox_id'
+    | 'step'
+    | 'subject'
+    | 'status'
+    | 'sent_at'
+    | 'reply'
 >;
 
 /** What the mailboxes page needs of a lead: a name next to each message. */
@@ -233,7 +240,10 @@ export function MailboxPanel({
                                 label="Bounces"
                                 value={counts?.bounced ?? 0}
                                 hint={rate(counts?.bounced ?? 0)}
-                                warn={(counts?.bounced ?? 0) / Math.max(sent, 1) > 0.05}
+                                warn={
+                                    (counts?.bounced ?? 0) / Math.max(sent, 1) >
+                                    0.05
+                                }
                             />
                         </div>
 
@@ -274,13 +284,19 @@ export function MailboxPanel({
                                 disabled={testing}
                                 onClick={() => {
                                     setTesting(true);
-                                    router.post(test.url(mailbox.id), {}, {
-                                        preserveScroll: true,
-                                        onFinish: () => setTesting(false),
-                                    });
+                                    router.post(
+                                        test.url(mailbox.id),
+                                        {},
+                                        {
+                                            preserveScroll: true,
+                                            onFinish: () => setTesting(false),
+                                        },
+                                    );
                                 }}
                             >
-                                <Zap className={cn(testing && 'animate-pulse')} />
+                                <Zap
+                                    className={cn(testing && 'animate-pulse')}
+                                />
                                 {testing ? 'Testing…' : 'Test connection'}
                             </Button>
                             {/* Two clicks to delete: the first arms it, the second within three seconds does it. */}
@@ -319,11 +335,14 @@ export function MailboxPanel({
                                     {mailbox.address}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Plug} label="Servers">
-                                    {mailbox.smtp_host}:{mailbox.smtp_port} · {mailbox.imap_host}:{mailbox.imap_port}
+                                    {mailbox.smtp_host}:{mailbox.smtp_port} ·{' '}
+                                    {mailbox.imap_host}:{mailbox.imap_port}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Zap} label="Last check">
                                     {mailbox.connection_checked_at === null ? (
-                                        <SidePanelEmpty>Not tested yet</SidePanelEmpty>
+                                        <SidePanelEmpty>
+                                            Not tested yet
+                                        </SidePanelEmpty>
                                     ) : mailbox.connection_error ? (
                                         <span className="text-red-600 dark:text-red-400">
                                             {mailbox.connection_error}
@@ -335,19 +354,28 @@ export function MailboxPanel({
                                     )}
                                 </SidePanelRow>
                                 <SidePanelRow icon={Tag} label="Status">
-                                    <MailboxStatusBadge status={mailbox.status} />
+                                    <MailboxStatusBadge
+                                        status={mailbox.status}
+                                    />
                                 </SidePanelRow>
                                 <SidePanelRow icon={Gauge} label="Daily limit">
                                     {mailbox.daily_limit} mails
                                 </SidePanelRow>
                                 <SidePanelRow icon={Reply} label="Reply rate">
                                     {rate(counts?.replied ?? 0) ?? (
-                                        <SidePanelEmpty>Nothing sent yet</SidePanelEmpty>
+                                        <SidePanelEmpty>
+                                            Nothing sent yet
+                                        </SidePanelEmpty>
                                     )}
                                 </SidePanelRow>
-                                <SidePanelRow icon={AlertTriangle} label="Bounce rate">
+                                <SidePanelRow
+                                    icon={AlertTriangle}
+                                    label="Bounce rate"
+                                >
                                     {rate(counts?.bounced ?? 0) ?? (
-                                        <SidePanelEmpty>Nothing sent yet</SidePanelEmpty>
+                                        <SidePanelEmpty>
+                                            Nothing sent yet
+                                        </SidePanelEmpty>
                                     )}
                                 </SidePanelRow>
                             </dl>
@@ -365,26 +393,37 @@ export function MailboxPanel({
                                             key={message.id}
                                             className="flex items-center gap-3 border-b border-border px-5 py-2.5 text-sm"
                                         >
-                                            <CompanyAvatar name={companyOf(message.lead_id)} />
+                                            <CompanyAvatar
+                                                name={companyOf(
+                                                    message.lead_id,
+                                                )}
+                                            />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate font-medium">
                                                     {companyOf(message.lead_id)}
                                                 </span>
                                                 <span className="block truncate text-xs text-muted-foreground">
-                                                    Step {message.step}: {message.subject}
+                                                    Step {message.step}:{' '}
+                                                    {message.subject}
                                                 </span>
                                             </span>
                                             <span
                                                 className={cn(
                                                     'shrink-0 text-xs capitalize',
-                                                    messageTones[message.status],
+                                                    messageTones[
+                                                        message.status
+                                                    ],
                                                 )}
                                             >
                                                 {message.status}
                                             </span>
                                             <span className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                                                 {message.sent_at
-                                                    ? dateTime.format(new Date(message.sent_at))
+                                                    ? dateTime.format(
+                                                          new Date(
+                                                              message.sent_at,
+                                                          ),
+                                                      )
                                                     : '—'}
                                             </span>
                                         </li>

@@ -50,5 +50,8 @@ class DatabaseSeeder extends Seeder
                 'connection_checked_at' => now(),
             ]);
         }
+
+        // The same demo data, so there is something to look at right after a fresh seed.
+        $this->callWith(DemoSeeder::class, ['user' => $account]);
     }
 }

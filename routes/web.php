@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\LeadFactController;
 use App\Http\Controllers\LeadMessageController;
 use App\Http\Controllers\LeadNoteController;
 use App\Http\Controllers\MailboxConnectionController;
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified', EnsureOnboarded::class])->group(function 
 
     Route::resource('leads', LeadController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('leads/{lead}/notes', [LeadNoteController::class, 'store'])->name('leads.notes.store');
+    Route::patch('leads/{lead}/facts', [LeadFactController::class, 'update'])->name('leads.facts.update');
     Route::post('leads/{lead}/messages', [LeadMessageController::class, 'store'])->name('leads.messages.store');
 
     Route::get('messages', [MessageController::class, 'index'])->name('messages.index');

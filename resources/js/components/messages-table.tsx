@@ -122,7 +122,9 @@ export function MessagesTable({
                             >
                                 <Cell>
                                     <span className="flex items-center gap-2.5">
-                                        <CompanyAvatar name={companyOf(message)} />
+                                        <CompanyAvatar
+                                            name={companyOf(message)}
+                                        />
                                         <span className="truncate font-medium">
                                             {companyOf(message)}
                                         </span>
@@ -133,21 +135,27 @@ export function MessagesTable({
                                 </Cell>
                                 <Cell>{message.subject}</Cell>
                                 <Cell>
-                                    <MessageStatusBadge status={message.status} />
+                                    <MessageStatusBadge
+                                        status={message.status}
+                                    />
                                 </Cell>
                                 <Cell className="text-muted-foreground">
                                     {mailboxOf(message.mailbox_id)}
                                 </Cell>
                                 <Cell className="text-muted-foreground tabular-nums">
                                     {message.sent_at
-                                        ? dateTime.format(new Date(message.sent_at))
+                                        ? dateTime.format(
+                                              new Date(message.sent_at),
+                                          )
                                         : '—'}
                                 </Cell>
                                 <Cell className="tabular-nums">
                                     {message.reply ? (
                                         <span className="text-amber-700 dark:text-amber-400">
                                             {dateTime.format(
-                                                new Date(message.reply.received_at),
+                                                new Date(
+                                                    message.reply.received_at,
+                                                ),
                                             )}
                                         </span>
                                     ) : (

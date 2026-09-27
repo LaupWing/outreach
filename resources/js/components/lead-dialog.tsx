@@ -125,7 +125,8 @@ export function LeadDialog({
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const blank = (value: string) => (value.trim() === '' ? null : value.trim());
+        const blank = (value: string) =>
+            value.trim() === '' ? null : value.trim();
         const data = {
             company: company.trim(),
             email: blank(email),
@@ -213,7 +214,7 @@ export function LeadDialog({
                                 label="Company"
                                 icon={Building2}
                                 htmlFor="lead-company"
-                        >
+                            >
                                 <Input
                                     id="lead-company"
                                     value={company}
@@ -263,7 +264,7 @@ export function LeadDialog({
                                 label="Niche"
                                 icon={Target}
                                 htmlFor="lead-niche"
-                        >
+                            >
                                 {nicheId === NEW_NICHE ? (
                                     // Typing a new niche right here beats leaving the dialog to make one first.
                                     <div className="flex gap-1.5">
@@ -318,10 +319,18 @@ export function LeadDialog({
                                         </SelectContent>
                                     </Select>
                                 )}
-                                <InputError message={errors.niche_id ?? errors.new_niche} />
+                                <InputError
+                                    message={
+                                        errors.niche_id ?? errors.new_niche
+                                    }
+                                />
                             </Field>
 
-                            <Field label="Offer" icon={Tag} htmlFor="lead-offer">
+                            <Field
+                                label="Offer"
+                                icon={Tag}
+                                htmlFor="lead-offer"
+                            >
                                 <Select
                                     value={offerId}
                                     onValueChange={setOfferId}
@@ -346,7 +355,7 @@ export function LeadDialog({
                                 </Select>
                                 <InputError message={errors.offer_id} />
                             </Field>
-                            </div>
+                        </div>
                     ) : (
                         <div className="grid gap-4">
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -397,8 +406,12 @@ export function LeadDialog({
                                             key={option.value}
                                             type="button"
                                             role="radio"
-                                            aria-checked={status === option.value}
-                                            onClick={() => setStatus(option.value)}
+                                            aria-checked={
+                                                status === option.value
+                                            }
+                                            onClick={() =>
+                                                setStatus(option.value)
+                                            }
                                             className={cn(
                                                 'flex flex-1 items-center justify-center rounded-[5px] border py-1.5 transition-colors',
                                                 editing
@@ -416,7 +429,11 @@ export function LeadDialog({
                                 <InputError message={errors.status} />
                             </Field>
 
-                            <Field label="Hook" icon={Sparkles} htmlFor="lead-hook">
+                            <Field
+                                label="Hook"
+                                icon={Sparkles}
+                                htmlFor="lead-hook"
+                            >
                                 {/* No Textarea component in ui/, so this mirrors the Input styles. */}
                                 <textarea
                                     id="lead-hook"
@@ -434,11 +451,11 @@ export function LeadDialog({
                             {/* Source is not a choice here: everything from this dialog is manual. */}
                             {!editing && (
                                 <p className="text-xs text-muted-foreground">
-                                    Added by hand; the enricher can still read the site for
-                                    signals.
+                                    Added by hand; the enricher can still read
+                                    the site for signals.
                                 </p>
                             )}
-                            </div>
+                        </div>
                     )}
 
                     <DialogFooter>
@@ -473,7 +490,11 @@ export function LeadDialog({
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready || processing}>
+                                <Button
+                                    key="submit"
+                                    type="submit"
+                                    disabled={!ready || processing}
+                                >
                                     {editing ? <Check /> : <Plus />}
                                     {editing ? 'Save' : 'Add lead'}
                                 </Button>

@@ -3,11 +3,14 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
+    Clock,
     FileText,
     Mail,
     Plus,
+    Sparkles,
     Tag,
     Target,
+    Trash2,
     X,
 } from 'lucide-react';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
@@ -33,12 +36,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { isBuiltIn, tagsIn } from '@/lib/placeholders';
 import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/offers';
 import type { Niche, Offer } from '@/types';
 
-/** The offer itself first, the first mail second. */
-const STEPS = ['Offer', 'First mail'];
+/** The offer itself first, its mails second. */
+const STEPS = ['Offer', 'Mails'];
 
 /** Sentinel value in the niche select that swaps it for a text field. */
 const NEW_NICHE = '__new';
@@ -48,6 +52,23 @@ const textareaClassName =
 
 const FIRST_SUBJECT = '{{hook_subject}}';
 const FIRST_BODY = 'Hoi,\n\n{{hook}}\n\n\n\nLoc';
+const FOLLOW_UP_SUBJECT = 'Re: {{hook_subject}}';
+const FOLLOW_UP_BODY = 'Hoi,\n\nNog even hierop terugkomen.\n\n\n\nLoc';
+const FOLLOW_UP_DAYS = 3;
+
+type Draft = { subject: string; body: string; days_after_previous: number };
+
+const firstMail = (): Draft => ({
+    subject: FIRST_SUBJECT,
+    body: FIRST_BODY,
+    days_after_previous: 0,
+});
+
+const followUp = (): Draft => ({
+    subject: FOLLOW_UP_SUBJECT,
+    body: FOLLOW_UP_BODY,
+    days_after_previous: FOLLOW_UP_DAYS,
+});
 
 /** Form values for an offer, or the blanks for a new one. */
 const valuesFrom = (offer?: Offer) => ({
@@ -57,11 +78,12 @@ const valuesFrom = (offer?: Offer) => ({
 });
 
 /**
- * Creates an offer: the thing you test on a niche. The first mail can come along;
- * the rest of the sequence is added in the offer's panel. With `offer` it edits
- * the basics instead; the mails then live in the panel's Sequence tab, so the
- * mail step is dropped. Without `niches` it reads them from the page props, so
- * it can sit in a page's static topbar actions.
+ * Creates an offer: the thing you test on a niche. Its mails come along in the
+ * second step, with an explanation for every custom tag they use so the AI knows
+ * what to write per lead. With `offer` it edits the basics instead; the mails
+ * then live in the panel's Sequence tab, so the mail step is dropped. Without
+ * `niches` it reads them from the page props, so it can sit in a page's static
+ * topbar actions.
  */
 export function OfferDialog({
     offer,
@@ -86,19 +108,27 @@ export function OfferDialog({
     const [nicheId, setNicheId] = useState(initial.nicheId);
     const [newNiche, setNewNiche] = useState('');
     const [description, setDescription] = useState(initial.description);
-    const [withFirstMail, setWithFirstMail] = useState(true);
-    const [subject, setSubject] = useState(FIRST_SUBJECT);
-    const [body, setBody] = useState(FIRST_BODY);
+    const [mails, setMails] = useState<Draft[]>([firstMail()]);
+    const [explanations, setExplanations] = useState<Record<string, string>>(
+        {},
+    );
+
+    // Tags across every subject and body, so a tag used twice is asked about once.
+    const tags = tagsIn(
+        mails.map((mail) => `${mail.subject}\n${mail.body}`).join('\n'),
+    );
+    const builtIn = tags.filter(isBuiltIn);
+    const custom = tags.filter((tag) => !isBuiltIn(tag));
+    const explanationFor = (tag: string) => (explanations[tag] ?? '').trim();
 
     const hasNiche =
         nicheId === NEW_NICHE ? newNiche.trim() !== '' : nicheId !== '';
     const basicsReady = name.trim() !== '' && hasNiche;
-    const ready =
-        basicsReady &&
-        !saving &&
-        (editing ||
-            !withFirstMail ||
-            (subject.trim() !== '' && body.trim() !== ''));
+    const mailsReady =
+        mails.every(
+            (mail) => mail.subject.trim() !== '' && mail.body.trim() !== '',
+        ) && custom.every((tag) => explanationFor(tag) !== '');
+    const ready = basicsReady && !saving && (editing || mailsReady);
 
     const reset = () => {
         const values = valuesFrom(offer);
@@ -107,9 +137,20 @@ export function OfferDialog({
         setNicheId(values.nicheId);
         setNewNiche('');
         setDescription(values.description);
-        setWithFirstMail(true);
-        setSubject(FIRST_SUBJECT);
-        setBody(FIRST_BODY);
+        setMails([firstMail()]);
+        setExplanations({});
+    };
+
+    const changeMail = (index: number, patch: Partial<Draft>) => {
+        setMails((current) =>
+            current.map((mail, i) =>
+                i === index ? { ...mail, ...patch } : mail,
+            ),
+        );
+    };
+
+    const removeMail = (index: number) => {
+        setMails((current) => current.filter((_, i) => i !== index));
     };
 
     const submit = (event: SubmitEvent<HTMLFormElement>) => {
@@ -140,9 +181,18 @@ export function OfferDialog({
         } else {
             router.post(
                 store.url(),
-                withFirstMail
-                    ? { ...basics, first_step: { subject, body } }
-                    : basics,
+                {
+                    ...basics,
+                    steps: mails.map((mail, index) => ({
+                        subject: mail.subject,
+                        body: mail.body,
+                        days_after_previous:
+                            index === 0 ? 0 : mail.days_after_previous,
+                    })),
+                    placeholders: Object.fromEntries(
+                        custom.map((tag) => [tag, explanationFor(tag)]),
+                    ),
+                },
                 options,
             );
         }
@@ -158,6 +208,11 @@ export function OfferDialog({
         }
     };
 
+    const submitLabel =
+        mails.length === 0
+            ? 'Add offer'
+            : `Add offer and ${mails.length} ${mails.length === 1 ? 'mail' : 'mails'}`;
+
     return (
         <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
@@ -172,8 +227,11 @@ export function OfferDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-                <form onSubmit={submit} className="flex flex-col gap-5">
+            <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-xl">
+                <form
+                    onSubmit={submit}
+                    className="flex min-h-0 flex-1 flex-col gap-5"
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {editing ? 'Edit offer' : 'New offer'}
@@ -193,142 +251,265 @@ export function OfferDialog({
                         />
                     )}
 
-                    {editing || step === 0 ? (
-                        <div className="grid gap-4">
-                            <Field label="Name" icon={Tag} htmlFor="offer-name">
-                                <Input
-                                    id="offer-name"
-                                    value={name}
-                                    onChange={(event) => setName(event.target.value)}
-                                    placeholder="Nieuwe website in 2 weken"
-                                    autoFocus
-                                />
-                                <InputError message={errors.name} />
-                            </Field>
-
-                            <Field label="Niche" icon={Target} htmlFor="offer-niche">
-                                {nicheId === NEW_NICHE ? (
-                                    <div className="flex gap-1.5">
-                                        <Input
-                                            id="offer-niche"
-                                            value={newNiche}
-                                            onChange={(event) =>
-                                                setNewNiche(event.target.value)
-                                            }
-                                            placeholder="Name of the new niche"
-                                            autoFocus
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="shrink-0 text-muted-foreground"
-                                            aria-label="Pick an existing niche instead"
-                                            onClick={() => {
-                                                setNicheId('');
-                                                setNewNiche('');
-                                            }}
-                                        >
-                                            <X />
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <Select value={nicheId} onValueChange={setNicheId}>
-                                        <SelectTrigger id="offer-niche" className="w-full">
-                                            <SelectValue placeholder="Pick a niche" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {nicheOptions.map((niche) => (
-                                                <SelectItem
-                                                    key={niche.id}
-                                                    value={String(niche.id)}
-                                                >
-                                                    {niche.name}
-                                                </SelectItem>
-                                            ))}
-                                            <SelectSeparator />
-                                            <SelectItem value={NEW_NICHE}>
-                                                <Plus className="size-4" />
-                                                New niche…
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                                <InputError message={errors.niche_id ?? errors.new_niche} />
-                            </Field>
-
-                            <Field
-                                label="Description"
-                                icon={FileText}
-                                htmlFor="offer-description"
-                            >
-                                <textarea
-                                    id="offer-description"
-                                    value={description}
-                                    onChange={(event) =>
-                                        setDescription(event.target.value)
-                                    }
-                                    placeholder="What it is, for whom, and the price."
-                                    className={cn(textareaClassName, 'min-h-16')}
-                                />
-                                <InputError message={errors.description} />
-                            </Field>
-
-                        </div>
-                    ) : (
-                        <div className="grid gap-4">
-                            {/* The first mail is optional here; without one the offer is an idea, not something you can send. */}
-                            <div className="flex flex-col gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-3 shadow-(--raised-shadow)">
-                                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={withFirstMail}
+                    {/* The body scrolls on its own, so the header and footer stay where they are. */}
+                    <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+                        {editing || step === 0 ? (
+                            <div className="grid gap-4">
+                                <Field
+                                    label="Name"
+                                    icon={Tag}
+                                    htmlFor="offer-name"
+                                >
+                                    <Input
+                                        id="offer-name"
+                                        value={name}
                                         onChange={(event) =>
-                                            setWithFirstMail(event.target.checked)
+                                            setName(event.target.value)
                                         }
-                                        className="size-4 accent-violet-500"
+                                        placeholder="Nieuwe website in 2 weken"
+                                        autoFocus
                                     />
-                                    <Mail className="size-4 shrink-0 text-muted-foreground" />
-                                    Write the first mail now
-                                    <span className="ml-auto text-xs text-muted-foreground">
-                                        step 1
-                                    </span>
-                                </label>
+                                    <InputError message={errors.name} />
+                                </Field>
 
-                                {withFirstMail && (
-                                    <div className="grid gap-3">
-                                        <Input
-                                            value={subject}
-                                            onChange={(event) =>
-                                                setSubject(event.target.value)
-                                            }
-                                            placeholder="Subject"
-                                            aria-label="Subject"
-                                            className="bg-background"
-                                        />
-                                        <InputError message={errors['first_step.subject']} />
-                                        <textarea
-                                            value={body}
-                                            onChange={(event) => setBody(event.target.value)}
-                                            aria-label="Body"
-                                            className={cn(
-                                                textareaClassName,
-                                                'bg-background font-mono text-xs',
-                                            )}
-                                        />
-                                        <InputError message={errors['first_step.body']} />
-                                        <p className="text-xs text-muted-foreground">
-                                            Placeholders:{' '}
-                                            <Placeholder>hook</Placeholder>,{' '}
-                                            <Placeholder>hook_subject</Placeholder> and{' '}
-                                            <Placeholder>company</Placeholder> are filled
-                                            per lead.
+                                <Field
+                                    label="Niche"
+                                    icon={Target}
+                                    htmlFor="offer-niche"
+                                >
+                                    {nicheId === NEW_NICHE ? (
+                                        <div className="flex gap-1.5">
+                                            <Input
+                                                id="offer-niche"
+                                                value={newNiche}
+                                                onChange={(event) =>
+                                                    setNewNiche(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder="Name of the new niche"
+                                                autoFocus
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="shrink-0 text-muted-foreground"
+                                                aria-label="Pick an existing niche instead"
+                                                onClick={() => {
+                                                    setNicheId('');
+                                                    setNewNiche('');
+                                                }}
+                                            >
+                                                <X />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Select
+                                            value={nicheId}
+                                            onValueChange={setNicheId}
+                                        >
+                                            <SelectTrigger
+                                                id="offer-niche"
+                                                className="w-full"
+                                            >
+                                                <SelectValue placeholder="Pick a niche" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {nicheOptions.map((niche) => (
+                                                    <SelectItem
+                                                        key={niche.id}
+                                                        value={String(niche.id)}
+                                                    >
+                                                        {niche.name}
+                                                    </SelectItem>
+                                                ))}
+                                                <SelectSeparator />
+                                                <SelectItem value={NEW_NICHE}>
+                                                    <Plus className="size-4" />
+                                                    New niche…
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                    <InputError
+                                        message={
+                                            errors.niche_id ?? errors.new_niche
+                                        }
+                                    />
+                                </Field>
+
+                                <Field
+                                    label="Description"
+                                    icon={FileText}
+                                    htmlFor="offer-description"
+                                >
+                                    <textarea
+                                        id="offer-description"
+                                        value={description}
+                                        onChange={(event) =>
+                                            setDescription(event.target.value)
+                                        }
+                                        placeholder="What it is, for whom, and the price."
+                                        className={cn(
+                                            textareaClassName,
+                                            'min-h-16',
+                                        )}
+                                    />
+                                    <InputError message={errors.description} />
+                                </Field>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {mails.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Without a mail the offer is an idea.
+                                    </p>
+                                ) : (
+                                    <ol className="grid gap-3">
+                                        {mails.map((mail, index) => (
+                                            <MailCard
+                                                key={index}
+                                                index={index}
+                                                mail={mail}
+                                                errors={{
+                                                    subject:
+                                                        errors[
+                                                            `steps.${index}.subject`
+                                                        ],
+                                                    body: errors[
+                                                        `steps.${index}.body`
+                                                    ],
+                                                    days: errors[
+                                                        `steps.${index}.days_after_previous`
+                                                    ],
+                                                }}
+                                                removable={
+                                                    index > 0 ||
+                                                    mails.length === 1
+                                                }
+                                                onChange={(patch) =>
+                                                    changeMail(index, patch)
+                                                }
+                                                onRemove={() =>
+                                                    removeMail(index)
+                                                }
+                                            />
+                                        ))}
+                                    </ol>
+                                )}
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="justify-self-start"
+                                    onClick={() =>
+                                        setMails((current) => [
+                                            ...current,
+                                            current.length === 0
+                                                ? firstMail()
+                                                : followUp(),
+                                        ])
+                                    }
+                                >
+                                    <Plus />
+                                    {mails.length === 0
+                                        ? 'Add mail'
+                                        : 'Add follow-up'}
+                                </Button>
+
+                                {tags.length > 0 && (
+                                    <div className="grid gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-3 shadow-(--raised-shadow)">
+                                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <Sparkles className="size-3.5 shrink-0" />
+                                            Tags
                                         </p>
+
+                                        {builtIn.length > 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                {builtIn.map((tag, index) => (
+                                                    <span key={tag}>
+                                                        {index > 0 && ', '}
+                                                        <Placeholder>
+                                                            {tag}
+                                                        </Placeholder>
+                                                    </span>
+                                                ))}{' '}
+                                                {builtIn.length === 1
+                                                    ? 'is'
+                                                    : 'are'}{' '}
+                                                filled from the lead.
+                                            </p>
+                                        )}
+
+                                        {custom.length > 0 && (
+                                            <div className="grid gap-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Custom tags are filled by
+                                                    the AI per lead; the
+                                                    explanation tells it what to
+                                                    write.
+                                                </p>
+                                                {custom.map((tag) => (
+                                                    <div
+                                                        key={tag}
+                                                        className="grid gap-1.5"
+                                                    >
+                                                        <Label
+                                                            htmlFor={`offer-tag-${tag}`}
+                                                            className="text-xs text-muted-foreground"
+                                                        >
+                                                            What should{' '}
+                                                            <Placeholder>
+                                                                {tag}
+                                                            </Placeholder>{' '}
+                                                            say?
+                                                        </Label>
+                                                        <Input
+                                                            id={`offer-tag-${tag}`}
+                                                            value={
+                                                                explanations[
+                                                                    tag
+                                                                ] ?? ''
+                                                            }
+                                                            onChange={(event) =>
+                                                                setExplanations(
+                                                                    (
+                                                                        current,
+                                                                    ) => ({
+                                                                        ...current,
+                                                                        [tag]: event
+                                                                            .target
+                                                                            .value,
+                                                                    }),
+                                                                )
+                                                            }
+                                                            placeholder="One sentence about something specific on their site"
+                                                            className="bg-background"
+                                                        />
+                                                        <InputError
+                                                            message={
+                                                                errors[
+                                                                    `placeholders.${tag}`
+                                                                ]
+                                                            }
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
+
+                                <InputError
+                                    message={
+                                        errors.steps ?? errors.placeholders
+                                    }
+                                />
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     <DialogFooter>
                         {editing ? (
@@ -341,7 +522,11 @@ export function OfferDialog({
                                 >
                                     Cancel
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready}>
+                                <Button
+                                    key="submit"
+                                    type="submit"
+                                    disabled={!ready}
+                                >
                                     <Check />
                                     Save
                                 </Button>
@@ -377,9 +562,13 @@ export function OfferDialog({
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready}>
+                                <Button
+                                    key="submit"
+                                    type="submit"
+                                    disabled={!ready}
+                                >
                                     <Plus />
-                                    {withFirstMail ? 'Add offer and mail' : 'Add offer'}
+                                    {submitLabel}
                                 </Button>
                             </>
                         )}
@@ -387,6 +576,87 @@ export function OfferDialog({
                 </form>
             </DialogContent>
         </Dialog>
+    );
+}
+
+/** One mail in the sequence: its subject and body, plus the wait for follow-ups. */
+function MailCard({
+    index,
+    mail,
+    errors,
+    removable,
+    onChange,
+    onRemove,
+}: {
+    index: number;
+    mail: Draft;
+    errors: { subject?: string; body?: string; days?: string };
+    removable: boolean;
+    onChange: (patch: Partial<Draft>) => void;
+    onRemove: () => void;
+}) {
+    const isFirst = index === 0;
+
+    return (
+        <li className="flex flex-col gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-3 shadow-(--raised-shadow)">
+            <div className="flex items-center gap-2 text-sm">
+                <Mail className="size-4 shrink-0 text-muted-foreground" />
+                <span className="font-medium">Mail {index + 1}</span>
+                {!isFirst && (
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span aria-hidden>·</span>
+                        <Clock className="size-3.5 shrink-0" />
+                        <Input
+                            type="number"
+                            min={1}
+                            max={60}
+                            value={mail.days_after_previous}
+                            onChange={(event) =>
+                                onChange({
+                                    days_after_previous: Number(
+                                        event.target.value,
+                                    ),
+                                })
+                            }
+                            className="h-7 w-14 bg-background"
+                            aria-label="Days after the previous mail"
+                        />
+                        days after the previous
+                    </label>
+                )}
+                {removable && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="ml-auto size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                        aria-label={`Remove mail ${index + 1}`}
+                        onClick={onRemove}
+                    >
+                        <Trash2 />
+                    </Button>
+                )}
+            </div>
+            <InputError message={errors.days} />
+            <Input
+                value={mail.subject}
+                onChange={(event) => onChange({ subject: event.target.value })}
+                placeholder="Subject"
+                aria-label={`Subject of mail ${index + 1}`}
+                className="bg-background"
+            />
+            <InputError message={errors.subject} />
+            <textarea
+                value={mail.body}
+                onChange={(event) => onChange({ body: event.target.value })}
+                aria-label={`Body of mail ${index + 1}`}
+                className={cn(
+                    textareaClassName,
+                    'bg-background font-mono text-xs',
+                )}
+            />
+            <InputError message={errors.body} />
+        </li>
     );
 }
 

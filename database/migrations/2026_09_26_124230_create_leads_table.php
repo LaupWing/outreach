@@ -26,6 +26,8 @@ return new class extends Migration
             $table->string('source');
             $table->text('hook')->nullable();
             $table->json('signals')->nullable();
+            // Values for the {{tags}} in the offer's mails, filled by the AI or typed by hand.
+            $table->json('facts')->nullable();
             $table->timestamp('last_contact_at')->nullable();
             $table->timestamp('next_action_at')->nullable();
             $table->timestamps();

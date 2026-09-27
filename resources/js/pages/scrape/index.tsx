@@ -21,8 +21,14 @@ export default function ScrapeIndex() {
     const { runs, niches, leads, usage } = usePage<PageProps>().props;
 
     // While a run works on the queue, refresh the counts every few seconds; idle otherwise.
-    const busy = runs.some((run) => run.status === 'queued' || run.status === 'running');
-    const { start, stop } = usePoll(3000, { only: ['runs', 'leads', 'usage'] }, { autoStart: false });
+    const busy = runs.some(
+        (run) => run.status === 'queued' || run.status === 'running',
+    );
+    const { start, stop } = usePoll(
+        3000,
+        { only: ['runs', 'leads', 'usage'] },
+        { autoStart: false },
+    );
 
     useEffect(() => {
         if (busy) {
@@ -86,10 +92,14 @@ export default function ScrapeIndex() {
                 </div>
                 <ScrapeRunPanel
                     run={panelRun}
-                    niche={niches.find((niche) => niche.id === panelRun?.niche_id)}
+                    niche={niches.find(
+                        (niche) => niche.id === panelRun?.niche_id,
+                    )}
                     niches={niches}
                     usage={usage}
-                    leads={leads.filter((lead) => lead.scrape_run_id === panelRun?.id)}
+                    leads={leads.filter(
+                        (lead) => lead.scrape_run_id === panelRun?.id,
+                    )}
                     open={selected !== null}
                     onClose={() => setSelected(null)}
                 />

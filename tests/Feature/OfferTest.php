@@ -40,7 +40,7 @@ test('the offers page renders the offers with their steps and what the counts de
                 ->hasAll(['id', 'days_after_previous', 'subject', 'body'])));
 });
 
-test('an offer can be added to an existing niche with its first mail', function () {
+test('an offer can be added to an existing niche with its whole sequence and tag explanations', function () {
     $niche = Niche::factory()->create();
 
     $this->actingAs($this->user)
@@ -49,7 +49,11 @@ test('an offer can be added to an existing niche with its first mail', function 
             'name' => 'Nieuwe website in 2 weken',
             'niche_id' => $niche->id,
             'description' => 'A site, fast.',
-            'first_step' => ['subject' => '{{hook_subject}}', 'body' => 'Hoi,\n\n{{hook}}'],
+            'steps' => [
+                ['subject' => '{{hook_subject}}', 'body' => "Hoi {{first_name}},\n\n{{compliment}} {{hook}}"],
+                ['subject' => 'Re: {{hook_subject}}', 'body' => 'Nog even hierop terugkomen.', 'days_after_previous' => 4],
+            ],
+            'placeholders' => ['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.', 'hook' => ''],
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('offers.index'));
@@ -58,9 +62,27 @@ test('an offer can be added to an existing niche with its first mail', function 
 
     expect($offer->niche_id)->toBe($niche->id)
         ->and($offer->status)->toBe(OfferStatus::Idea)
-        ->and($offer->steps)->toHaveCount(1)
-        ->and($offer->steps->first()->step)->toBe(1)
+        ->and($offer->placeholders)->toBe(['first_name' => 'Owner first name', 'compliment' => 'One honest sentence.'])
+        ->and($offer->steps)->toHaveCount(2)
+        ->and($offer->steps->pluck('step')->all())->toBe([1, 2])
+        ->and($offer->steps->pluck('days_after_previous')->all())->toBe([0, 4])
         ->and($offer->steps->first()->subject)->toBe('{{hook_subject}}');
+});
+
+test('a custom tag in the mails needs an explanation; built-ins do not', function () {
+    $niche = Niche::factory()->create();
+
+    $this->actingAs($this->user)
+        ->post(route('offers.store'), [
+            'name' => 'Nieuwe website',
+            'niche_id' => $niche->id,
+            'steps' => [['subject' => '{{hook_subject}}', 'body' => 'Hoi, {{compliment}} {{company}}']],
+            'placeholders' => ['compliment' => '  '],
+        ])
+        ->assertSessionHasErrors(['placeholders.compliment'])
+        ->assertSessionDoesntHaveErrors(['placeholders.company', 'placeholders.hook_subject']);
+
+    expect(Offer::query()->count())->toBe(0);
 });
 
 test('an offer can be added to a new niche without a first mail', function () {

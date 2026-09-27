@@ -63,7 +63,13 @@ type Filters = {
     city: string[];
 };
 
-const filterKeys: (keyof Filters)[] = ['status', 'source', 'niche', 'offer', 'city'];
+const filterKeys: (keyof Filters)[] = [
+    'status',
+    'source',
+    'niche',
+    'offer',
+    'city',
+];
 
 const statusOptions: FilterOption[] = (
     Object.keys(leadStatuses) as LeadStatus[]
@@ -80,28 +86,59 @@ const iconClassName = 'size-3.5 text-muted-foreground';
 /** Reads `status[]=a&status[]=b` style parameters back into arrays. */
 function filtersFromUrl(url: string): Filters {
     const params = new URLSearchParams(url.split('?')[1] ?? '');
-    const list = (key: string) => [...params.getAll(`${key}[]`), ...params.getAll(key)];
+    const list = (key: string) => [
+        ...params.getAll(`${key}[]`),
+        ...params.getAll(key),
+    ];
 
-    return Object.fromEntries(filterKeys.map((key) => [key, list(key)])) as Filters;
+    return Object.fromEntries(
+        filterKeys.map((key) => [key, list(key)]),
+    ) as Filters;
 }
 
 export default function LeadsIndex() {
     const { url, props } = usePage<PageProps>();
-    const { leads, total, linked, thread, niches, offers, cities, mailboxes, steps, run } = props;
+    const {
+        leads,
+        total,
+        linked,
+        thread,
+        niches,
+        offers,
+        cities,
+        mailboxes,
+        steps,
+        run,
+    } = props;
 
     const params = new URLSearchParams(url.split('?')[1] ?? '');
     const linkedId = params.get('lead');
     const filters = filtersFromUrl(url);
 
-    const nicheOptions: FilterOption[] = niches.map((niche) => ({ value: String(niche.id), label: niche.name }));
-    const offerOptions: FilterOption[] = offers.map((offer) => ({ value: String(offer.id), label: offer.name }));
-    const cityOptions: FilterOption[] = cities.map((city) => ({ value: city, label: city }));
+    const nicheOptions: FilterOption[] = niches.map((niche) => ({
+        value: String(niche.id),
+        label: niche.name,
+    }));
+    const offerOptions: FilterOption[] = offers.map((offer) => ({
+        value: String(offer.id),
+        label: offer.name,
+    }));
+    const cityOptions: FilterOption[] = cities.map((city) => ({
+        value: city,
+        label: city,
+    }));
 
-    const [selectedId, setSelectedId] = useState<number | null>(linked?.id ?? null);
+    const [selectedId, setSelectedId] = useState<number | null>(
+        linked?.id ?? null,
+    );
     // Keeps the last lead while the panel slides shut.
     const [panelLead, setPanelLead] = useState<LeadRow | null>(linked);
     const compact = selectedId !== null;
-    const hiddenActive = filters.niche.length + filters.offer.length + filters.city.length + filters.source.length;
+    const hiddenActive =
+        filters.niche.length +
+        filters.offer.length +
+        filters.city.length +
+        filters.source.length;
 
     // Same page, new ?lead: the component stays mounted, so follow the link by hand.
     useEffect(() => {
@@ -114,12 +151,19 @@ export default function LeadsIndex() {
     // After a save the props come back fresh; the panel shows the new copy of its lead.
     useEffect(() => {
         setPanelLead((current) =>
-            current ? (leads.data.find((lead) => lead.id === current.id) ?? linked ?? current) : current,
+            current
+                ? (leads.data.find((lead) => lead.id === current.id) ??
+                  linked ??
+                  current)
+                : current,
         );
     }, [leads, linked]);
 
     // Every filter change asks the server for page one again, keeping the open lead and run.
-    const visit = (next: Partial<Filters>, extra: Record<string, string | number | null> = {}) => {
+    const visit = (
+        next: Partial<Filters>,
+        extra: Record<string, string | number | null> = {},
+    ) => {
         router.get(
             leadsIndex().url,
             {
@@ -129,7 +173,13 @@ export default function LeadsIndex() {
                 lead: selectedId,
                 ...extra,
             },
-            { only: ['leads', 'total', 'linked', 'thread'], reset: ['leads'], preserveState: true, preserveScroll: true, replace: true },
+            {
+                only: ['leads', 'total', 'linked', 'thread'],
+                reset: ['leads'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
         );
     };
 
@@ -140,16 +190,48 @@ export default function LeadsIndex() {
         router.get(
             leadsIndex().url,
             { ...filters, run: run?.id ?? null, lead: lead.id },
-            { only: ['thread', 'linked'], preserveState: true, preserveScroll: true, replace: true },
+            {
+                only: ['thread', 'linked'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
         );
     };
 
     const moreFilters = (
         <>
-            <FilterCombobox label="Niche" icon={<Target className={iconClassName} />} options={nicheOptions} selected={filters.niche} onChange={(niche) => visit({ niche })} searchPlaceholder="Search niches…" />
-            <FilterCombobox label="Offer" icon={<Tag className={iconClassName} />} options={offerOptions} selected={filters.offer} onChange={(offer) => visit({ offer })} searchPlaceholder="Search offers…" />
-            <FilterCombobox label="City" icon={<MapPin className={iconClassName} />} options={cityOptions} selected={filters.city} onChange={(city) => visit({ city })} searchPlaceholder="Search cities…" />
-            <FilterMenu label="Source" icon={<Database className={iconClassName} />} options={sourceOptions} selected={filters.source} onChange={(source) => visit({ source })} />
+            <FilterCombobox
+                label="Niche"
+                icon={<Target className={iconClassName} />}
+                options={nicheOptions}
+                selected={filters.niche}
+                onChange={(niche) => visit({ niche })}
+                searchPlaceholder="Search niches…"
+            />
+            <FilterCombobox
+                label="Offer"
+                icon={<Tag className={iconClassName} />}
+                options={offerOptions}
+                selected={filters.offer}
+                onChange={(offer) => visit({ offer })}
+                searchPlaceholder="Search offers…"
+            />
+            <FilterCombobox
+                label="City"
+                icon={<MapPin className={iconClassName} />}
+                options={cityOptions}
+                selected={filters.city}
+                onChange={(city) => visit({ city })}
+                searchPlaceholder="Search cities…"
+            />
+            <FilterMenu
+                label="Source"
+                icon={<Database className={iconClassName} />}
+                options={sourceOptions}
+                selected={filters.source}
+                onChange={(source) => visit({ source })}
+            />
         </>
     );
 
@@ -160,7 +242,10 @@ export default function LeadsIndex() {
             {/* The panel spans the filter bar and the table, like the card in the reference. */}
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div data-keeps-panel className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4">
+                    <div
+                        data-keeps-panel
+                        className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-4"
+                    >
                         <span className="mr-1 flex shrink-0 items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
                             <SlidersHorizontal className="size-4" />
                             Filters:
@@ -172,12 +257,20 @@ export default function LeadsIndex() {
                                 aria-label="Show all leads"
                             >
                                 <Radar className="size-3.5 text-muted-foreground" />
-                                <span className="text-muted-foreground">Scrape</span>
+                                <span className="text-muted-foreground">
+                                    Scrape
+                                </span>
                                 {run.query} in {run.place}
                                 <X className="size-3.5 text-muted-foreground" />
                             </Link>
                         )}
-                        <FilterMenu label="Status" icon={<Tag className={iconClassName} />} options={statusOptions} selected={filters.status} onChange={(status) => visit({ status })} />
+                        <FilterMenu
+                            label="Status"
+                            icon={<Tag className={iconClassName} />}
+                            options={statusOptions}
+                            selected={filters.status}
+                            onChange={(status) => visit({ status })}
+                        />
                         {/* With the panel open there is no room for four filters: the rest live in a popover. */}
                         {compact ? (
                             <Popover>
@@ -195,7 +288,10 @@ export default function LeadsIndex() {
                                         )}
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent align="start" className="flex w-auto flex-col gap-2 p-2">
+                                <PopoverContent
+                                    align="start"
+                                    className="flex w-auto flex-col gap-2 p-2"
+                                >
                                     {moreFilters}
                                 </PopoverContent>
                             </Popover>
@@ -213,9 +309,17 @@ export default function LeadsIndex() {
                     />
                 </div>
                 <LeadPanel
-                    lead={panelLead ? { ...panelLead, notes: thread?.notes ?? [] } : null}
-                    niche={niches.find((niche) => niche.id === panelLead?.niche_id)}
-                    offer={offers.find((offer) => offer.id === panelLead?.offer_id)}
+                    lead={
+                        panelLead
+                            ? { ...panelLead, notes: thread?.notes ?? [] }
+                            : null
+                    }
+                    niche={niches.find(
+                        (niche) => niche.id === panelLead?.niche_id,
+                    )}
+                    offer={offers.find(
+                        (offer) => offer.id === panelLead?.offer_id,
+                    )}
                     niches={niches}
                     offers={offers}
                     messages={thread?.messages ?? []}

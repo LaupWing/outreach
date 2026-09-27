@@ -143,7 +143,9 @@ export function MailboxesTable({
                                         {mailboxTypes[mailbox.type]}
                                     </Cell>
                                     <Cell>
-                                        <MailboxStatusBadge status={mailbox.status} />
+                                        <MailboxStatusBadge
+                                            status={mailbox.status}
+                                        />
                                     </Cell>
                                     <Cell>
                                         {/* Sent against the daily limit; the sender picks a box with room left. */}
@@ -158,7 +160,9 @@ export function MailboxesTable({
                                                               ? 'bg-amber-500'
                                                               : 'lava',
                                                     )}
-                                                    style={{ width: `${share * 100}%` }}
+                                                    style={{
+                                                        width: `${share * 100}%`,
+                                                    }}
                                                 />
                                             </span>
                                             <span className="tabular-nums">
@@ -174,7 +178,10 @@ export function MailboxesTable({
                                         {count.sent}
                                     </Cell>
                                     <Cell className="tabular-nums">
-                                        <Rate count={count.replied} sent={count.sent} />
+                                        <Rate
+                                            count={count.replied}
+                                            sent={count.sent}
+                                        />
                                     </Cell>
                                     <Cell className="tabular-nums">
                                         <Rate
@@ -193,11 +200,17 @@ export function MailboxesTable({
             <div className="flex h-14 shrink-0 items-center gap-6 border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground tabular-nums">
                 <span>Total: {mailboxes.length} mailboxes</span>
                 <span>
-                    {mailboxes.reduce((sum, mailbox) => sum + mailbox.sent_today, 0)}{' '}
+                    {mailboxes.reduce(
+                        (sum, mailbox) => sum + mailbox.sent_today,
+                        0,
+                    )}{' '}
                     of{' '}
                     {mailboxes
                         .filter((mailbox) => mailbox.status !== 'paused')
-                        .reduce((sum, mailbox) => sum + mailbox.daily_limit, 0)}{' '}
+                        .reduce(
+                            (sum, mailbox) => sum + mailbox.daily_limit,
+                            0,
+                        )}{' '}
                     sent today
                 </span>
             </div>

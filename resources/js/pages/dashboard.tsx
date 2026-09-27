@@ -18,11 +18,24 @@ import { index as mailboxesIndex } from '@/routes/mailboxes';
 import { index as nichesIndex } from '@/routes/niches';
 import { index as offersIndex } from '@/routes/offers';
 import { index as scrapeIndex } from '@/routes/scrape';
-import type { Lead, Mailbox, Message, Niche, Offer, PlacesUsage } from '@/types';
+import type {
+    Lead,
+    Mailbox,
+    Message,
+    Niche,
+    Offer,
+    PlacesUsage,
+} from '@/types';
 
 type PageProps = {
-    leads: Pick<Lead, 'id' | 'niche_id' | 'offer_id' | 'status' | 'next_action_at'>[];
-    messages: Pick<Message, 'id' | 'lead_id' | 'mailbox_id' | 'status' | 'sent_at' | 'reply'>[];
+    leads: Pick<
+        Lead,
+        'id' | 'niche_id' | 'offer_id' | 'status' | 'next_action_at'
+    >[];
+    messages: Pick<
+        Message,
+        'id' | 'lead_id' | 'mailbox_id' | 'status' | 'sent_at' | 'reply'
+    >[];
     mailboxes: Mailbox[];
     niches: Pick<Niche, 'id' | 'name'>[];
     offers: Pick<Offer, 'id' | 'name'>[];
@@ -37,21 +50,29 @@ export default function Dashboard() {
     const sent = messages.filter((message) => message.sent_at !== null);
     const emailedLeadIds = new Set(sent.map((message) => message.lead_id));
     const repliedLeadIds = new Set(
-        sent.filter((message) => message.reply).map((message) => message.lead_id),
+        sent
+            .filter((message) => message.reply)
+            .map((message) => message.lead_id),
     );
 
     const emailed = emailedLeadIds.size;
     const replied = repliedLeadIds.size;
-    const responseRate = emailed > 0 ? Math.round((replied / emailed) * 100) : null;
+    const responseRate =
+        emailed > 0 ? Math.round((replied / emailed) * 100) : null;
     const customers = leads.filter((lead) => lead.status === 'customer').length;
 
     // The inbox's three queues, counted here so Home can say what waits on you.
     const replies = leads.filter((lead) => lead.status === 'replied').length;
     // Due is compared against now on the server; the other two are plain status counts.
     const due = props.due;
-    const bounces = leads.filter((lead) => lead.status === 'undeliverable').length;
+    const bounces = leads.filter(
+        (lead) => lead.status === 'undeliverable',
+    ).length;
 
-    const sentToday = mailboxes.reduce((sum, mailbox) => sum + mailbox.sent_today, 0);
+    const sentToday = mailboxes.reduce(
+        (sum, mailbox) => sum + mailbox.sent_today,
+        0,
+    );
     const roomToday = mailboxes
         .filter((mailbox) => mailbox.status !== 'paused')
         .reduce((sum, mailbox) => sum + mailbox.daily_limit, 0);
@@ -67,7 +88,9 @@ export default function Dashboard() {
         name: offer.name,
         href: offersIndex({ query: { offer: offer.id } }),
         ...byLeads(
-            leads.filter((lead) => lead.offer_id === offer.id).map((lead) => lead.id),
+            leads
+                .filter((lead) => lead.offer_id === offer.id)
+                .map((lead) => lead.id),
         ),
     }));
 
@@ -76,13 +99,17 @@ export default function Dashboard() {
         name: niche.name,
         href: nichesIndex({ query: { niche: niche.id } }),
         ...byLeads(
-            leads.filter((lead) => lead.niche_id === niche.id).map((lead) => lead.id),
+            leads
+                .filter((lead) => lead.niche_id === niche.id)
+                .map((lead) => lead.id),
         ),
     }));
 
     const mailboxRows: RateRow[] = mailboxes.map((mailbox) => {
         const own = sent.filter((message) => message.mailbox_id === mailbox.id);
-        const bounced = own.filter((message) => message.status === 'bounced').length;
+        const bounced = own.filter(
+            (message) => message.status === 'bounced',
+        ).length;
 
         return {
             id: mailbox.id,
@@ -128,7 +155,8 @@ export default function Dashboard() {
                                     <CalendarClock className="size-3" /> {due}
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <AlertTriangle className="size-3" /> {bounces}
+                                    <AlertTriangle className="size-3" />{' '}
+                                    {bounces}
                                 </span>
                             </span>
                         </span>
@@ -151,7 +179,11 @@ export default function Dashboard() {
                             <span className="text-sm">Sent today</span>
                             <span className="text-xs text-muted-foreground">
                                 across{' '}
-                                {mailboxes.filter((m) => m.status !== 'paused').length}{' '}
+                                {
+                                    mailboxes.filter(
+                                        (m) => m.status !== 'paused',
+                                    ).length
+                                }{' '}
                                 mailboxes
                             </span>
                         </span>
@@ -167,10 +199,15 @@ export default function Dashboard() {
                             {usage.free_limit - usage.used}
                         </span>
                         <span className="flex min-w-0 flex-1 flex-col">
-                            <span className="text-sm">Free scrape requests left</span>
+                            <span className="text-sm">
+                                Free scrape requests left
+                            </span>
                             <span className="text-xs text-muted-foreground">
                                 about{' '}
-                                {((usage.free_limit - usage.used) * 20).toLocaleString('en-GB')}{' '}
+                                {(
+                                    (usage.free_limit - usage.used) *
+                                    20
+                                ).toLocaleString('en-GB')}{' '}
                                 businesses this month
                             </span>
                         </span>
@@ -184,7 +221,11 @@ export default function Dashboard() {
                         title="Response rate"
                         value={responseRate === null ? '—' : `${responseRate}%`}
                         grade={gradeRate(responseRate)}
-                        tone={responseRate !== null && responseRate >= 15 ? 'good' : 'plain'}
+                        tone={
+                            responseRate !== null && responseRate >= 15
+                                ? 'good'
+                                : 'plain'
+                        }
                         description="Share of emailed leads that wrote back, across every offer."
                     />
                     <StatCard
@@ -211,14 +252,30 @@ export default function Dashboard() {
 
                 {/* Per offer, per niche, per mailbox: the three cuts the briefing asks for. */}
                 <div className="grid gap-4 xl:grid-cols-3">
-                    <RateList title="Response per offer" icon={Tag} rows={offerRows} href={offersIndex()} />
-                    <RateList title="Response per niche" icon={Target} rows={nicheRows} href={nichesIndex()} />
-                    <RateList title="Response per mailbox" icon={MailboxIcon} rows={mailboxRows} href={mailboxesIndex()} />
+                    <RateList
+                        title="Response per offer"
+                        icon={Tag}
+                        rows={offerRows}
+                        href={offersIndex()}
+                    />
+                    <RateList
+                        title="Response per niche"
+                        icon={Target}
+                        rows={nicheRows}
+                        href={nichesIndex()}
+                    />
+                    <RateList
+                        title="Response per mailbox"
+                        icon={MailboxIcon}
+                        rows={mailboxRows}
+                        href={mailboxesIndex()}
+                    />
                 </div>
 
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Radar className="size-3.5" />
-                    Response is counted on leads: one reply per lead, however many steps it took.
+                    Response is counted on leads: one reply per lead, however
+                    many steps it took.
                 </p>
             </div>
         </>

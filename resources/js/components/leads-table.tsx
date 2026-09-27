@@ -90,85 +90,88 @@ export function LeadsTable({
                         </div>
                     )}
                 >
-                <table className="w-full min-w-[1500px] table-fixed border-separate border-spacing-0">
-                    <thead>
-                        <tr>
-                            {columns.map((column) => (
-                                <th
-                                    key={column.title}
-                                    scope="col"
-                                    className={cn(
-                                        'sticky top-0 z-10 h-11 border-r border-b border-border bg-background px-4 text-left text-sm font-normal text-muted-foreground last:border-r-0',
-                                        column.className,
-                                    )}
-                                >
-                                    <span className="flex items-center gap-2 whitespace-nowrap">
-                                        <column.icon className="size-4 shrink-0" />
-                                        {column.title}
-                                    </span>
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody ref={body} data-keeps-panel>
-                        {leads.map((lead) => (
-                            <tr
-                                key={lead.id}
-                                onClick={() => onSelect(lead)}
-                                aria-selected={lead.id === selectedId}
-                                className="cursor-pointer transition-colors hover:bg-accent/60 aria-selected:bg-accent"
-                            >
-                                <Cell>
-                                    <span className="flex items-center gap-2.5">
-                                        <CompanyAvatar name={lead.company} />
-                                        <span className="truncate font-medium">
-                                            {lead.company}
+                    <table className="w-full min-w-[1500px] table-fixed border-separate border-spacing-0">
+                        <thead>
+                            <tr>
+                                {columns.map((column) => (
+                                    <th
+                                        key={column.title}
+                                        scope="col"
+                                        className={cn(
+                                            'sticky top-0 z-10 h-11 border-r border-b border-border bg-background px-4 text-left text-sm font-normal text-muted-foreground last:border-r-0',
+                                            column.className,
+                                        )}
+                                    >
+                                        <span className="flex items-center gap-2 whitespace-nowrap">
+                                            <column.icon className="size-4 shrink-0" />
+                                            {column.title}
                                         </span>
-                                    </span>
-                                </Cell>
-                                <Cell className="text-muted-foreground">
-                                    {lead.email ?? (
-                                        <span className="text-muted-foreground/60">
-                                            No email found
-                                        </span>
-                                    )}
-                                </Cell>
-                                <Cell className="text-muted-foreground">
-                                    {lead.city ?? '—'}
-                                </Cell>
-                                <Cell className="text-muted-foreground">
-                                    {nicheName(lead.niche_id)}
-                                </Cell>
-                                <Cell className="text-muted-foreground">
-                                    {offerName(lead.offer_id) ?? (
-                                        <span className="text-muted-foreground/60">
-                                            No offer yet
-                                        </span>
-                                    )}
-                                </Cell>
-                                <Cell>
-                                    <LeadStatusBadge status={lead.status} />
-                                </Cell>
-                                <Cell className="text-muted-foreground">
-                                    {lead.sent_from ?? '—'}
-                                </Cell>
-                                <Cell className="text-muted-foreground tabular-nums">
-                                    {lead.next_action_at
-                                        ? shortDate.format(
-                                              new Date(lead.next_action_at),
-                                          )
-                                        : '—'}
-                                </Cell>
+                                    </th>
+                                ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody ref={body} data-keeps-panel>
+                            {leads.map((lead) => (
+                                <tr
+                                    key={lead.id}
+                                    onClick={() => onSelect(lead)}
+                                    aria-selected={lead.id === selectedId}
+                                    className="cursor-pointer transition-colors hover:bg-accent/60 aria-selected:bg-accent"
+                                >
+                                    <Cell>
+                                        <span className="flex items-center gap-2.5">
+                                            <CompanyAvatar
+                                                name={lead.company}
+                                            />
+                                            <span className="truncate font-medium">
+                                                {lead.company}
+                                            </span>
+                                        </span>
+                                    </Cell>
+                                    <Cell className="text-muted-foreground">
+                                        {lead.email ?? (
+                                            <span className="text-muted-foreground/60">
+                                                No email found
+                                            </span>
+                                        )}
+                                    </Cell>
+                                    <Cell className="text-muted-foreground">
+                                        {lead.city ?? '—'}
+                                    </Cell>
+                                    <Cell className="text-muted-foreground">
+                                        {nicheName(lead.niche_id)}
+                                    </Cell>
+                                    <Cell className="text-muted-foreground">
+                                        {offerName(lead.offer_id) ?? (
+                                            <span className="text-muted-foreground/60">
+                                                No offer yet
+                                            </span>
+                                        )}
+                                    </Cell>
+                                    <Cell>
+                                        <LeadStatusBadge status={lead.status} />
+                                    </Cell>
+                                    <Cell className="text-muted-foreground">
+                                        {lead.sent_from ?? '—'}
+                                    </Cell>
+                                    <Cell className="text-muted-foreground tabular-nums">
+                                        {lead.next_action_at
+                                            ? shortDate.format(
+                                                  new Date(lead.next_action_at),
+                                              )
+                                            : '—'}
+                                    </Cell>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </InfiniteScroll>
             </div>
 
             {/* Filled band, same height as the sidebar footer. */}
             <div className="flex h-14 shrink-0 items-center border-t border-border bg-accent/40 px-4 text-sm text-muted-foreground">
-                Showing {leads.length} of {total} {total === 1 ? 'lead' : 'leads'}
+                Showing {leads.length} of {total}{' '}
+                {total === 1 ? 'lead' : 'leads'}
             </div>
         </div>
     );

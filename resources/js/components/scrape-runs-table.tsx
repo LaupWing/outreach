@@ -176,7 +176,9 @@ export function ScrapeRunsTable({
                                         {run.requests}
                                     </Cell>
                                     <Cell className="text-muted-foreground tabular-nums">
-                                        {dateTime.format(new Date(run.started_at))}
+                                        {dateTime.format(
+                                            new Date(run.started_at),
+                                        )}
                                     </Cell>
                                 </tr>
                             );

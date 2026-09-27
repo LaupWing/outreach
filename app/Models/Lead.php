@@ -35,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['user_id', 'niche_id', 'offer_id', 'scrape_run_id', 'company', 'email', 'phone', 'website', 'city', 'status', 'source', 'hook', 'signals', 'last_contact_at', 'next_action_at'])]
+#[Fillable(['user_id', 'niche_id', 'offer_id', 'scrape_run_id', 'company', 'email', 'phone', 'website', 'city', 'status', 'source', 'hook', 'signals', 'facts', 'last_contact_at', 'next_action_at'])]
 class Lead extends Model
 {
     /** @use HasFactory<LeadFactory> */
@@ -62,6 +62,7 @@ class Lead extends Model
             'status' => LeadStatus::class,
             'source' => LeadSource::class,
             'signals' => 'array',
+            'facts' => 'array',
             'last_contact_at' => 'datetime',
             'next_action_at' => 'datetime',
         ];

@@ -29,7 +29,7 @@ export function DialogSteps({
                             disabled={!done}
                             onClick={() => onSelect?.(index)}
                             className={cn(
-                                'flex w-full items-center justify-center gap-1.5 rounded-[5px] border px-2 py-1.5 text-xs transition-colors tabular-nums disabled:cursor-default',
+                                'flex w-full items-center justify-center gap-1.5 rounded-[5px] border px-2 py-1.5 text-xs tabular-nums transition-colors disabled:cursor-default',
                                 active
                                     ? 'border-(--raised-border) bg-background text-foreground shadow-(--raised-shadow)'
                                     : done
@@ -47,7 +47,11 @@ export function DialogSteps({
                                           : 'bg-border',
                                 )}
                             >
-                                {done ? <Check className="size-2.5" /> : index + 1}
+                                {done ? (
+                                    <Check className="size-2.5" />
+                                ) : (
+                                    index + 1
+                                )}
                             </span>
                             {label}
                         </button>

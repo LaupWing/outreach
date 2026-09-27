@@ -25,7 +25,9 @@ type Draft = { subject: string; body: string; days_after_previous: number };
 
 const emptyDraft = (isFirst: boolean): Draft => ({
     subject: isFirst ? '{{hook_subject}}' : 'Re: {{hook_subject}}',
-    body: isFirst ? 'Hoi,\n\n{{hook}}\n\n\n\nLoc' : 'Hoi,\n\nNog even hierop terugkomen.\n\n\n\nLoc',
+    body: isFirst
+        ? 'Hoi,\n\n{{hook}}\n\n\n\nLoc'
+        : 'Hoi,\n\nNog even hierop terugkomen.\n\n\n\nLoc',
     days_after_previous: isFirst ? 0 : 4,
 });
 
@@ -85,7 +87,8 @@ export function SequenceEditor({
         <div className="flex flex-col p-5">
             {steps.length === 0 && !adding && (
                 <p className="mb-4 text-sm text-muted-foreground">
-                    No steps yet. An offer needs at least one mail before it can be sent.
+                    No steps yet. An offer needs at least one mail before it can
+                    be sent.
                 </p>
             )}
 
@@ -121,7 +124,11 @@ export function SequenceEditor({
                                         <div className="flex items-center gap-1 pr-2">
                                             <button
                                                 type="button"
-                                                onClick={() => setOpenId(isOpen ? null : step.id)}
+                                                onClick={() =>
+                                                    setOpenId(
+                                                        isOpen ? null : step.id,
+                                                    )
+                                                }
                                                 className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm"
                                             >
                                                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-sky-400 to-violet-500 text-[10px] font-semibold text-white">
@@ -147,7 +154,10 @@ export function SequenceEditor({
                                             </IconButton>
                                             <IconButton
                                                 label="Move down"
-                                                disabled={busy || index === steps.length - 1}
+                                                disabled={
+                                                    busy ||
+                                                    index === steps.length - 1
+                                                }
                                                 onClick={() => move(index, 1)}
                                             >
                                                 <ArrowDown />
@@ -164,7 +174,9 @@ export function SequenceEditor({
                                         </div>
                                         {isOpen && (
                                             <p className="border-t border-border px-3 py-3 text-sm whitespace-pre-line text-foreground/80">
-                                                <Placeholders text={step.body} />
+                                                <Placeholders
+                                                    text={step.body}
+                                                />
                                             </p>
                                         )}
                                     </>
@@ -242,7 +254,9 @@ function StepForm({
                         min={1}
                         max={60}
                         value={days}
-                        onChange={(event) => setDays(Number(event.target.value))}
+                        onChange={(event) =>
+                            setDays(Number(event.target.value))
+                        }
                         className="h-7 w-16 bg-background"
                         aria-label="Days after the previous step"
                     />

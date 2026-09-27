@@ -37,7 +37,11 @@ export function FilterMenu({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <FilterTrigger label={label} icon={icon} active={selected.length > 0}>
+                <FilterTrigger
+                    label={label}
+                    icon={icon}
+                    active={selected.length > 0}
+                >
                     {summarize(options, selected)}
                 </FilterTrigger>
             </DropdownMenuTrigger>

@@ -113,7 +113,9 @@ export function NichesTable({
                                         </span>
                                     </Cell>
                                     <Cell>
-                                        <NicheStatusBadge status={niche.status} />
+                                        <NicheStatusBadge
+                                            status={niche.status}
+                                        />
                                     </Cell>
                                     <Cell className="tabular-nums">
                                         {count.leads}

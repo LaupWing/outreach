@@ -1,9 +1,9 @@
-import { cn } from "@/lib/utils";
-import type { PlacesUsage } from "@/types";
+import { cn } from '@/lib/utils';
+import type { PlacesUsage } from '@/types';
 
-const resetDate = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
+const resetDate = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'long',
 });
 
 /**
@@ -18,10 +18,10 @@ export function PlacesUsageCard({ usage }: { usage: PlacesUsage }) {
     // Brand gradient while there is room, amber past three quarters, red when it is nearly gone.
     const tone =
         share >= 0.9
-            ? "bg-red-500 text-red-600 dark:text-red-400"
+            ? 'bg-red-500 text-red-600 dark:text-red-400'
             : share >= 0.75
-              ? "bg-amber-500 text-amber-600 dark:text-amber-400"
-              : "lava text-transparent";
+              ? 'bg-amber-500 text-amber-600 dark:text-amber-400'
+              : 'lava text-transparent';
 
     return (
         <div className="flex flex-col gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-4 shadow-(--raised-shadow)">
@@ -29,21 +29,21 @@ export function PlacesUsageCard({ usage }: { usage: PlacesUsage }) {
                 <div className="flex flex-col gap-0.5">
                     <span className="text-sm">Google Places, free tier</span>
                     <span className="text-xs text-muted-foreground">
-                        {usage.sku}, resets{" "}
+                        {usage.sku}, resets{' '}
                         {resetDate.format(new Date(usage.resets_at))}
                     </span>
                 </div>
                 <div className="flex items-baseline gap-1.5 tabular-nums">
                     <span
                         className={cn(
-                            "bg-clip-text text-2xl font-semibold",
+                            'bg-clip-text text-2xl font-semibold',
                             tone,
                         )}
                     >
-                        {usage.used.toLocaleString("en-GB")}
+                        {usage.used.toLocaleString('en-GB')}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                        / {usage.free_limit.toLocaleString("en-GB")} requests
+                        / {usage.free_limit.toLocaleString('en-GB')} requests
                     </span>
                 </div>
             </div>
@@ -57,7 +57,7 @@ export function PlacesUsageCard({ usage }: { usage: PlacesUsage }) {
             >
                 <div
                     className={cn(
-                        "h-full rounded-full transition-[width] duration-500",
+                        'h-full rounded-full transition-[width] duration-500',
                         tone,
                     )}
                     style={{ width: `${percent}%` }}
@@ -69,8 +69,8 @@ export function PlacesUsageCard({ usage }: { usage: PlacesUsage }) {
                     {percent}% used, then ${usage.price_per_1000} per 1,000
                 </span>
                 <span>
-                    {left.toLocaleString("en-GB")} left, about{" "}
-                    {(left * 20).toLocaleString("en-GB")} businesses
+                    {left.toLocaleString('en-GB')} left, about{' '}
+                    {(left * 20).toLocaleString('en-GB')} businesses
                 </span>
             </div>
         </div>

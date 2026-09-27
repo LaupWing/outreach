@@ -31,6 +31,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { fill, missing } from '@/lib/placeholders';
 import { cn } from '@/lib/utils';
 import { store as storeMessage } from '@/routes/leads/messages';
 import type { Lead, Mailbox, Message, Offer, SequenceStep } from '@/types';
@@ -41,18 +42,6 @@ type Source = 'offer' | 'free';
 
 const textareaClassName =
     'min-h-40 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30';
-
-/** Fills the sequence placeholders from the lead. The writer (Claude) does this better later; this is the plain version. */
-export function fillPlaceholders(text: string, lead: Lead): string {
-    const hookSubject = lead.hook
-        ? lead.hook.replace(/\.$/, '').slice(0, 60)
-        : `Jullie website, ${lead.company}`;
-
-    return text
-        .replaceAll('{{company}}', lead.company)
-        .replaceAll('{{hook}}', lead.hook ?? '')
-        .replaceAll('{{hook_subject}}', hookSubject);
-}
 
 /**
  * Writes one mail to a lead: the next step of its offer, or free-form for a
@@ -75,7 +64,10 @@ export function ComposeEmailDialog({
     trigger: ReactNode;
 }) {
     // The next step is one past the last one sent to this lead.
-    const lastStep = messages.reduce((max, message) => Math.max(max, message.step), 0);
+    const lastStep = messages.reduce(
+        (max, message) => Math.max(max, message.step),
+        0,
+    );
     const nextStep = steps.find((step) => step.step === lastStep + 1);
     const sequenceDone = steps.length > 0 && !nextStep;
 
@@ -90,7 +82,8 @@ export function ComposeEmailDialog({
         step: number | null;
     }>({ subject: '', body: '', mailbox_id: null, step: null });
     const { subject, body } = form.data;
-    const mailboxId = form.data.mailbox_id === null ? 'auto' : String(form.data.mailbox_id);
+    const mailboxId =
+        form.data.mailbox_id === null ? 'auto' : String(form.data.mailbox_id);
     const setSubject = (value: string) => form.setData('subject', value);
     const setBody = (value: string) => form.setData('body', value);
     const setMailboxId = (value: string) =>
@@ -98,7 +91,9 @@ export function ComposeEmailDialog({
 
     // Boxes that can still send today; "auto" lets the sender pick among them.
     const openBoxes = mailboxes.filter(
-        (mailbox) => mailbox.status !== 'paused' && mailbox.sent_today < mailbox.daily_limit,
+        (mailbox) =>
+            mailbox.status !== 'paused' &&
+            mailbox.sent_today < mailbox.daily_limit,
     );
 
     const toggle = (value: boolean) => {
@@ -114,8 +109,8 @@ export function ComposeEmailDialog({
         if (source === 'offer' && nextStep) {
             form.setData({
                 ...form.data,
-                subject: fillPlaceholders(nextStep.subject, lead),
-                body: fillPlaceholders(nextStep.body, lead),
+                subject: fill(nextStep.subject, lead),
+                body: fill(nextStep.body, lead),
                 step: nextStep.step,
             });
         } else {
@@ -134,7 +129,13 @@ export function ComposeEmailDialog({
     };
 
     const ready =
-        subject.trim() !== '' && body.trim() !== '' && lead.email !== null && !form.processing;
+        subject.trim() !== '' &&
+        body.trim() !== '' &&
+        lead.email !== null &&
+        !form.processing;
+
+    // Tags the lead has no value for stay as {{tag}} in the draft; flag them, but let it go out.
+    const unfilled = missing(`${subject}\n${body}`, lead);
 
     return (
         <Dialog open={open} onOpenChange={toggle}>
@@ -150,10 +151,18 @@ export function ComposeEmailDialog({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <DialogSteps steps={STEPS} current={step} onSelect={setStep} />
+                    <DialogSteps
+                        steps={STEPS}
+                        current={step}
+                        onSelect={setStep}
+                    />
 
                     {step === 0 ? (
-                        <div role="radiogroup" aria-label="Source" className="grid gap-2">
+                        <div
+                            role="radiogroup"
+                            aria-label="Source"
+                            className="grid gap-2"
+                        >
                             <SourceCard
                                 active={source === 'offer'}
                                 disabled={!nextStep}
@@ -170,7 +179,7 @@ export function ComposeEmailDialog({
                                         : sequenceDone
                                           ? `All ${steps.length} steps were sent. Only a free-form mail is left.`
                                           : nextStep
-                                            ? `Subject: ${fillPlaceholders(nextStep.subject, lead)}`
+                                            ? `Subject: ${fill(nextStep.subject, lead)}`
                                             : 'This offer has no steps yet.'
                                 }
                             />
@@ -184,45 +193,90 @@ export function ComposeEmailDialog({
                         </div>
                     ) : (
                         <div className="grid gap-4">
-                            <Field label="Subject" icon={Mail} htmlFor="compose-subject">
+                            <Field
+                                label="Subject"
+                                icon={Mail}
+                                htmlFor="compose-subject"
+                            >
                                 <Input
                                     id="compose-subject"
                                     value={subject}
-                                    onChange={(event) => setSubject(event.target.value)}
+                                    onChange={(event) =>
+                                        setSubject(event.target.value)
+                                    }
                                     placeholder="Subject"
                                     autoFocus={source === 'free'}
                                 />
                                 <InputError message={form.errors.subject} />
                             </Field>
-                            <Field label="Body" icon={PenLine} htmlFor="compose-body">
+                            {unfilled.length > 0 && (
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {unfilled.map((tag) => (
+                                            <span
+                                                key={tag}
+                                                className="rounded-md border border-red-500/20 bg-red-500/10 px-1.5 py-0.5 text-xs text-red-700 dark:text-red-400"
+                                            >
+                                                <span className="font-mono">{`{{${tag}}}`}</span>{' '}
+                                                not filled
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Add it in Facts on the lead, or type it
+                                        here.
+                                    </p>
+                                </div>
+                            )}
+                            <Field
+                                label="Body"
+                                icon={PenLine}
+                                htmlFor="compose-body"
+                            >
                                 <textarea
                                     id="compose-body"
                                     value={body}
-                                    onChange={(event) => setBody(event.target.value)}
+                                    onChange={(event) =>
+                                        setBody(event.target.value)
+                                    }
                                     placeholder="Hoi,"
                                     className={textareaClassName}
                                 />
                                 <InputError message={form.errors.body} />
                             </Field>
-                            <Field label="Send from" icon={Send} htmlFor="compose-mailbox">
-                                <Select value={mailboxId} onValueChange={setMailboxId}>
-                                    <SelectTrigger id="compose-mailbox" className="w-full">
+                            <Field
+                                label="Send from"
+                                icon={Send}
+                                htmlFor="compose-mailbox"
+                            >
+                                <Select
+                                    value={mailboxId}
+                                    onValueChange={setMailboxId}
+                                >
+                                    <SelectTrigger
+                                        id="compose-mailbox"
+                                        className="w-full"
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="auto">
-                                            Any box with room ({openBoxes.length} available)
+                                            Any box with room (
+                                            {openBoxes.length} available)
                                         </SelectItem>
                                         {mailboxes.map((mailbox) => (
                                             <SelectItem
                                                 key={mailbox.id}
                                                 value={String(mailbox.id)}
-                                                disabled={mailbox.status === 'paused'}
+                                                disabled={
+                                                    mailbox.status === 'paused'
+                                                }
                                             >
                                                 {mailbox.address}
                                                 <span className="text-muted-foreground">
                                                     {' '}
-                                                    · {mailbox.sent_today}/{mailbox.daily_limit} today
+                                                    · {mailbox.sent_today}/
+                                                    {mailbox.daily_limit} today
                                                 </span>
                                             </SelectItem>
                                         ))}
@@ -242,7 +296,12 @@ export function ComposeEmailDialog({
                     <DialogFooter>
                         {step === 0 ? (
                             <>
-                                <Button key="cancel" type="button" variant="ghost" onClick={() => setOpen(false)}>
+                                <Button
+                                    key="cancel"
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setOpen(false)}
+                                >
                                     Cancel
                                 </Button>
                                 <Button
@@ -257,11 +316,20 @@ export function ComposeEmailDialog({
                             </>
                         ) : (
                             <>
-                                <Button key="back" type="button" variant="ghost" onClick={() => setStep(0)}>
+                                <Button
+                                    key="back"
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setStep(0)}
+                                >
                                     <ChevronLeft />
                                     Back
                                 </Button>
-                                <Button key="submit" type="submit" disabled={!ready}>
+                                <Button
+                                    key="submit"
+                                    type="submit"
+                                    disabled={!ready}
+                                >
                                     <Send />
                                     Send
                                 </Button>
@@ -315,7 +383,9 @@ function SourceCard({
             </span>
             <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-sm font-medium">{title}</span>
-                <span className="text-xs text-muted-foreground">{description}</span>
+                <span className="text-xs text-muted-foreground">
+                    {description}
+                </span>
             </span>
         </button>
     );

@@ -57,6 +57,11 @@ class FollowUps
             return null;
         }
 
+        // A tag nobody filled yet: the lead stays due until the AI or a person adds the fact.
+        if (Placeholders::missing($next->subject.' '.$next->body, $lead) !== []) {
+            return null;
+        }
+
         $mailbox = $this->outbox->pick($lead->user);
 
         if ($mailbox === null) {

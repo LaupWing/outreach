@@ -20,11 +20,12 @@ use Illuminate\Support\Carbon;
  * @property int $niche_id
  * @property string $name
  * @property string|null $description
+ * @property array<string, string>|null $placeholders
  * @property OfferStatus $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['user_id', 'niche_id', 'name', 'description', 'status'])]
+#[Fillable(['user_id', 'niche_id', 'name', 'description', 'placeholders', 'status'])]
 class Offer extends Model
 {
     /** @use HasFactory<OfferFactory> */
@@ -47,6 +48,7 @@ class Offer extends Model
     protected function casts(): array
     {
         return [
+            'placeholders' => 'array',
             'status' => OfferStatus::class,
         ];
     }

@@ -20,6 +20,8 @@ export type Offer = {
     name: string;
     niche_id: number;
     description: string | null;
+    /** What each {{tag}} in the sequence should say, tag → description. */
+    placeholders: Record<string, string> | null;
     status: OfferStatus;
 };
 
@@ -60,6 +62,8 @@ export type Lead = {
     scrape_run_id: number | null;
     hook: string | null;
     signals: LeadSignals | null;
+    /** Per-lead values for the sequence's {{tags}}, filled by the AI or by hand. */
+    facts: Record<string, string> | null;
     last_contact_at: string | null;
     next_action_at: string | null;
     created_at: string;
@@ -87,7 +91,13 @@ export type Mailbox = {
     connection_error: string | null;
 };
 
-export type MessageStatus = 'draft' | 'queued' | 'sent' | 'failed' | 'bounced' | 'replied';
+export type MessageStatus =
+    | 'draft'
+    | 'queued'
+    | 'sent'
+    | 'failed'
+    | 'bounced'
+    | 'replied';
 
 export type Message = {
     id: number;

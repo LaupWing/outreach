@@ -80,12 +80,20 @@ class DemoSeeder extends Seeder
                 'niche_id' => $niches['dentists']->id,
                 'name' => 'Nieuwe website in 2 weken',
                 'description' => 'Snelle, mobiele praktijksite met online afspraken. Vaste prijs.',
+                // What the AI should put in each tag; the built-ins need no explanation.
+                'placeholders' => [
+                    'compliment' => 'One honest sentence about something specific on their site or in their reviews. No flattery about the design.',
+                    'first_name' => 'First name of the owner or practice manager, if the site names one. Otherwise leave empty.',
+                ],
                 'status' => OfferStatus::Active,
             ]),
             'speedcheck' => Offer::query()->create(['user_id' => $this->userId,
                 'niche_id' => $niches['physio']->id,
                 'name' => 'Gratis snelheidscheck',
                 'description' => 'Rapport over laadtijd en mobiel gebruik, met een aanbod erachter.',
+                'placeholders' => [
+                    'load_time' => 'Their homepage load time on mobile, in seconds, from a quick test.',
+                ],
                 'status' => OfferStatus::Active,
             ]),
             'menu' => Offer::query()->create(['user_id' => $this->userId,
@@ -103,10 +111,10 @@ class DemoSeeder extends Seeder
     private function steps(array $offers): void
     {
         $rows = [
-            [$offers['website'], 1, 0, '{{hook_subject}}', "Hoi,\n\n{{hook}}\n\nIk bouw praktijksites die in twee weken live staan, vaste prijs, met online afspraken. Zal ik laten zien hoe die van {{company}} eruit zou zien?\n\nLoc"],
+            [$offers['website'], 1, 0, '{{hook_subject}}', "Hoi {{first_name}},\n\n{{compliment}}\n\n{{hook}}\n\nIk bouw praktijksites die in twee weken live staan, vaste prijs, met online afspraken. Zal ik laten zien hoe die van {{company}} eruit zou zien?\n\nLoc"],
             [$offers['website'], 2, 4, 'Re: {{hook_subject}}', "Hoi,\n\nNog even hierop terugkomen. Ik heb een schets gemaakt van hoe {{company}} er op mobiel uit zou zien. Zal ik hem sturen?\n\nLoc"],
             [$offers['website'], 3, 7, 'Re: {{hook_subject}}', "Hoi,\n\nLaatste keer dat ik stoor. Als het nu niet uitkomt, prima. Mocht de site later aan de beurt zijn, dan weet je me te vinden.\n\nLoc"],
-            [$offers['speedcheck'], 1, 0, '{{hook_subject}}', "Hoi,\n\n{{hook}}\n\nIk doe gratis een check van laadtijd en mobiel gebruik voor {{company}}, met een kort rapport. Zal ik hem sturen?\n\nLoc"],
+            [$offers['speedcheck'], 1, 0, '{{hook_subject}}', "Hoi,\n\n{{hook}}\n\nJullie homepage laadt op een telefoon in {{load_time}} seconden. Ik doe gratis een check van laadtijd en mobiel gebruik voor {{company}}, met een kort rapport. Zal ik hem sturen?\n\nLoc"],
             [$offers['speedcheck'], 2, 5, 'Re: {{hook_subject}}', "Hoi,\n\nHet rapport staat klaar, het kost jullie niks. Zal ik het sturen?\n\nLoc"],
         ];
 
@@ -206,6 +214,7 @@ class DemoSeeder extends Seeder
                 'source' => $source,
                 'hook' => $hook,
                 'signals' => $leadSignals,
+                'facts' => $this->facts($key),
                 'last_contact_at' => $lastContact,
                 'next_action_at' => $nextAction,
                 'created_at' => $createdAt,
@@ -217,10 +226,32 @@ class DemoSeeder extends Seeder
     }
 
     /**
+     * Tag values the AI filled for some leads; the others show what "not filled" looks like.
+     *
+     * @return array<string, string>|null
+     */
+    private function facts(string $key): ?array
+    {
+        return match ($key) {
+            'bos' => ['first_name' => 'Marieke', 'compliment' => 'Mooi dat jullie de angstpatiënten-pagina zo rustig hebben opgeschreven.'],
+            'mondzorg' => ['first_name' => 'Sander', 'compliment' => 'De reviews over jullie mondhygiënisten zijn opvallend warm.'],
+            default => null,
+        };
+    }
+
+    /**
      * @return array<string, Mailbox>
      */
     private function mailboxes(): array
     {
+        // An account that already has a real box (seeded from SEED_*) sends every demo
+        // mail from that one; fake boxes next to it would only fail their login.
+        $own = Mailbox::query()->where('user_id', $this->userId)->first();
+
+        if ($own !== null) {
+            return ['com' => $own, 'nl' => $own, 'io' => $own];
+        }
+
         return [
             'com' => Mailbox::query()->create(['user_id' => $this->userId, ...$this->gmail('loc@snelstack.com'), 'status' => MailboxStatus::Active, 'daily_limit' => 40, 'sent_today' => 12, 'sent_today_on' => today()]),
             'nl' => Mailbox::query()->create(['user_id' => $this->userId, ...$this->gmail('loc@snelstack.nl'), 'status' => MailboxStatus::WarmingUp, 'daily_limit' => 20, 'sent_today' => 3, 'sent_today_on' => today(), 'warm_up_started_at' => now()->subDays(3)]),

@@ -7,14 +7,27 @@ import { cn } from '@/lib/utils';
 import { store as storeReply } from '@/routes/messages/reply';
 import type { Mailbox, Message, MessageStatus } from '@/types';
 
-const statusTones: Record<MessageStatus, { label: string; className: string }> = {
-    draft: { label: 'Draft', className: 'text-muted-foreground' },
-    queued: { label: 'Queued', className: 'text-violet-600 dark:text-violet-400' },
-    sent: { label: 'Sent', className: 'text-sky-600 dark:text-sky-400' },
-    failed: { label: 'Failed', className: 'text-red-600 dark:text-red-400' },
-    bounced: { label: 'Bounced', className: 'text-red-600 dark:text-red-400' },
-    replied: { label: 'Replied', className: 'text-amber-600 dark:text-amber-400' },
-};
+const statusTones: Record<MessageStatus, { label: string; className: string }> =
+    {
+        draft: { label: 'Draft', className: 'text-muted-foreground' },
+        queued: {
+            label: 'Queued',
+            className: 'text-violet-600 dark:text-violet-400',
+        },
+        sent: { label: 'Sent', className: 'text-sky-600 dark:text-sky-400' },
+        failed: {
+            label: 'Failed',
+            className: 'text-red-600 dark:text-red-400',
+        },
+        bounced: {
+            label: 'Bounced',
+            className: 'text-red-600 dark:text-red-400',
+        },
+        replied: {
+            label: 'Replied',
+            className: 'text-amber-600 dark:text-amber-400',
+        },
+    };
 
 const dateTime = new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
@@ -124,7 +137,9 @@ export function LeadMessages({
                                             <Reply className="size-3.5" />
                                             Reply,{' '}
                                             {dateTime.format(
-                                                new Date(message.reply.received_at),
+                                                new Date(
+                                                    message.reply.received_at,
+                                                ),
                                             )}
                                         </div>
                                         <p className="text-sm whitespace-pre-line">
@@ -142,16 +157,25 @@ export function LeadMessages({
                                             >
                                                 <textarea
                                                     value={draft}
-                                                    onChange={(event) => setDraft(event.target.value)}
+                                                    onChange={(event) =>
+                                                        setDraft(
+                                                            event.target.value,
+                                                        )
+                                                    }
                                                     autoFocus
                                                     placeholder={`Hoi,\n\n`}
                                                     aria-label="Reply"
                                                     className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                 />
-                                                <InputError message={form.errors.body} />
+                                                <InputError
+                                                    message={form.errors.body}
+                                                />
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs text-muted-foreground">
-                                                        From {mailbox?.address ?? 'the thread mailbox'}, in this thread.
+                                                        From{' '}
+                                                        {mailbox?.address ??
+                                                            'the thread mailbox'}
+                                                        , in this thread.
                                                     </span>
                                                     <Button
                                                         type="button"
@@ -165,7 +189,11 @@ export function LeadMessages({
                                                     <Button
                                                         type="submit"
                                                         size="sm"
-                                                        disabled={draft.trim() === '' || form.processing}
+                                                        disabled={
+                                                            draft.trim() ===
+                                                                '' ||
+                                                            form.processing
+                                                        }
                                                     >
                                                         <Send />
                                                         Send reply
@@ -178,7 +206,9 @@ export function LeadMessages({
                                                 variant="outline"
                                                 size="sm"
                                                 className="mt-3"
-                                                onClick={() => setReplyTo(message.id)}
+                                                onClick={() =>
+                                                    setReplyTo(message.id)
+                                                }
                                             >
                                                 <Reply />
                                                 Reply

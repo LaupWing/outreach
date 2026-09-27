@@ -1,5 +1,7 @@
-import { router } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import {
+    Braces,
+    Check,
     Clock,
     FileText,
     ListOrdered,
@@ -11,7 +13,7 @@ import {
     Trash2,
     Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type SubmitEvent } from 'react';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { LeadStatusBadge } from '@/components/lead-status-badge';
 import { OfferDialog } from '@/components/offer-dialog';
@@ -26,6 +28,9 @@ import {
     SidePanelTabs,
 } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { isBuiltIn, tagsIn } from '@/lib/placeholders';
 import { destroy, update } from '@/routes/offers';
 import type { Lead, Niche, Offer, OfferStatus, SequenceStep } from '@/types';
 
@@ -78,7 +83,11 @@ export function OfferPanel({
 
     const setStatus = (status: OfferStatus) => {
         if (offer) {
-            router.patch(update.url(offer.id), { status }, { preserveScroll: true });
+            router.patch(
+                update.url(offer.id),
+                { status },
+                { preserveScroll: true },
+            );
         }
     };
 
@@ -100,8 +109,12 @@ export function OfferPanel({
     };
 
     const replied = leads.filter((lead) => lead.status === 'replied').length;
-    const rate = emailed > 0 ? `${Math.round((replied / emailed) * 100)}%` : undefined;
-    const totalDays = steps.reduce((sum, step) => sum + step.days_after_previous, 0);
+    const rate =
+        emailed > 0 ? `${Math.round((replied / emailed) * 100)}%` : undefined;
+    const totalDays = steps.reduce(
+        (sum, step) => sum + step.days_after_previous,
+        0,
+    );
 
     return (
         <SidePanel open={open} onClose={onClose}>
@@ -138,7 +151,11 @@ export function OfferPanel({
                             <SidePanelStat
                                 label="Steps"
                                 value={steps.length}
-                                hint={totalDays > 0 ? `${totalDays} days` : undefined}
+                                hint={
+                                    totalDays > 0
+                                        ? `${totalDays} days`
+                                        : undefined
+                                }
                             />
                             <SidePanelStat label="Emailed" value={emailed} />
                             <SidePanelStat
@@ -206,7 +223,18 @@ export function OfferPanel({
 
                     <div className="min-h-0 flex-1 overflow-auto">
                         {tab === 'sequence' && (
-                            <SequenceEditor key={offer.id} offerId={offer.id} steps={steps} />
+                            <>
+                                <SequenceEditor
+                                    key={offer.id}
+                                    offerId={offer.id}
+                                    steps={steps}
+                                />
+                                <OfferTags
+                                    key={`tags-${offer.id}`}
+                                    offer={offer}
+                                    steps={steps}
+                                />
+                            </>
                         )}
 
                         {tab === 'overview' && (
@@ -228,13 +256,17 @@ export function OfferPanel({
                                         {niche?.name ?? <SidePanelEmpty />}
                                     </SidePanelRow>
                                     <SidePanelRow icon={Tag} label="Status">
-                                        <OfferStatusBadge status={offer.status} />
+                                        <OfferStatusBadge
+                                            status={offer.status}
+                                        />
                                     </SidePanelRow>
                                     <SidePanelRow icon={Clock} label="Sequence">
                                         {steps.length > 0 ? (
                                             `${steps.length} mails over ${totalDays} days`
                                         ) : (
-                                            <SidePanelEmpty>No steps yet</SidePanelEmpty>
+                                            <SidePanelEmpty>
+                                                No steps yet
+                                            </SidePanelEmpty>
                                         )}
                                     </SidePanelRow>
                                 </dl>
@@ -253,13 +285,16 @@ export function OfferPanel({
                                             key={lead.id}
                                             className="flex items-center gap-3 border-b border-border px-5 py-2.5 text-sm"
                                         >
-                                            <CompanyAvatar name={lead.company} />
+                                            <CompanyAvatar
+                                                name={lead.company}
+                                            />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate font-medium">
                                                     {lead.company}
                                                 </span>
                                                 <span className="block truncate text-xs text-muted-foreground">
-                                                    {lead.email ?? 'No email found'}
+                                                    {lead.email ??
+                                                        'No email found'}
                                                 </span>
                                             </span>
                                             <LeadStatusBadge
@@ -274,5 +309,87 @@ export function OfferPanel({
                 </>
             )}
         </SidePanel>
+    );
+}
+
+/**
+ * Every {{tag}} the sequence uses, with what it should say. The description
+ * guides whoever fills the lead's facts, the AI included.
+ */
+function OfferTags({ offer, steps }: { offer: Offer; steps: SequenceStep[] }) {
+    const tags = tagsIn(
+        steps.map((step) => `${step.subject}\n${step.body}`).join('\n'),
+    );
+    const custom = tags.filter((tag) => !isBuiltIn(tag));
+    const form = useForm<{ placeholders: Record<string, string> }>({
+        placeholders: Object.fromEntries(
+            custom.map((tag) => [tag, offer.placeholders?.[tag] ?? '']),
+        ),
+    });
+
+    const setDescription = (tag: string, value: string) =>
+        form.setData('placeholders', {
+            ...form.data.placeholders,
+            [tag]: value,
+        });
+
+    const submit = (event: SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        form.patch(update.url(offer.id), { preserveScroll: true });
+    };
+
+    if (tags.length === 0) {
+        return null;
+    }
+
+    return (
+        <form
+            onSubmit={submit}
+            className="flex flex-col gap-3 border-t border-border p-5"
+        >
+            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase">
+                <Braces className="size-3.5 shrink-0" />
+                Tags
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border border-(--raised-border) bg-accent/40 p-3 shadow-(--raised-shadow)">
+                {tags.map((tag) => (
+                    <div key={tag} className="grid gap-1.5">
+                        <Label
+                            htmlFor={`tag-${tag}`}
+                            className="font-mono text-xs text-violet-700 dark:text-violet-300"
+                        >
+                            {`{{${tag}}}`}
+                        </Label>
+                        {isBuiltIn(tag) ? (
+                            <p className="text-xs text-muted-foreground">
+                                Filled from the lead
+                            </p>
+                        ) : (
+                            <Input
+                                id={`tag-${tag}`}
+                                value={form.data.placeholders[tag] ?? ''}
+                                onChange={(event) =>
+                                    setDescription(tag, event.target.value)
+                                }
+                                placeholder="What should this say? e.g. one honest compliment on their site"
+                                className="bg-background"
+                            />
+                        )}
+                    </div>
+                ))}
+                {custom.length > 0 && (
+                    <Button
+                        key="submit"
+                        type="submit"
+                        size="sm"
+                        className="self-end"
+                        disabled={form.processing || !form.isDirty}
+                    >
+                        <Check />
+                        Save
+                    </Button>
+                )}
+            </div>
+        </form>
     );
 }

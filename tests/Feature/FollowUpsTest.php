@@ -86,6 +86,22 @@ test('when every mailbox is full the lead stays due for the next round', functio
         ->and($lead->refresh()->next_action_at)->not->toBeNull();
 });
 
+test('a step with a tag nobody filled waits for the AI instead of going out half-empty', function () {
+    $offer = Offer::factory()->create();
+    SequenceStep::factory()->for($offer)->create(['step' => 1]);
+    SequenceStep::factory()->for($offer)->followUp(2)->create(['body' => 'Hoi {{first_name}}, nog even hierop terugkomen.']);
+    Mailbox::factory()->create();
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->emailed()->create(['next_action_at' => now()->subDay()]);
+    Message::factory()->for($lead)->create(['step' => 1]);
+
+    expect(app(FollowUps::class)->run($this->user))->toBe(['queued' => 0, 'finished' => 0, 'waiting' => 1]);
+
+    $lead->update(['facts' => ['first_name' => 'Marieke']]);
+
+    expect(app(FollowUps::class)->run($this->user))->toBe(['queued' => 1, 'finished' => 0, 'waiting' => 0])
+        ->and(Message::query()->where('status', MessageStatus::Queued)->sole()->body)->toBe('Hoi Marieke, nog even hierop terugkomen.');
+});
+
 test('the command runs for every account and sums it up', function () {
     $offer = sequenced();
     Mailbox::factory()->create();
@@ -97,8 +113,8 @@ test('the command runs for every account and sums it up', function () {
         ->assertSuccessful();
 });
 
-test('placeholders fall back to a plain subject when there is no hook', function () {
+test('placeholders fall back to a plain subject when there is no hook, and an empty hook stays visible', function () {
     $lead = Lead::factory()->make(['company' => 'Fysio Noord', 'hook' => null]);
 
-    expect(Placeholders::fill('{{hook_subject}} / {{hook}} / {{company}}', $lead))->toBe('Jullie website, Fysio Noord /  / Fysio Noord');
+    expect(Placeholders::fill('{{hook_subject}} / {{hook}} / {{company}}', $lead))->toBe('Jullie website, Fysio Noord / {{hook}} / Fysio Noord');
 });

@@ -34,6 +34,9 @@ class UpdateOfferRequest extends FormRequest
             'niche_id' => ['sometimes', 'nullable', 'integer', Rule::exists(Niche::class, 'id')->where('user_id', $this->user()?->id)],
             'new_niche' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            // {tag: what it should say}; tag names as they appear inside {{ }}.
+            'placeholders' => ['sometimes', 'nullable', 'array'],
+            'placeholders.*' => ['nullable', 'string', 'max:500'],
             'status' => ['sometimes', Rule::enum(OfferStatus::class)],
         ];
     }

@@ -12,19 +12,23 @@ export const leadStatuses: Record<
     },
     emailed: {
         label: 'Emailed',
-        className: 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400',
+        className:
+            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400',
     },
     followed_up: {
         label: 'Followed up',
-        className: 'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-400',
+        className:
+            'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-400',
     },
     replied: {
         label: 'Replied',
-        className: 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+        className:
+            'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400',
     },
     customer: {
         label: 'Customer',
-        className: 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-400',
+        className:
+            'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-400',
     },
     no: {
         label: 'No',
@@ -32,7 +36,8 @@ export const leadStatuses: Record<
     },
     undeliverable: {
         label: 'Undeliverable',
-        className: 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-400',
+        className:
+            'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-400',
     },
 };
 

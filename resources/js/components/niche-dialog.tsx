@@ -20,9 +20,10 @@ import { store, update } from '@/routes/niches';
 import type { Niche, NicheStatus } from '@/types';
 
 /** Same order as the badge map: the path a niche takes. */
-const STATUSES = (Object.keys(nicheStatuses) as NicheStatus[]).map(
-    (value) => ({ value, label: nicheStatuses[value].label }),
-);
+const STATUSES = (Object.keys(nicheStatuses) as NicheStatus[]).map((value) => ({
+    value,
+    label: nicheStatuses[value].label,
+}));
 
 const textareaClassName =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30';
@@ -131,7 +132,9 @@ export function NicheDialog({
                             <Input
                                 id="niche-name"
                                 value={name}
-                                onChange={(event) => setName(event.target.value)}
+                                onChange={(event) =>
+                                    setName(event.target.value)
+                                }
                                 placeholder="Tandartsen"
                                 autoFocus
                             />
@@ -166,7 +169,11 @@ export function NicheDialog({
                             <InputError message={errors.status} />
                         </Field>
 
-                        <Field label="Why" icon={HelpCircle} htmlFor="niche-why">
+                        <Field
+                            label="Why"
+                            icon={HelpCircle}
+                            htmlFor="niche-why"
+                        >
                             <textarea
                                 id="niche-why"
                                 value={why}

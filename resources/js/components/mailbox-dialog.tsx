@@ -29,7 +29,12 @@ import { store, update } from '@/routes/mailboxes';
 import type { Mailbox } from '@/types';
 
 /** Gmail and Workspace share these; other providers get typed in by hand. */
-const GMAIL = { imap_host: 'imap.gmail.com', imap_port: 993, smtp_host: 'smtp.gmail.com', smtp_port: 587 };
+const GMAIL = {
+    imap_host: 'imap.gmail.com',
+    imap_port: 993,
+    smtp_host: 'smtp.gmail.com',
+    smtp_port: 587,
+};
 
 const valuesFrom = (mailbox?: Mailbox) => ({
     address: mailbox?.address ?? '',
@@ -141,7 +146,11 @@ export function MailboxDialog({
         <Dialog open={open} onOpenChange={toggle}>
             <DialogTrigger asChild>
                 {trigger ?? (
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                    >
                         <Plus />
                         Mailbox
                     </Button>
@@ -150,7 +159,9 @@ export function MailboxDialog({
             <DialogContent className="sm:max-w-md">
                 <form onSubmit={submit} className="flex flex-col gap-5">
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit mailbox' : 'New mailbox'}</DialogTitle>
+                        <DialogTitle>
+                            {editing ? 'Edit mailbox' : 'New mailbox'}
+                        </DialogTitle>
                         <DialogDescription>
                             {editing
                                 ? 'Change the servers, password, limit or warm-up. Test the connection after saving.'
@@ -159,12 +170,18 @@ export function MailboxDialog({
                     </DialogHeader>
 
                     <div className="grid gap-4">
-                        <Field label="Address" icon={AtSign} htmlFor="mailbox-address">
+                        <Field
+                            label="Address"
+                            icon={AtSign}
+                            htmlFor="mailbox-address"
+                        >
                             <Input
                                 id="mailbox-address"
                                 type="email"
                                 value={address}
-                                onChange={(event) => setAddress(event.target.value)}
+                                onChange={(event) =>
+                                    setAddress(event.target.value)
+                                }
                                 placeholder="loc@snelstack.com"
                                 disabled={editing}
                                 autoFocus={!editing}
@@ -173,31 +190,47 @@ export function MailboxDialog({
                         </Field>
 
                         {/* Provider presets: Gmail fills the four server fields; anything else is typed. */}
-                        <div className="flex gap-1 rounded-md border border-border bg-accent/40 p-0.5" role="radiogroup" aria-label="Provider">
-                            <Preset active={isGmail} onClick={() => {
-                                setImapHost(GMAIL.imap_host);
-                                setImapPort(GMAIL.imap_port);
-                                setSmtpHost(GMAIL.smtp_host);
-                                setSmtpPort(GMAIL.smtp_port);
-                            }}>
+                        <div
+                            className="flex gap-1 rounded-md border border-border bg-accent/40 p-0.5"
+                            role="radiogroup"
+                            aria-label="Provider"
+                        >
+                            <Preset
+                                active={isGmail}
+                                onClick={() => {
+                                    setImapHost(GMAIL.imap_host);
+                                    setImapPort(GMAIL.imap_port);
+                                    setSmtpHost(GMAIL.smtp_host);
+                                    setSmtpPort(GMAIL.smtp_port);
+                                }}
+                            >
                                 <Mail className="size-3.5" />
                                 Gmail
                             </Preset>
-                            <Preset active={!isGmail} onClick={() => {
-                                setImapHost('');
-                                setSmtpHost('');
-                            }}>
+                            <Preset
+                                active={!isGmail}
+                                onClick={() => {
+                                    setImapHost('');
+                                    setSmtpHost('');
+                                }}
+                            >
                                 <Server className="size-3.5" />
                                 Other provider
                             </Preset>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-[1fr_5.5rem]">
-                            <Field label="IMAP host" icon={Server} htmlFor="mailbox-imap">
+                            <Field
+                                label="IMAP host"
+                                icon={Server}
+                                htmlFor="mailbox-imap"
+                            >
                                 <Input
                                     id="mailbox-imap"
                                     value={imapHost}
-                                    onChange={(event) => setImapHost(event.target.value)}
+                                    onChange={(event) =>
+                                        setImapHost(event.target.value)
+                                    }
                                     placeholder="imap.example.com"
                                 />
                                 <InputError message={errors.imap_host} />
@@ -207,17 +240,25 @@ export function MailboxDialog({
                                     id="mailbox-imap-port"
                                     type="number"
                                     value={imapPort}
-                                    onChange={(event) => setImapPort(Number(event.target.value))}
+                                    onChange={(event) =>
+                                        setImapPort(Number(event.target.value))
+                                    }
                                 />
                             </Field>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-[1fr_5.5rem]">
-                            <Field label="SMTP host" icon={Server} htmlFor="mailbox-smtp">
+                            <Field
+                                label="SMTP host"
+                                icon={Server}
+                                htmlFor="mailbox-smtp"
+                            >
                                 <Input
                                     id="mailbox-smtp"
                                     value={smtpHost}
-                                    onChange={(event) => setSmtpHost(event.target.value)}
+                                    onChange={(event) =>
+                                        setSmtpHost(event.target.value)
+                                    }
                                     placeholder="smtp.example.com"
                                 />
                                 <InputError message={errors.smtp_host} />
@@ -227,41 +268,65 @@ export function MailboxDialog({
                                     id="mailbox-smtp-port"
                                     type="number"
                                     value={smtpPort}
-                                    onChange={(event) => setSmtpPort(Number(event.target.value))}
+                                    onChange={(event) =>
+                                        setSmtpPort(Number(event.target.value))
+                                    }
                                 />
                             </Field>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <Field label="Username" icon={User} htmlFor="mailbox-username">
+                            <Field
+                                label="Username"
+                                icon={User}
+                                htmlFor="mailbox-username"
+                            >
                                 <Input
                                     id="mailbox-username"
                                     value={username}
-                                    onChange={(event) => setUsername(event.target.value)}
+                                    onChange={(event) =>
+                                        setUsername(event.target.value)
+                                    }
                                     placeholder="Same as the address"
                                 />
                             </Field>
-                            <Field label="App password" icon={KeyRound} htmlFor="mailbox-password">
+                            <Field
+                                label="App password"
+                                icon={KeyRound}
+                                htmlFor="mailbox-password"
+                            >
                                 <Input
                                     id="mailbox-password"
                                     type="password"
                                     value={password}
-                                    onChange={(event) => setPassword(event.target.value)}
-                                    placeholder={editing ? 'Leave empty to keep' : '16 characters'}
+                                    onChange={(event) =>
+                                        setPassword(event.target.value)
+                                    }
+                                    placeholder={
+                                        editing
+                                            ? 'Leave empty to keep'
+                                            : '16 characters'
+                                    }
                                     autoComplete="new-password"
                                 />
                                 <InputError message={errors.password} />
                             </Field>
                         </div>
 
-                        <Field label="Daily limit" icon={Gauge} htmlFor="mailbox-limit">
+                        <Field
+                            label="Daily limit"
+                            icon={Gauge}
+                            htmlFor="mailbox-limit"
+                        >
                             <Input
                                 id="mailbox-limit"
                                 type="number"
                                 min={1}
                                 max={200}
                                 value={dailyLimit}
-                                onChange={(event) => setDailyLimit(Number(event.target.value))}
+                                onChange={(event) =>
+                                    setDailyLimit(Number(event.target.value))
+                                }
                                 className="w-32"
                             />
                             <InputError message={errors.daily_limit} />
@@ -272,7 +337,9 @@ export function MailboxDialog({
                             <input
                                 type="checkbox"
                                 checked={warmUp}
-                                onChange={(event) => setWarmUp(event.target.checked)}
+                                onChange={(event) =>
+                                    setWarmUp(event.target.checked)
+                                }
                                 className="mt-0.5 size-4 shrink-0 accent-violet-500"
                             />
                             <span className="flex min-w-0 flex-col gap-0.5">
@@ -281,17 +348,27 @@ export function MailboxDialog({
                                     Warm up
                                 </span>
                                 <span className="text-xs text-muted-foreground">
-                                    Start at 5 a day and grow to {dailyLimit} over two weeks.
+                                    Start at 5 a day and grow to {dailyLimit}{' '}
+                                    over two weeks.
                                 </span>
                             </span>
                         </label>
                     </div>
 
                     <DialogFooter>
-                        <Button key="cancel" type="button" variant="ghost" onClick={() => setOpen(false)}>
+                        <Button
+                            key="cancel"
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setOpen(false)}
+                        >
                             Cancel
                         </Button>
-                        <Button key="submit" type="submit" disabled={!ready || processing}>
+                        <Button
+                            key="submit"
+                            type="submit"
+                            disabled={!ready || processing}
+                        >
                             {editing ? <Check /> : <Plus />}
                             {editing ? 'Save' : 'Add mailbox'}
                         </Button>
@@ -342,7 +419,10 @@ function Field({
 }) {
     return (
         <div className="grid gap-1.5">
-            <Label htmlFor={htmlFor} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Label
+                htmlFor={htmlFor}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            >
                 {Icon && <Icon className="size-3.5 shrink-0" />}
                 {label}
             </Label>
