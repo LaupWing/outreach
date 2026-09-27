@@ -22,7 +22,7 @@
                     <div class="tiles">
                         <div class="tile"><div class="label">Sent</div><div class="value">${t.sent}</div></div>
                         <div class="tile"><div class="label">Replies</div><div class="value">${t.replied}</div></div>
-                        <div class="tile"><div class="label">Reply rate</div><div class="value">${pct(t.reply_rate)}</div></div>
+                        <div class="tile lava"><div class="label">Reply rate</div><div class="value">${pct(t.reply_rate)}</div></div>
                         <div class="tile"><div class="label">Customers</div><div class="value">${t.customers}</div></div>
                         <div class="tile"><div class="label">Bounced</div><div class="value">${t.bounced}</div></div>
                         <div class="tile"><div class="label">Leads</div><div class="value">${t.leads} <span class="muted" style="font-size:12px;font-weight:400">${t.with_email} with email</span></div></div>

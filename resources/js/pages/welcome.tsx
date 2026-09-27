@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import AppLogo from '@/components/app-logo';
+import { AppearanceToggle } from '@/components/appearance-toggle';
 import { Button } from '@/components/ui/button';
 import {
     EnvelopeScene,
@@ -103,6 +104,7 @@ export default function Welcome() {
                             <AppLogo />
                         </Link>
                         <nav className="flex items-center gap-2">
+                            <AppearanceToggle className="size-9 hover:bg-accent" />
                             {auth.user ? (
                                 <Button asChild>
                                     <Link href={dashboard()}>Dashboard</Link>

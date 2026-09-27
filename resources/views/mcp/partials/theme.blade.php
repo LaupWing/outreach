@@ -28,6 +28,9 @@
     * { box-sizing: border-box; }
     body { margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: var(--foreground); background: transparent; -webkit-font-smoothing: antialiased; }
     .card { border: 1px solid var(--raised-border); border-radius: 12px; background: var(--card); box-shadow: var(--raised-shadow); overflow: hidden; }
+    /* The brand on every card: the stack colours as a hairline on top, the envelope stack before each title. */
+    .card::before { content: ''; display: block; height: 2px; background: linear-gradient(90deg, #38bdf8, #a78bfa, #f472b6); }
+    .bar::before { content: ''; flex: none; width: 18px; height: 18px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='-9' y='-6' width='18' height='12' rx='1.8' transform='translate(12 16.2) scale(1 0.62) rotate(45)' fill='%2338bdf8'/%3E%3Crect x='-9' y='-6' width='18' height='12' rx='1.8' transform='translate(12 12) scale(1 0.62) rotate(45)' fill='%23a78bfa'/%3E%3Cg transform='translate(12 7.8) scale(1 0.62) rotate(45)'%3E%3Crect x='-9' y='-6' width='18' height='12' rx='1.8' fill='%23f472b6'/%3E%3Cpath d='M-8.4 -5.4 L0 0.6 L8.4 -5.4 Z' fill='%23db2777' stroke='%23db2777' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M-8.1 -5.1 L0 0.6 L8.1 -5.1' fill='none' stroke='%23fce7f3' stroke-width='0.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; }
     .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
     .bar .title { color: var(--foreground); font-weight: 600; font-size: 14px; }
     .bar .spacer { flex: 1; }
@@ -62,6 +65,10 @@
     .tile { border: 1px solid var(--raised-border); border-radius: 10px; padding: 10px 12px; box-shadow: var(--raised-shadow); background: var(--background); }
     .tile .label { font-size: 11px; color: var(--muted-foreground); }
     .tile .value { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+    /* The headline number drifts through the brand gradient, like on the dashboard. */
+    .tile.lava .value { background: linear-gradient(100deg, #38bdf8, #8b5cf6, #d946ef, #8b5cf6, #38bdf8) 0 50% / 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: lava-drift 14s ease-in-out infinite; }
+    @keyframes lava-drift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    @media (prefers-reduced-motion: reduce) { .tile.lava .value { animation: none; } }
     .empty { padding: 20px 14px; color: var(--muted-foreground); font-size: 13px; }
     .tag { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; padding: 1px 5px; border-radius: 5px; background: color-mix(in oklch, var(--violet) 12%, transparent); color: var(--violet); }
     .tag.missing { background: color-mix(in oklch, var(--red) 12%, transparent); color: var(--red); }
