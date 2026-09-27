@@ -64,14 +64,19 @@ test('running the import again skips what is already there', function () {
         ->and(Message::query()->count())->toBe(1);
 });
 
-test('the tool can create leads for unknown recipients in a niche', function () {
+test('the tool runs the import in the background, can create leads, and reports the outcome', function () {
     $niche = Niche::factory()->create();
     $mailbox = Mailbox::factory()->create();
     readerWith([new SentMail(1, ['praktijk@mondzorgzuid.nl'], 'Hoi', 'Tekst', '<m@gmail.com>', CarbonImmutable::parse('2026-08-10 10:00'))]);
 
-    $response = OutreachServer::actingAs($this->user)->tool(ImportSentMail::class, ['since' => '2026-08-01', 'create_leads' => true, 'niche_id' => $niche->id]);
+    OutreachServer::actingAs($this->user)
+        ->tool(ImportSentMail::class, ['since' => '2026-08-01', 'create_leads' => true, 'niche_id' => $niche->id])
+        ->assertOk()->assertSee('Import started');
 
-    $response->assertOk()->assertSee('1 sent mails imported')->assertSee('1 leads created');
+    // The queue runs sync in tests, so the job has already finished.
+    $status = OutreachServer::actingAs($this->user)->tool(ImportSentMail::class, ['status' => true]);
+
+    $status->assertOk()->assertSee('Import done')->assertSee('1 sent mails imported')->assertSee('1 leads created');
 
     $lead = $this->user->leads()->where('email', 'praktijk@mondzorgzuid.nl')->first();
 
