@@ -34,6 +34,9 @@ class MessageController extends Controller
         return Inertia::render('messages/index', [
             'messages' => Inertia::scroll($query->clone()
                 ->with('lead:id,company,email')
+                // Waiting mail first, soonest on top; then what went out, newest first.
+                ->orderByRaw('case when status = ? then 0 else 1 end', [MessageStatus::Queued->value])
+                ->orderByRaw('case when status = ? then send_after end asc', [MessageStatus::Queued->value])
                 ->latest('sent_at')
                 ->latest('id')
                 ->paginate(50)),

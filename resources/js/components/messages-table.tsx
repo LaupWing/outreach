@@ -149,11 +149,20 @@ export function MessagesTable({
                                     {mailboxOf(message.mailbox_id)}
                                 </Cell>
                                 <Cell className="text-muted-foreground tabular-nums">
-                                    {message.sent_at
-                                        ? dateTime.format(
-                                              new Date(message.sent_at),
-                                          )
-                                        : '—'}
+                                    {message.sent_at ? (
+                                        dateTime.format(
+                                            new Date(message.sent_at),
+                                        )
+                                    ) : message.send_after ? (
+                                        <span className="text-violet-600 dark:text-violet-400">
+                                            Sends{' '}
+                                            {dateTime.format(
+                                                new Date(message.send_after),
+                                            )}
+                                        </span>
+                                    ) : (
+                                        '—'
+                                    )}
                                 </Cell>
                                 <Cell className="tabular-nums">
                                     {message.reply ? (
