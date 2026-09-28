@@ -128,3 +128,32 @@ test('placeholders fall back to a plain subject when there is no hook, and an em
 
     expect(Placeholders::fill('{{hook_subject}} / {{hook}} / {{company}}', $lead))->toBe('Jullie website, Fysio Noord / {{hook}} / Fysio Noord');
 });
+
+test('a lead mailed outside the app gets its follow-up planned from its last contact, and step 1 is not sent again', function () {
+    $offer = sequenced();
+    Mailbox::factory()->create();
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create([
+        'status' => LeadStatus::Emailed, 'email' => 'info@bos.nl', 'company' => 'Bos',
+        'last_contact_at' => now()->subDays(6), 'next_action_at' => null,
+    ]);
+
+    $result = app(FollowUps::class)->run($this->user);
+
+    $queued = Message::query()->where('status', MessageStatus::Queued)->sole();
+
+    expect($result['queued'])->toBe(1)
+        ->and($queued->step)->toBe(2)
+        ->and($queued->body)->toBe('Nog even hierop terugkomen, Bos.');
+});
+
+test('a lead mailed outside the app that is not due yet only gets its date', function () {
+    $offer = sequenced();
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create([
+        'status' => LeadStatus::Emailed, 'last_contact_at' => now()->subDay(), 'next_action_at' => null,
+    ]);
+
+    app(FollowUps::class)->run($this->user);
+
+    expect($lead->refresh()->next_action_at?->toDateString())->toBe(now()->subDay()->addDays(4)->toDateString())
+        ->and(Message::query()->count())->toBe(0);
+});

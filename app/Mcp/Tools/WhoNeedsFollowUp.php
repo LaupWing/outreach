@@ -9,6 +9,7 @@ use App\Mcp\LeadSummary;
 use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
+use App\Support\Mail\FollowUps;
 use App\Support\Mail\Placeholders;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -31,6 +32,9 @@ class WhoNeedsFollowUp extends Tool
     {
         $user = Account::for($request);
 
+        // Leads mailed outside the app get their follow-up date first, so they show up here.
+        app(FollowUps::class)->planMissing($user);
+
         $due = $user->leads()
             ->with('offer')
             ->whereIn('status', [LeadStatus::Emailed, LeadStatus::FollowedUp])
@@ -41,7 +45,7 @@ class WhoNeedsFollowUp extends Tool
             ->limit(50)
             ->get()
             ->map(function (Lead $lead) use ($user) {
-                $lastStep = (int) $lead->messages()->whereIn('status', [MessageStatus::Sent, MessageStatus::Replied])->max('step');
+                $lastStep = app(FollowUps::class)->lastStep($lead);
                 $next = $user->sequenceSteps()->where('offer_id', $lead->offer_id)->where('step', $lastStep + 1)->first();
                 $missing = $next === null ? [] : Placeholders::missing($next->subject.' '.$next->body, $lead);
 

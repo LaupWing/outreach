@@ -7,6 +7,7 @@ use App\Enums\MessageStatus;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -41,9 +42,7 @@ class FollowUps
      */
     public function queue(Lead $lead): ?Message
     {
-        $lastStep = (int) $lead->messages()
-            ->whereIn('status', [MessageStatus::Sent, MessageStatus::Replied])
-            ->max('step');
+        $lastStep = $this->lastStep($lead);
 
         $next = $lead->user->sequenceSteps()
             ->where('offer_id', $lead->offer_id)
@@ -83,10 +82,71 @@ class FollowUps
     }
 
     /**
+     * The last step that went out. Mail the app did not send itself (imported, or a
+     * lead entered as already mailed) may have no messages: its status says how far it got.
+     */
+    public function lastStep(Lead $lead): int
+    {
+        $fromMessages = (int) $lead->messages()
+            ->whereIn('status', [MessageStatus::Sent, MessageStatus::Replied])
+            ->where('is_reply', false)
+            ->max('step');
+
+        $fromStatus = match ($lead->status) {
+            LeadStatus::Emailed => 1,
+            LeadStatus::FollowedUp => 2,
+            default => 0,
+        };
+
+        return max($fromMessages, $fromStatus);
+    }
+
+    /**
+     * Give every lead that is in a sequence but has no follow-up date one, counted
+     * from when its last step went out. Returns how many got a date.
+     */
+    public function planMissing(User $user): int
+    {
+        $leads = $user->leads()
+            ->whereIn('status', [LeadStatus::Emailed, LeadStatus::FollowedUp])
+            ->whereNotNull('offer_id')
+            ->whereNull('next_action_at')
+            ->get();
+
+        $planned = 0;
+
+        foreach ($leads as $lead) {
+            $lastStep = $this->lastStep($lead);
+
+            $next = $user->sequenceSteps()
+                ->where('offer_id', $lead->offer_id)
+                ->where('step', $lastStep + 1)
+                ->first();
+
+            if ($next === null) {
+                continue;
+            }
+
+            $sentAt = $lead->messages()
+                ->reorder()
+                ->whereIn('status', [MessageStatus::Sent, MessageStatus::Replied])
+                ->where('is_reply', false)
+                ->max('sent_at') ?? $lead->last_contact_at ?? $lead->updated_at;
+
+            $lead->update(['next_action_at' => CarbonImmutable::parse($sentAt)->addDays($next->days_after_previous)]);
+            $planned++;
+        }
+
+        return $planned;
+    }
+
+    /**
      * @return array{queued: int, finished: int, waiting: int}
      */
     public function run(User $user): array
     {
+        $this->planMissing($user);
+
         $counts = ['queued' => 0, 'finished' => 0, 'waiting' => 0];
 
         foreach ($this->due($user) as $lead) {
