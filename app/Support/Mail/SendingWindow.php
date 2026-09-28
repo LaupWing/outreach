@@ -102,7 +102,7 @@ class SendingWindow
         return $moment->setTimezone(config('app.timezone'));
     }
 
-    private function isSendingDay(CarbonImmutable $day): bool
+    public function isSendingDay(CarbonImmutable $day): bool
     {
         return ! $this->weekdaysOnly || $day->isWeekday();
     }

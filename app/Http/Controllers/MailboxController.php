@@ -7,6 +7,7 @@ use App\Enums\MailboxType;
 use App\Http\Requests\Mailboxes\StoreMailboxRequest;
 use App\Http\Requests\Mailboxes\UpdateMailboxRequest;
 use App\Models\Mailbox;
+use App\Support\Mail\Outbox;
 use App\Support\MailboxConnection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -97,12 +98,19 @@ class MailboxController extends Controller
             $mailbox->status = $resuming ? $mailbox->statusAfterResume() : $status;
         }
 
+        // A new limit or warm-up changes how much fits in a day; plan what waits again.
+        $pacingChanged = $mailbox->isDirty(['daily_limit', 'status', 'warm_up_started_at']);
+
         if ($credentialsChanged || $mailbox->connection_checked_at === null) {
             $mailbox->connection_error = $connection->check($mailbox);
             $mailbox->connection_checked_at = now();
         }
 
         $mailbox->save();
+
+        if ($pacingChanged) {
+            app(Outbox::class)->reschedule($mailbox);
+        }
 
         Inertia::flash('toast', $mailbox->connection_error === null
             ? ['type' => 'success', 'message' => __('Mailbox updated.')]

@@ -160,30 +160,71 @@ class Outbox
     }
 
     /**
-     * The next moment the mailbox can send: an even interval after the last mail
-     * it has waiting, inside the window, with a little jitter so it is not a clock.
-     * Returned in the app timezone, ready to save.
+     * The next free moment for the mailbox: the first sending day that still has room
+     * under its limit, an even interval after what already waits that day, with a
+     * little jitter so it is not a clock. Returned in the app timezone, ready to save.
      */
     public function slotFor(Mailbox $mailbox): CarbonImmutable
     {
         $window = SendingWindow::for($mailbox->user);
-
-        $lastQueued = $mailbox->messages()
-            ->where('status', MessageStatus::Queued)
-            ->max('send_after');
-
         $now = $window->now();
-        $interval = (int) max(60, $window->length() / max(1, $mailbox->limitToday()));
+        $limit = max(1, $mailbox->limitToday());
+        $interval = (int) max(60, $window->length() / $limit);
 
-        $candidate = $now;
+        $day = $window->isSendingDay($now) && $now->lessThan($window->on($now)['end'])
+            ? $now
+            : $window->nextAfter($now);
 
-        if ($lastQueued !== null) {
-            $candidate = $candidate->max(CarbonImmutable::parse($lastQueued, config('app.timezone'))->setTimezone($now->getTimezone())->addSeconds($interval));
+        for ($i = 0; $i < 60; $i++) {
+            $hours = $window->on($day);
+            $isToday = $hours['start']->isSameDay($now);
+
+            $waiting = $mailbox->messages()
+                ->where('status', MessageStatus::Queued)
+                ->whereBetween('send_after', [$window->toUtc($hours['start']), $window->toUtc($hours['end'])]);
+
+            $used = $waiting->count() + ($isToday ? $mailbox->sent_today : 0);
+
+            if ($used < $limit) {
+                $last = $waiting->max('send_after');
+                $from = $isToday ? $now->max($hours['start']) : $hours['start'];
+
+                if ($last !== null) {
+                    $from = $from->max(CarbonImmutable::parse($last, config('app.timezone'))->setTimezone($now->getTimezone())->addSeconds($interval));
+                }
+
+                $candidate = $from->addSeconds(random_int(0, intdiv($interval, 3)));
+
+                if ($candidate->lessThan($hours['end'])) {
+                    return $window->toUtc($candidate);
+                }
+            }
+
+            $day = $window->nextAfter($day);
         }
 
-        $candidate = $candidate->addSeconds(random_int(0, intdiv($interval, 3)));
+        return $window->toUtc($window->nextAfter($now));
+    }
 
-        return $window->toUtc($window->inside($candidate));
+    /**
+     * Plan the mailbox's waiting mail again, for when its limit or warm-up changed:
+     * everything that waits gets a fresh slot, in the order it was waiting.
+     */
+    public function reschedule(Mailbox $mailbox): int
+    {
+        $queued = $mailbox->messages()
+            ->where('status', MessageStatus::Queued)
+            ->orderBy('send_after')
+            ->orderBy('id')
+            ->get();
+
+        $mailbox->messages()->whereKey($queued->modelKeys())->update(['send_after' => null]);
+
+        foreach ($queued as $message) {
+            $message->update(['send_after' => $this->slotFor($mailbox)]);
+        }
+
+        return $queued->count();
     }
 
     /**

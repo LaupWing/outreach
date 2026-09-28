@@ -229,3 +229,34 @@ test('the window follows the account\'s own hours, timezone and weekend choice',
 
     expect($message->refresh()->status)->toBe(MessageStatus::Sent);
 });
+
+test('a new mail takes a free slot today even when mail already waits for tomorrow', function () {
+    $mailbox = Mailbox::factory()->create(['daily_limit' => 20, 'sent_today' => 3, 'sent_today_on' => today()]);
+    $lead = Lead::factory()->create();
+    Message::factory()->queued()->for($lead)->for($mailbox)->create(['send_after' => now()->addDay()]);
+
+    $message = app(Outbox::class)->queue($lead, $mailbox, ['subject' => 'A', 'body' => 'a', 'step' => 1]);
+
+    expect($message->send_after->isToday())->toBeTrue();
+});
+
+test('a day that is full moves the next mail to the next sending day', function () {
+    $mailbox = Mailbox::factory()->create(['daily_limit' => 3, 'sent_today' => 3, 'sent_today_on' => today()]);
+
+    $slot = app(Outbox::class)->slotFor($mailbox);
+
+    expect($slot->setTimezone('Europe/Amsterdam')->format('Y-m-d'))->toBe('2026-09-29');
+});
+
+test('changing the limit plans the waiting mail again', function () {
+    $mailbox = Mailbox::factory()->warmingUp()->create(['daily_limit' => 20, 'warm_up_started_at' => now()]);
+    $lead = Lead::factory()->create();
+    $waiting = Message::factory()->count(6)->queued()->for($lead)->for($mailbox)->create(['send_after' => now()->addDays(2)]);
+
+    $this->actingAs($this->user)
+        ->patch(route('mailboxes.update', $mailbox), ['warm_up' => false])
+        ->assertSessionHasNoErrors();
+
+    // Active at 20 a day, noon on a Monday: all six fit in the rest of today.
+    expect(Message::query()->whereKey($waiting->modelKeys())->get()->every(fn ($message) => $message->send_after->isToday()))->toBeTrue();
+});
