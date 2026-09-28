@@ -89,8 +89,8 @@ test('a mailbox stores its imap and smtp credentials with the password encrypted
         ->and($mailbox->toArray())->not->toHaveKey('password');
 });
 
-test('editing a mailbox keeps the password when none is typed and forgets the last check', function () {
-    $mailbox = Mailbox::factory()->create(['password' => 'keep-me', 'connection_checked_at' => now()]);
+test('editing a mailbox keeps the password when none is typed and tests the new login right away', function () {
+    $mailbox = Mailbox::factory()->create(['password' => 'keep-me', 'connection_checked_at' => now()->subDay()]);
 
     $this->actingAs($this->user)
         ->patch(route('mailboxes.update', $mailbox), ['smtp_host' => 'smtp.other.com', 'password' => ''])
@@ -100,7 +100,8 @@ test('editing a mailbox keeps the password when none is typed and forgets the la
 
     expect($mailbox->password)->toBe('keep-me')
         ->and($mailbox->smtp_host)->toBe('smtp.other.com')
-        ->and($mailbox->connection_checked_at)->toBeNull();
+        ->and($mailbox->connection_checked_at?->isToday())->toBeTrue()
+        ->and($mailbox->connection_error)->toBeNull();
 });
 
 test('testing a connection records the outcome on the mailbox', function () {

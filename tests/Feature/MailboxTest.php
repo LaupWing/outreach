@@ -5,6 +5,7 @@ use App\Enums\MailboxType;
 use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Message;
+use App\Support\MailboxConnection;
 use Inertia\Testing\AssertableInertia;
 
 test('guests are sent to the login page', function () {
@@ -163,4 +164,34 @@ test('a mailbox can be removed', function () {
         ->assertRedirect();
 
     $this->assertModelMissing($mailbox);
+});
+
+test('saving a mailbox with the same login keeps it checked and does not test again', function () {
+    $mailbox = Mailbox::factory()->warmingUp()->create(['connection_checked_at' => now()->subDay()]);
+    app(MailboxConnection::class)->shouldNotReceive('check');
+
+    $this->actingAs($this->user)
+        ->patch(route('mailboxes.update', $mailbox), [
+            'imap_host' => $mailbox->imap_host, 'imap_port' => $mailbox->imap_port,
+            'smtp_host' => $mailbox->smtp_host, 'smtp_port' => $mailbox->smtp_port,
+            'username' => $mailbox->username, 'password' => '', 'daily_limit' => 20, 'warm_up' => false,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $mailbox->refresh();
+
+    expect($mailbox->connection_checked_at)->not->toBeNull()
+        ->and($mailbox->status)->toBe(MailboxStatus::Active);
+});
+
+test('a new password is tested right away on save', function () {
+    $mailbox = Mailbox::factory()->create();
+    app(MailboxConnection::class)->shouldReceive('check')->once()->andReturn('IMAP: login refused');
+
+    $this->actingAs($this->user)
+        ->patch(route('mailboxes.update', $mailbox), ['password' => 'new-app-password'])
+        ->assertSessionHasNoErrors();
+
+    expect($mailbox->refresh()->connection_error)->toBe('IMAP: login refused')
+        ->and($mailbox->connection_checked_at)->not->toBeNull();
 });

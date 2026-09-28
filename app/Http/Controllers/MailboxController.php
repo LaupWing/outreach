@@ -65,7 +65,7 @@ class MailboxController extends Controller
     /**
      * Change the limit, warm-up or status. Resuming a paused box puts it back where it was.
      */
-    public function update(UpdateMailboxRequest $request, Mailbox $mailbox): RedirectResponse
+    public function update(UpdateMailboxRequest $request, Mailbox $mailbox, MailboxConnection $connection): RedirectResponse
     {
         $mailbox->fill($request->safe()->only(['daily_limit', 'imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username']));
 
@@ -74,11 +74,9 @@ class MailboxController extends Controller
             $mailbox->password = $request->string('password')->toString();
         }
 
-        // New credentials have not been proven yet.
-        if ($request->hasAny(['imap_host', 'smtp_host', 'password', 'username'])) {
-            $mailbox->connection_checked_at = null;
-            $mailbox->connection_error = null;
-        }
+        // The dialog always sends every field; only a real change of login details
+        // needs a new check, and that check runs right away, as on create.
+        $credentialsChanged = $mailbox->isDirty(['imap_host', 'imap_port', 'smtp_host', 'smtp_port', 'username', 'password']);
 
         if ($request->has('warm_up')) {
             $warmUp = $request->boolean('warm_up');
@@ -99,9 +97,16 @@ class MailboxController extends Controller
             $mailbox->status = $resuming ? $mailbox->statusAfterResume() : $status;
         }
 
+        if ($credentialsChanged || $mailbox->connection_checked_at === null) {
+            $mailbox->connection_error = $connection->check($mailbox);
+            $mailbox->connection_checked_at = now();
+        }
+
         $mailbox->save();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Mailbox updated.')]);
+        Inertia::flash('toast', $mailbox->connection_error === null
+            ? ['type' => 'success', 'message' => __('Mailbox updated.')]
+            : ['type' => 'error', 'message' => __('Saved, but the login failed: :error', ['error' => $mailbox->connection_error])]);
 
         return back();
     }
