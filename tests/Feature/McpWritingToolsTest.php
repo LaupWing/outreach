@@ -22,6 +22,7 @@ use App\Mcp\Tools\SendMails;
 use App\Mcp\Tools\SendSteps;
 use App\Mcp\Tools\Stats;
 use App\Mcp\Tools\UpdateLeads;
+use App\Mcp\Tools\UpdateMails;
 use App\Mcp\Tools\UpdateNiches;
 use App\Mcp\Tools\UpdateOffers;
 use App\Mcp\Tools\WhoNeedsFollowUp;
@@ -31,6 +32,7 @@ use App\Models\Message;
 use App\Models\Offer;
 use App\Models\SequenceStep;
 use App\Models\User;
+use App\Support\Enrichment\Enricher;
 use App\Support\Enrichment\SiteReader;
 use App\Support\Mail\IncomingMail;
 use App\Support\Mail\MailboxReader;
@@ -77,7 +79,7 @@ test('leads_context bundles each lead, its sequence with tags, the thread and th
         ->and($context['offer']['steps'][0]['missing_tags'])->toBe(['compliment'])
         ->and($context['offer']['next_step'])->toBe(1)
         ->and($context['notes'][0]['body'])->toBe('Belde: beslist in oktober.')
-        ->and($context['site_text'])->toBe("Welkom\nSinds 2009 in Haarlem.");
+        ->and($context['site_text'])->toBe('Sinds 2009 in Haarlem.');
 });
 
 test('update_leads merges facts, sets the hook and adds a note, for many at once', function () {
@@ -477,4 +479,38 @@ test('object arguments sent as JSON strings are accepted', function () {
     $response->assertOk()->assertSee('1 leads added');
 
     expect($this->user->leads()->where('company', 'Drost')->first()->facts)->toBe(['first_name' => 'Tim']);
+});
+
+test('update_mails changes or cancels mail that has not gone out, and leaves sent mail alone', function () {
+    $lead = Lead::factory()->create(['company' => 'Bos']);
+    $queued = Message::factory()->queued()->for($lead)->create(['subject' => 'Oud']);
+    $other = Message::factory()->queued()->for($lead)->create();
+    $sent = Message::factory()->for($lead)->create();
+
+    $response = OutreachServer::actingAs($this->user)->tool(UpdateMails::class, ['mails' => [
+        ['message_id' => $queued->id, 'subject' => 'Nieuw', 'send_at' => '2026-09-29 10:30'],
+        ['message_id' => $other->id, 'cancel' => true],
+        ['message_id' => $sent->id, 'body' => 'x'],
+    ]]);
+
+    $response->assertOk()->assertSee('1 mails changed, 1 cancelled')->assertSee('Bos: already sent');
+
+    $queued->refresh();
+
+    expect($queued->subject)->toBe('Nieuw')
+        ->and($queued->send_after->setTimezone('Europe/Amsterdam')->format('Y-m-d H:i'))->toBe('2026-09-29 10:30')
+        ->and(Message::query()->find($other->id))->toBeNull();
+});
+
+test('enriching saves what the homepage and about page say, without the menu', function () {
+    $lead = Lead::factory()->create(['website' => 'bos.nl', 'site_text' => null]);
+    app(SiteReader::class)->shouldReceive('fetch')->andReturnUsing(fn (string $url) => match ($url) {
+        'https://bos.nl' => '<html><body><nav>Home Diensten Contact</nav><p>Wij zijn al 25 jaar de tandarts van Haarlem-Noord.</p><div class="cookie-banner"><p>Wij gebruiken cookies om uw ervaring te verbeteren.</p></div></body></html>',
+        'https://bos.nl/over-ons' => '<html><body><p>Marieke en Sander runnen de praktijk samen sinds 1999.</p></body></html>',
+        default => null,
+    });
+
+    app(Enricher::class)->enrich($lead);
+
+    expect($lead->refresh()->site_text)->toBe("Home:\nWij zijn al 25 jaar de tandarts van Haarlem-Noord.\n\nAbout:\nMarieke en Sander runnen de praktijk samen sinds 1999.");
 });

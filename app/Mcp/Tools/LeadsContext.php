@@ -11,10 +11,10 @@ use App\Models\Lead;
 use App\Models\SequenceStep;
 use App\Models\User;
 use App\Support\Enrichment\SiteReader;
+use App\Support\Enrichment\SiteText;
 use App\Support\Mail\Placeholders;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -25,7 +25,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('leads_context')]
-#[Description('Everything needed to write to leads, one or many: each lead with its signals, hook and facts, its offer with the sequence (each step with the {{tags}} it uses and which ones the lead still lacks), the mail thread so far, the notes, and optionally the text of its homepage. Call this before send_steps or send_mails.')]
+#[Description('Everything needed to write to leads, one or many: each lead with its signals, hook, facts and site_text (what their homepage and about page say, saved while enriching), its offer with the sequence (each step with the {{tags}} it uses and which ones the lead still lacks), the mail thread so far, the notes, and optionally the text of its homepage. Call this before send_steps or send_mails.')]
 #[IsReadOnly]
 #[RendersApp(resource: LeadCardApp::class)]
 class LeadsContext extends Tool
@@ -66,6 +66,8 @@ class LeadsContext extends Tool
         $context = [
             ...LeadSummary::from($lead),
             'facts' => $lead->facts,
+            // Saved while enriching: what the business says about itself. with_site_text reads it live.
+            'site_text' => $lead->site_text,
             'niche' => $lead->niche?->name,
             'offer' => $lead->offer === null ? null : [
                 'id' => $lead->offer->id,
@@ -100,13 +102,7 @@ class LeadsContext extends Tool
      */
     private function text(string $html): string
     {
-        $stripped = preg_replace('/<(script|style|noscript|svg)[^>]*>.*?<\/\1>/is', ' ', $html) ?? '';
-        $stripped = preg_replace('/<br\s*\/?>|<\/(p|div|li|h[1-6]|tr)>/i', "\n", $stripped) ?? '';
-        $text = html_entity_decode(strip_tags($stripped), ENT_QUOTES | ENT_HTML5);
-        $text = preg_replace("/[ \t]+/", ' ', $text) ?? '';
-        $text = preg_replace("/\s*\n\s*/", "\n", $text) ?? '';
-
-        return Str::limit(trim($text), 6000);
+        return SiteText::from($html, 6000);
     }
 
     /**

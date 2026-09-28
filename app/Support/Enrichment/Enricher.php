@@ -13,6 +13,9 @@ class Enricher
     /** Where businesses put their address when the home page does not carry it. */
     private const array CONTACT_PATHS = ['/contact', '/contact/', '/contact-us', '/over-ons', '/impressum'];
 
+    /** Where a business says who it is; the first one that answers is kept. */
+    private const array ABOUT_PATHS = ['/over-ons', '/over', '/about', '/about-us', '/wie-zijn-wij', '/over-ons/'];
+
     /** Addresses that belong to the site's builder, not the business. */
     private const array NOISE = ['example.com', 'sentry', 'wixpress', 'godaddy', 'squarespace', 'wordpress', 'w3.org', 'schema.org'];
 
@@ -57,9 +60,39 @@ class Enricher
 
         $lead->email ??= $email;
         $lead->signals = $this->signals($home);
+        $lead->site_text = $this->siteText($base, $home);
         $lead->save();
 
         return $lead;
+    }
+
+    /**
+     * The homepage text plus the about page, for the AI to write a hook from.
+     */
+    private function siteText(string $base, string $home): ?string
+    {
+        $parts = [];
+        $homeText = SiteText::from($home);
+
+        if ($homeText !== '') {
+            $parts[] = "Home:\n".$homeText;
+        }
+
+        foreach (self::ABOUT_PATHS as $path) {
+            $page = $this->reader->fetch($base.$path);
+
+            if ($page !== null) {
+                $about = SiteText::from($page);
+
+                if ($about !== '' && $about !== $homeText) {
+                    $parts[] = "About:\n".$about;
+                }
+
+                break;
+            }
+        }
+
+        return $parts === [] ? null : implode("\n\n", $parts);
     }
 
     /**
