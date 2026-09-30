@@ -163,3 +163,32 @@ test('the quoted mail underneath a reply is stripped', function () {
         ->and(ReplyText::strip("Top\r\n\r\n-----Original Message-----\r\nFrom: Loc"))->toBe('Top')
         ->and(ReplyText::strip('> alleen quote'))->toBe('> alleen quote');
 });
+
+test('a colleague answering from their own address lands on the company lead', function () {
+    $lead = Lead::factory()->emailed()->create(['email' => 'info@fitadministraties.nl']);
+    $mailbox = Mailbox::factory()->create();
+    $sent = Message::factory()->for($lead)->for($mailbox)->create();
+
+    inboxWith([incoming(['from' => 'timstroomer@fitadministraties.nl', 'references' => []])]);
+
+    app(InboxCheck::class)->run($mailbox);
+
+    expect($sent->refresh()->status)->toBe(MessageStatus::Replied)
+        ->and($lead->refresh()->status)->toBe(LeadStatus::Replied);
+});
+
+test('a domain match is skipped when two leads share it, or for gmail', function () {
+    $mailbox = Mailbox::factory()->create();
+    foreach (['info@groep.nl', 'sales@groep.nl', 'jan@gmail.com'] as $email) {
+        Message::factory()->for(Lead::factory()->emailed()->create(['email' => $email]))->for($mailbox)->create();
+    }
+
+    inboxWith([
+        incoming(['uid' => 1, 'from' => 'piet@groep.nl', 'references' => []]),
+        incoming(['uid' => 2, 'from' => 'kees@gmail.com', 'references' => []]),
+    ]);
+
+    $result = app(InboxCheck::class)->run($mailbox);
+
+    expect($result['replies'])->toBe(0)->and($result['skipped'])->toBe(2);
+});

@@ -154,9 +154,34 @@ class InboxCheck
      */
     private function bySender(Mailbox $mailbox, IncomingMail $incoming): ?Message
     {
-        $lead = $mailbox->user->leads()->whereRaw('lower(email) = ?', [strtolower($incoming->from)])->first();
+        $lead = $mailbox->user->leads()->whereRaw('lower(email) = ?', [strtolower($incoming->from)])->first()
+            ?? $this->byDomain($mailbox, $incoming);
 
         return $lead === null ? null : $this->latestSentTo($lead);
+    }
+
+    /**
+     * A person answering for the company from their own address (tim@ where we mailed
+     * info@): the lead whose address or website has that domain. Only when exactly one
+     * mailed lead does, and never for shared providers like gmail.com.
+     */
+    private function byDomain(Mailbox $mailbox, IncomingMail $incoming): ?Lead
+    {
+        $domain = Blocklist::domainOf($incoming->from);
+
+        if ($domain === null) {
+            return null;
+        }
+
+        $leads = $mailbox->user->leads()
+            ->where(fn ($query) => $query
+                ->whereRaw('lower(email) like ?', ['%@'.$domain])
+                ->orWhereRaw('lower(website) = ?', [$domain]))
+            ->whereHas('messages', fn ($query) => $query->whereIn('status', [MessageStatus::Sent, MessageStatus::Replied]))
+            ->limit(2)
+            ->get();
+
+        return $leads->count() === 1 ? $leads->first() : null;
     }
 
     /**
