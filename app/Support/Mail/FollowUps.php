@@ -7,6 +7,7 @@ use App\Enums\MessageStatus;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\User;
+use App\Support\Blocklist;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -42,6 +43,12 @@ class FollowUps
      */
     public function queue(Lead $lead): ?Message
     {
+        if (Blocklist::blocks($lead->user, $lead)) {
+            Blocklist::applyTo($lead);
+
+            return null;
+        }
+
         $lastStep = $this->lastStep($lead);
 
         $next = $lead->user->sequenceSteps()

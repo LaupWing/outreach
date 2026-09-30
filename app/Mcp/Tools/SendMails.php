@@ -8,6 +8,7 @@ use App\Mcp\MailCard;
 use App\Mcp\Reply;
 use App\Mcp\Resources\MailCardApp;
 use App\Mcp\Sends;
+use App\Support\Blocklist;
 use App\Support\Mail\Outbox;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -54,6 +55,12 @@ class SendMails extends Tool
 
             if ($lead->email === null) {
                 $skipped[] = "{$lead->company}: no email address";
+
+                continue;
+            }
+
+            if (Blocklist::blocks($user, $lead)) {
+                $skipped[] = "{$lead->company}: asked not to be mailed (blocked)";
 
                 continue;
             }

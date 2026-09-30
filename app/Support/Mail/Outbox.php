@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Message;
 use App\Models\User;
+use App\Support\Blocklist;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -111,6 +112,11 @@ class Outbox
 
         if ($lead->email === null) {
             return $this->fail($message, 'The lead has no email address.');
+        }
+
+        // Last line of defence: whatever queued it, a blocked address is never mailed.
+        if (Blocklist::blocks($lead->user, $lead)) {
+            return $this->fail($message, 'This address asked not to be mailed.');
         }
 
         $window = SendingWindow::for($mailbox->user);

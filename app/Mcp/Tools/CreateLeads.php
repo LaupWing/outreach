@@ -13,6 +13,7 @@ use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Models\Offer;
 use App\Models\User;
+use App\Support\Blocklist;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\Rule;
@@ -104,7 +105,7 @@ class CreateLeads extends Tool
 
         $facts = array_filter(array_map(fn ($value) => trim((string) $value), $row['facts'] ?? []), fn (string $value) => $value !== '');
 
-        return $user->leads()->create([
+        $lead = $user->leads()->create([
             'niche_id' => $niche->id,
             'company' => trim($row['company']),
             'email' => $email ?: null,
@@ -117,6 +118,10 @@ class CreateLeads extends Tool
             'status' => $row['status'] ?? LeadStatus::New,
             'source' => LeadSource::Manual,
         ]);
+
+        Blocklist::applyTo($lead);
+
+        return $lead->refresh();
     }
 
     /**

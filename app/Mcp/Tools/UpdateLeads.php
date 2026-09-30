@@ -10,6 +10,7 @@ use App\Mcp\Reply;
 use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Models\Offer;
+use App\Support\Blocklist;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_leads')]
-#[Description('Change one or many leads at once. Per lead: lead_id plus only the fields to change: email, hook, offer_id, status, facts (merged; empty string removes a fact), note (added to the activity). Unknown ids are reported, the rest still goes through.')]
+#[Description('Change one or many leads at once. Per lead: lead_id plus only the fields to change: email, hook, offer_id, status, facts (merged; empty string removes a fact), note (added to the activity), do_not_contact=true (never mail this address or domain again; status becomes no and waiting mail is cancelled). Unknown ids are reported, the rest still goes through.')]
 #[IsIdempotent]
 #[RendersApp(resource: LeadListApp::class)]
 class UpdateLeads extends Tool
@@ -44,6 +45,7 @@ class UpdateLeads extends Tool
             'leads.*.facts' => ['sometimes', 'array'],
             'leads.*.facts.*' => ['nullable', 'string', 'max:2000'],
             'leads.*.note' => ['sometimes', 'string', 'max:5000'],
+            'leads.*.do_not_contact' => ['sometimes', 'boolean'],
         ]);
 
         $updated = [];
@@ -97,7 +99,11 @@ class UpdateLeads extends Tool
             $lead->notes()->create(['user_id' => $lead->user_id, 'body' => $row['note']]);
         }
 
-        return $lead;
+        if ($row['do_not_contact'] ?? false) {
+            Blocklist::block($lead, $row['note'] ?? 'Blocked by hand.');
+        }
+
+        return $lead->refresh();
     }
 
     /**
@@ -106,7 +112,7 @@ class UpdateLeads extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'leads' => $schema->array()->description('[{lead_id, email?, hook?, offer_id?, status?, facts?, note?}]; only given fields change.')->required(),
+            'leads' => $schema->array()->description('[{lead_id, email?, hook?, offer_id?, status?, facts?, note?, do_not_contact?}]; only given fields change.')->required(),
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\LeadSource;
 use App\Enums\ScrapeRunStatus;
 use App\Models\Lead;
 use App\Models\ScrapeRun;
+use App\Support\Blocklist;
 use App\Support\Enrichment\Enricher;
 use App\Support\Places\PlaceResult;
 use App\Support\Places\PlacesException;
@@ -112,7 +113,7 @@ class ProcessScrapeRun implements ShouldQueue
             return null;
         }
 
-        return $run->user->leads()->create([
+        $lead = $run->user->leads()->create([
             'niche_id' => $run->niche_id,
             'scrape_run_id' => $run->id,
             'company' => $place->name,
@@ -121,6 +122,10 @@ class ProcessScrapeRun implements ShouldQueue
             'city' => $place->city,
             'source' => LeadSource::Places,
         ]);
+
+        Blocklist::applyTo($lead);
+
+        return $lead;
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Models\Lead;
 use App\Models\Message;
 use App\Models\Offer;
 use App\Models\User;
+use App\Support\Blocklist;
 use App\Support\Mail\Outbox;
 use App\Support\Mail\Placeholders;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -95,6 +96,10 @@ class SendSteps extends Tool
     {
         if ($lead->email === null) {
             return 'no email address';
+        }
+
+        if (Blocklist::blocks($user, $lead)) {
+            return 'asked not to be mailed (blocked)';
         }
 
         if (isset($shared['offer_id']) && $lead->offer_id === null) {

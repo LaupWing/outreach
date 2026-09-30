@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Messages;
 
 use App\Models\Mailbox;
+use App\Support\Blocklist;
 use App\Support\Mail\Outbox;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -48,6 +49,12 @@ class StoreLeadMessageRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                if (Blocklist::blocks($this->user(), $this->route('lead'))) {
+                    $validator->errors()->add('body', __('This lead asked not to be mailed.'));
+
+                    return;
+                }
+
                 if ($validator->errors()->has('mailbox_id')) {
                     return;
                 }

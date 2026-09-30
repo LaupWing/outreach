@@ -7,6 +7,7 @@ use App\Enums\MessageStatus;
 use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Message;
+use App\Support\Blocklist;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -123,6 +124,11 @@ class InboxCheck
 
             $original->lead()->update(['status' => LeadStatus::Replied, 'next_action_at' => null]);
         });
+
+        // "Haal me uit je bestand": honoured right away, on this lead and forever after.
+        if (Blocklist::asksToBeRemoved(ReplyText::strip($incoming->text))) {
+            Blocklist::block($original->lead->refresh(), 'Asked to be removed in a reply.');
+        }
 
         return 'replies';
     }

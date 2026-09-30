@@ -31,7 +31,7 @@ class BulkLeadRequest extends FormRequest
         return [
             'ids' => ['required', 'array', 'min:1', 'max:500'],
             'ids.*' => ['integer', Rule::exists(Lead::class, 'id')->where('user_id', $userId)],
-            'action' => ['required', Rule::in(['assign_offer', 'set_status', 'delete'])],
+            'action' => ['required', Rule::in(['assign_offer', 'set_status', 'delete', 'block'])],
             'offer_id' => ['required_if:action,assign_offer', 'nullable', 'integer', Rule::exists(Offer::class, 'id')->where('user_id', $userId)],
             'status' => ['required_if:action,set_status', Rule::enum(LeadStatus::class)],
         ];

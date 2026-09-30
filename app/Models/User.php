@@ -87,6 +87,12 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
         return $this->hasMany(LeadNote::class);
     }
 
+    /** @return HasMany<BlockedContact, $this> */
+    public function blockedContacts(): HasMany
+    {
+        return $this->hasMany(BlockedContact::class);
+    }
+
     /**
      * Whether the account can run the app: a Places key and at least one mailbox.
      */

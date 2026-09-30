@@ -10,6 +10,7 @@ use App\Mcp\Resources\LeadCardApp;
 use App\Models\Lead;
 use App\Models\SequenceStep;
 use App\Models\User;
+use App\Support\Blocklist;
 use App\Support\Enrichment\SiteReader;
 use App\Support\Enrichment\SiteText;
 use App\Support\Mail\Placeholders;
@@ -68,6 +69,7 @@ class LeadsContext extends Tool
             'facts' => $lead->facts,
             // Saved while enriching: what the business says about itself. with_site_text reads it live.
             'site_text' => $lead->site_text,
+            'blocked' => Blocklist::blocks($user, $lead),
             'niche' => $lead->niche?->name,
             'offer' => $lead->offer === null ? null : [
                 'id' => $lead->offer->id,

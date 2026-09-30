@@ -3,6 +3,7 @@
 namespace App\Support\Enrichment;
 
 use App\Models\Lead;
+use App\Support\Blocklist;
 
 /**
  * Reads a lead's website for an email address and the signals a hook is built
@@ -62,6 +63,8 @@ class Enricher
         $lead->signals = $this->signals($home);
         $lead->site_text = $this->siteText($base, $home);
         $lead->save();
+
+        Blocklist::applyTo($lead);
 
         return $lead;
     }

@@ -8,6 +8,7 @@ import {
     SlidersHorizontal,
     Tag,
     Target,
+    Ban,
     Trash2,
     Users,
     X,
@@ -414,7 +415,8 @@ function BulkBar({
         data:
             | { action: 'assign_offer'; offer_id: number | null }
             | { action: 'set_status'; status: LeadStatus }
-            | { action: 'delete' },
+            | { action: 'delete' }
+            | { action: 'block' },
     ) => {
         router.post(
             bulk.url(),
@@ -531,6 +533,16 @@ function BulkBar({
                 >
                     <Trash2 className="size-3.5" />
                     {confirmingDelete ? `Sure? Delete ${count}` : 'Delete'}
+                </button>
+                {/* Honours "take me off your list": the address and domain are never mailed again. */}
+                <button
+                    type="button"
+                    onClick={() => run({ action: 'block' })}
+                    disabled={busy}
+                    className={bulkButtonClassName}
+                >
+                    <Ban className="size-3.5" />
+                    Never mail again
                 </button>
                 <button
                     type="button"
