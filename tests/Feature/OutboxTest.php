@@ -130,7 +130,7 @@ test('a follow-up references the mail it continues and a replied lead keeps its 
     $lead = Lead::factory()->create(['status' => LeadStatus::Replied]);
     $mailbox = Mailbox::factory()->create();
     $original = Message::factory()->replied()->for($lead)->for($mailbox)->create(['thread_id' => 'thr_aaaaa', 'message_id' => '<first@example.com>']);
-    $reply = Message::factory()->queued()->for($lead)->for($mailbox)->create(['thread_id' => 'thr_aaaaa', 'step' => $original->step]);
+    $reply = Message::factory()->queued()->for($lead)->for($mailbox)->create(['thread_id' => 'thr_aaaaa', 'step' => $original->step, 'is_reply' => true]);
 
     $this->mock(MailSender::class)
         ->shouldReceive('send')

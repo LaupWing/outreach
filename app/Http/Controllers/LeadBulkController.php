@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Leads\BulkLeadRequest;
 use App\Support\Blocklist;
+use App\Support\Mail\Sequence;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
@@ -19,7 +20,10 @@ class LeadBulkController extends Controller
 
         $message = match ($request->validated('action')) {
             'assign_offer' => tap("Offer set on {$count} leads.", fn () => $leads->update(['offer_id' => $request->validated('offer_id')])),
-            'set_status' => tap("Status set on {$count} leads.", fn () => $leads->update(['status' => $request->validated('status')])),
+            'set_status' => tap("Status set on {$count} leads.", function () use ($leads, $request): void {
+                $leads->update(['status' => $request->validated('status')]);
+                $leads->get()->each(fn ($lead) => Sequence::afterStatusChange($lead));
+            }),
             'delete' => tap("{$count} leads deleted.", fn () => $leads->delete()),
             'block' => tap("{$count} leads will never be mailed again.", fn () => $leads->get()->each(fn ($lead) => Blocklist::block($lead, 'Blocked by hand.'))),
         };

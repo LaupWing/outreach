@@ -114,6 +114,13 @@ class Outbox
             return $this->fail($message, 'The lead has no email address.');
         }
 
+        // The lead answered or said no after this step was queued: it does not go.
+        if (Sequence::isStale($message)) {
+            $message->delete();
+
+            return MessageStatus::Failed;
+        }
+
         // Last line of defence: whatever queued it, a blocked address is never mailed.
         if (Blocklist::blocks($lead->user, $lead)) {
             return $this->fail($message, 'This address asked not to be mailed.');

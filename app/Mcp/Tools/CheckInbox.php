@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\LeadStatus;
 use App\Mcp\Account;
 use App\Mcp\MessageSummary;
 use App\Mcp\Reply;
@@ -52,6 +53,8 @@ class CheckInbox extends Tool
         $waiting = $user->messages()
             ->with('lead:id,company,email,status')
             ->whereNotNull('reply_received_at')
+            // A lead set to no, customer and so on is handled; only open conversations wait.
+            ->whereHas('lead', fn ($query) => $query->where('status', LeadStatus::Replied))
             ->whereNotExists(fn ($query) => $query->selectRaw('1')
                 ->from('messages as later')
                 ->whereColumn('later.thread_id', 'messages.thread_id')

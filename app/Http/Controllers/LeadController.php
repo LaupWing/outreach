@@ -9,6 +9,7 @@ use App\Http\Requests\Leads\UpdateLeadRequest;
 use App\Models\Lead;
 use App\Models\Mailbox;
 use App\Models\Niche;
+use App\Support\Mail\Sequence;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,10 @@ class LeadController extends Controller
         }
 
         $lead->save();
+
+        if ($lead->wasChanged('status')) {
+            Sequence::afterStatusChange($lead);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Lead updated.')]);
 

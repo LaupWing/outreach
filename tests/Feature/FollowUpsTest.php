@@ -8,7 +8,12 @@ use App\Models\Message;
 use App\Models\Offer;
 use App\Models\SequenceStep;
 use App\Support\Mail\FollowUps;
+use App\Support\Mail\InboxCheck;
+use App\Support\Mail\IncomingMail;
+use App\Support\Mail\MailboxReader;
+use App\Support\Mail\Outbox;
 use App\Support\Mail\Placeholders;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
 beforeEach(fn () => Carbon::setTestNow('2026-09-28 10:00:00')); // a Monday, noon in Amsterdam
@@ -156,4 +161,36 @@ test('a lead mailed outside the app that is not due yet only gets its date', fun
 
     expect($lead->refresh()->next_action_at?->toDateString())->toBe(now()->subDay()->addDays(4)->toDateString())
         ->and(Message::query()->count())->toBe(0);
+});
+
+test('a reply cancels the follow-up already in the outbox, but not an answer in the conversation', function () {
+    $lead = Lead::factory()->emailed()->create(['email' => 'info@fit.nl']);
+    $mailbox = Mailbox::factory()->create();
+    Message::factory()->for($lead)->for($mailbox)->create(['message_id' => '<one@x>', 'step' => 1]);
+    $nudge = Message::factory()->queued()->for($lead)->for($mailbox)->create(['step' => 2, 'send_after' => now()->addDays(2)]);
+
+    $this->instance(MailboxReader::class, tap(Mockery::mock(MailboxReader::class), function ($fake) use ($mailbox): void {
+        $fake->shouldReceive('newMail')->andReturnUsing(fn (Mailbox $box) => $box->is($mailbox)
+            ? [new IncomingMail(4, 'tim@fit.nl', 'Re: Hoi', 'Klinkt goed, bel me.', '<r@fit>', ['<one@x>'], CarbonImmutable::now())]
+            : []);
+    }));
+
+    app(InboxCheck::class)->run($mailbox);
+
+    expect(Message::query()->find($nudge->id))->toBeNull()
+        ->and($lead->refresh()->status)->toBe(LeadStatus::Replied);
+});
+
+test('setting a lead to no by hand stops its sequence, and the outbox refuses a stale step', function () {
+    $lead = Lead::factory()->emailed()->create();
+    $queued = Message::factory()->queued()->for($lead)->create(['step' => 2]);
+
+    $this->patch(route('leads.update', $lead), ['status' => 'no'])->assertSessionHasNoErrors();
+
+    expect(Message::query()->find($queued->id))->toBeNull();
+
+    $stale = Message::factory()->queued()->for($lead)->create(['step' => 3]);
+
+    expect(app(Outbox::class)->send($stale))->toBe(MessageStatus::Failed)
+        ->and(Message::query()->find($stale->id))->toBeNull();
 });

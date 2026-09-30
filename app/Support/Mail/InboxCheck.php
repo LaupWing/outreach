@@ -102,6 +102,8 @@ class InboxCheck
                 $original->lead()->update(['status' => LeadStatus::Undeliverable, 'next_action_at' => null]);
             });
 
+            Sequence::stop($original->lead);
+
             return 'bounces';
         }
 
@@ -124,6 +126,9 @@ class InboxCheck
 
             $original->lead()->update(['status' => LeadStatus::Replied, 'next_action_at' => null]);
         });
+
+        // They answered: no more nudges, even the one already in the outbox.
+        Sequence::stop($original->lead);
 
         // "Haal me uit je bestand": honoured right away, on this lead and forever after.
         if (Blocklist::asksToBeRemoved(ReplyText::strip($incoming->text))) {

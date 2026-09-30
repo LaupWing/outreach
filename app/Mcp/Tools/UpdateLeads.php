@@ -11,6 +11,7 @@ use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Models\Offer;
 use App\Support\Blocklist;
+use App\Support\Mail\Sequence;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\Rule;
@@ -94,6 +95,10 @@ class UpdateLeads extends Tool
         }
 
         $lead->save();
+
+        if (array_key_exists('status', $row)) {
+            Sequence::afterStatusChange($lead);
+        }
 
         if (isset($row['note'])) {
             $lead->notes()->create(['user_id' => $lead->user_id, 'body' => $row['note']]);
