@@ -32,7 +32,8 @@ class CheckInbox extends Tool
 
         $totals = ['replies' => 0, 'bounces' => 0, 'errors' => []];
 
-        $mailboxes = $user->mailboxes()->whereNotNull('connection_checked_at')->whereNull('connection_error')->get();
+        // Every box is read; a failing login is reported and recorded, and heals on the next good read.
+        $mailboxes = $user->mailboxes()->get();
 
         foreach ($mailboxes as $mailbox) {
             $result = $check->run($mailbox);

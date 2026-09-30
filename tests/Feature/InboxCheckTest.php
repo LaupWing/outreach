@@ -140,18 +140,22 @@ test('the command reads every mailbox and sums it up', function () {
     expect($two->refresh()->last_seen_uid)->toBe(3);
 });
 
-test('a box whose login never passed the check is not read', function () {
+test('every box is read; a good read marks the login ok and a failing one records the error', function () {
     $unchecked = Mailbox::factory()->create(['connection_checked_at' => null]);
     $broken = Mailbox::factory()->create(['connection_error' => 'IMAP: login refused']);
 
-    $this->instance(MailboxReader::class, tap(Mockery::mock(MailboxReader::class), function ($fake) use ($unchecked, $broken): void {
-        $fake->shouldReceive('newMail')->withArgs(fn (Mailbox $mailbox) => ! $mailbox->is($unchecked) && ! $mailbox->is($broken))->andReturn([]);
+    $this->instance(MailboxReader::class, tap(Mockery::mock(MailboxReader::class), function ($fake) use ($broken): void {
+        $fake->shouldReceive('newMail')->andReturnUsing(fn (Mailbox $mailbox) => $mailbox->is($broken)
+            ? throw new RuntimeException('AUTHENTICATIONFAILED')
+            : []);
     }));
 
     $this->artisan('outreach:check-inbox')->assertSuccessful();
 
-    expect($unchecked->refresh()->inbox_checked_at)->toBeNull()
-        ->and($broken->refresh()->inbox_checked_at)->toBeNull();
+    expect($unchecked->refresh()->connection_checked_at)->not->toBeNull()
+        ->and($unchecked->connection_error)->toBeNull()
+        ->and($unchecked->inbox_checked_at)->not->toBeNull()
+        ->and($broken->refresh()->connection_error)->toBe('IMAP: AUTHENTICATIONFAILED');
 });
 
 test('the quoted mail underneath a reply is stripped', function () {

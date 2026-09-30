@@ -35,8 +35,15 @@ class InboxCheck
 
             $counts['error'] = trim(strtok($exception->getMessage(), "\n") ?: 'could not read the inbox');
 
+            // The login failed for real: say so on the mailbox, the next round tries again.
+            $mailbox->forceFill(['connection_checked_at' => now(), 'connection_error' => 'IMAP: '.$counts['error']])->save();
+
             return $counts;
         }
+
+        // Reading worked, so the login does: that is the connection check, kept current.
+        $mailbox->connection_checked_at = now();
+        $mailbox->connection_error = null;
 
         foreach ($mail as $incoming) {
             $outcome = $incoming->autoSubmitted ? 'skipped' : $this->book($mailbox, $incoming);

@@ -72,8 +72,6 @@ class ImportSentMail extends Tool
 
         $mailboxes = $user->mailboxes()
             ->when(isset($validated['mailbox_id']), fn ($query) => $query->whereKey($validated['mailbox_id']))
-            ->whereNotNull('connection_checked_at')
-            ->whereNull('connection_error')
             ->get();
 
         if ($mailboxes->isEmpty()) {
