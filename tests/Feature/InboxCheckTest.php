@@ -192,3 +192,54 @@ test('a domain match is skipped when two leads share it, or for gmail', function
 
     expect($result['replies'])->toBe(0)->and($result['skipped'])->toBe(2);
 });
+
+test('a delivery delay is not booked as a bounce or a reply', function () {
+    $lead = Lead::factory()->emailed()->create(['email' => 'info@veiligheidscombinatie.nl']);
+    $mailbox = Mailbox::factory()->create();
+    $sent = Message::factory()->for($lead)->for($mailbox)->create();
+
+    inboxWith([incoming([
+        'from' => 'mailer-daemon@googlemail.com',
+        'subject' => 'Delivery Status Notification (Delay)',
+        'text' => "Delivery incomplete\nThere was a temporary problem delivering your message to info@veiligheidscombinatie.nl. Gmail will retry for 46 more hours.",
+        'references' => [],
+    ])]);
+
+    $result = app(InboxCheck::class)->run($mailbox);
+
+    expect($result)->toMatchArray(['replies' => 0, 'bounces' => 0, 'skipped' => 1])
+        ->and($sent->refresh()->status)->toBe(MessageStatus::Sent)
+        ->and($lead->refresh()->status)->toBe(LeadStatus::Emailed);
+});
+
+test('a permanent failure after the retries still counts as a bounce', function () {
+    $lead = Lead::factory()->emailed()->create(['email' => 'info@veiligheidscombinatie.nl']);
+    $mailbox = Mailbox::factory()->create();
+    Message::factory()->for($lead)->for($mailbox)->create();
+
+    inboxWith([incoming([
+        'from' => 'mailer-daemon@googlemail.com',
+        'subject' => 'Delivery Status Notification (Failure)',
+        'text' => 'Your message to info@veiligheidscombinatie.nl has failed permanently after 48 hours of retrying.',
+        'references' => [],
+    ])]);
+
+    expect(app(InboxCheck::class)->run($mailbox)['bounces'])->toBe(1)
+        ->and($lead->refresh()->status)->toBe(LeadStatus::Undeliverable);
+});
+
+test('a bounce for a lead without a message in the app still marks the lead undeliverable', function () {
+    $lead = Lead::factory()->emailed()->create(['email' => 'Info@Gone.nl', 'next_action_at' => now()->addDay()]);
+    $mailbox = Mailbox::factory()->create();
+
+    inboxWith([incoming([
+        'from' => 'mailer-daemon@googlemail.com',
+        'subject' => 'Delivery Status Notification (Failure)',
+        'text' => "Address not found. Your message wasn't delivered to info@gone.nl because the address couldn't be found.",
+        'references' => [],
+    ])]);
+
+    expect(app(InboxCheck::class)->run($mailbox)['bounces'])->toBe(1)
+        ->and($lead->refresh()->status)->toBe(LeadStatus::Undeliverable)
+        ->and($lead->next_action_at)->toBeNull();
+});

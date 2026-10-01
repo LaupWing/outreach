@@ -22,7 +22,9 @@ class InboxController extends Controller
             ->with('notes')
             ->where(fn ($query) => $query
                 ->whereIn('status', [LeadStatus::Replied, LeadStatus::Undeliverable])
-                ->orWhere('next_action_at', '<=', now()))
+                ->orWhere(fn ($query) => $query
+                    ->where('next_action_at', '<=', now())
+                    ->whereIn('status', [LeadStatus::Emailed, LeadStatus::FollowedUp])))
             ->orderByDesc('id')
             ->get();
 
@@ -30,7 +32,9 @@ class InboxController extends Controller
             'leads' => $leads,
             'queues' => [
                 'replies' => $leads->where('status', LeadStatus::Replied)->values(),
-                'due' => $leads->filter(fn (Lead $lead) => $lead->next_action_at?->lte(now()) ?? false)->values(),
+                // Only leads still in a sequence: one that replied or said no is not "due".
+                'due' => $leads->filter(fn (Lead $lead) => ($lead->next_action_at?->lte(now()) ?? false)
+                    && in_array($lead->status, [LeadStatus::Emailed, LeadStatus::FollowedUp], true))->values(),
                 'bounces' => $leads->where('status', LeadStatus::Undeliverable)->values(),
             ],
             'messages' => $user->messages()

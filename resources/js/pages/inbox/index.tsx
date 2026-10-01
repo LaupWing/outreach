@@ -49,6 +49,9 @@ type Item = {
     at: string;
     /** Tags of the due step the lead has no value for; the scheduler holds the mail until they are filled. */
     waitingFor?: string[];
+    /** The step that goes out next, and when when it is already in the outbox. */
+    nextStep?: number;
+    queuedAt?: string | null;
 };
 
 const kinds: Record<
@@ -102,12 +105,29 @@ export default function InboxIndex() {
             };
         }),
         ...queues.due.map((lead) => {
-            const message = lastMessageOf(lead);
+            const own = messages.filter((item) => item.lead_id === lead.id);
+            // Already in the outbox: say when it goes instead of "due".
+            const queued = own.find(
+                (item) => item.status === 'queued' && !item.is_reply,
+            );
+            const sent = own
+                .filter((item) => item.sent_at !== null && !item.is_reply)
+                .at(-1);
+            // Mailed outside the app: the status says how far it got.
+            const lastStep = Math.max(
+                sent?.step ?? 0,
+                lead.status === 'followed_up'
+                    ? 2
+                    : lead.status === 'emailed'
+                      ? 1
+                      : 0,
+            );
+            const message = queued ?? sent ?? lastMessageOf(lead);
             // The step the scheduler wants to send; it holds back while a tag has no value.
             const next = steps.find(
                 (step) =>
                     step.offer_id === lead.offer_id &&
-                    step.step === (message?.step ?? 0) + 1,
+                    step.step === lastStep + 1,
             );
             const waitingFor = next
                 ? missing(`${next.subject}\n${next.body}`, lead)
@@ -117,8 +137,10 @@ export default function InboxIndex() {
                 kind: 'due' as const,
                 lead,
                 message,
-                at: lead.next_action_at ?? '',
-                waitingFor,
+                at: queued?.send_after ?? lead.next_action_at ?? '',
+                waitingFor: queued ? [] : waitingFor,
+                nextStep: queued?.step ?? lastStep + 1,
+                queuedAt: queued?.send_after ?? null,
             };
         }),
         ...queues.bounces.map((lead) => {
@@ -288,9 +310,11 @@ function Row({
         kind === 'reply'
             ? message?.reply?.body
             : kind === 'due'
-              ? item.waitingFor?.length
-                  ? `Step ${(message?.step ?? 0) + 1} waits for ${item.waitingFor.map((tag) => `{{${tag}}}`).join(', ')}`
-                  : `Step ${(message?.step ?? 0) + 1} is due`
+              ? item.queuedAt
+                  ? `Step ${item.nextStep} queued, sends ${dateTime.format(new Date(item.queuedAt))}`
+                  : item.waitingFor?.length
+                    ? `Step ${item.nextStep} waits for ${item.waitingFor.map((tag) => `{{${tag}}}`).join(', ')}`
+                    : `Step ${item.nextStep} is due`
               : `${lead.email ?? 'Address'} bounced`;
 
     return (

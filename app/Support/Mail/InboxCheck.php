@@ -90,11 +90,27 @@ class InboxCheck
      */
     private function book(Mailbox $mailbox, IncomingMail $incoming): string
     {
+        // A delay notice ("Gmail will retry") is neither a reply nor a bounce: leave it.
+        if ($incoming->isDeliveryReport() && $incoming->isTemporaryFailure()) {
+            return 'skipped';
+        }
+
         if ($incoming->isBounce()) {
             $original = $this->byReference($mailbox, $incoming) ?? $this->byAddressInText($mailbox, $incoming);
 
             if ($original === null) {
-                return 'skipped';
+                // Mail that went out without a message in the app (by hand, before the
+                // import): the report still names the address, so the lead is marked.
+                $lead = $this->leadByAddressInText($mailbox, $incoming);
+
+                if ($lead === null) {
+                    return 'skipped';
+                }
+
+                $lead->update(['status' => LeadStatus::Undeliverable, 'next_action_at' => null]);
+                Sequence::stop($lead);
+
+                return 'bounces';
             }
 
             DB::transaction(function () use ($original): void {
@@ -194,17 +210,29 @@ class InboxCheck
      */
     private function byAddressInText(Mailbox $mailbox, IncomingMail $incoming): ?Message
     {
+        $lead = $this->leadByAddressInText($mailbox, $incoming);
+
+        return $lead === null ? null : $this->latestSentTo($lead);
+    }
+
+    /**
+     * The lead whose address the delivery report names, ignoring our own mailboxes.
+     */
+    private function leadByAddressInText(Mailbox $mailbox, IncomingMail $incoming): ?Lead
+    {
         preg_match_all('/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i', $incoming->text, $matches);
 
-        $addresses = array_values(array_unique(array_map('strtolower', $matches[0])));
+        $ours = $mailbox->user->mailboxes()->pluck('address')->map(fn ($address) => strtolower($address))->all();
+        $addresses = array_values(array_diff(array_unique(array_map('strtolower', $matches[0])), $ours));
 
         if ($addresses === []) {
             return null;
         }
 
-        $lead = $mailbox->user->leads()->whereIn('email', $addresses)->latest('last_contact_at')->first();
-
-        return $lead === null ? null : $this->latestSentTo($lead);
+        return $mailbox->user->leads()
+            ->whereIn(DB::raw('lower(email)'), $addresses)
+            ->latest('last_contact_at')
+            ->first();
     }
 
     private function latestSentTo(Lead $lead): ?Message
