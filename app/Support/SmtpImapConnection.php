@@ -31,6 +31,11 @@ class SmtpImapConnection implements MailboxConnection
                 return 'SMTP: port 465 is blocked from our server. Use port 587 (STARTTLS).';
             }
 
+            // Gmail's 535 5.7.8 buries the cause under a list of authenticators.
+            if (str_contains($exception->getMessage(), '5.7.8')) {
+                return 'SMTP: username and password not accepted. For Gmail or Google Workspace, use an app password (Google account → Security → App passwords), not your normal password.';
+            }
+
             return 'SMTP: '.$this->plain($exception->getMessage());
         }
 
