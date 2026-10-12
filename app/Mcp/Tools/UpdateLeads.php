@@ -11,6 +11,7 @@ use App\Mcp\Resources\LeadListApp;
 use App\Models\Lead;
 use App\Models\Offer;
 use App\Support\Blocklist;
+use App\Support\Mail\Placeholders;
 use App\Support\Mail\Sequence;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -25,7 +26,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_leads')]
-#[Description('Change one or many leads at once. Per lead: lead_id plus only the fields to change: email, hook, offer_id, status, facts (merged; empty string removes a fact), note (added to the activity), do_not_contact=true (never mail this address or domain again; status becomes no and waiting mail is cancelled). Unknown ids are reported, the rest still goes through.')]
+#[Description('Change one or many leads at once. Per lead: lead_id plus only the fields to change: email, hook, offer_id, status, facts (merged; null removes a fact, an empty string fills the tag with nothing), note (added to the activity), do_not_contact=true (never mail this address or domain again; status becomes no and waiting mail is cancelled). Unknown ids are reported, the rest still goes through.')]
 #[IsIdempotent]
 #[RendersApp(resource: LeadListApp::class)]
 class UpdateLeads extends Tool
@@ -83,9 +84,7 @@ class UpdateLeads extends Tool
     private function apply(Lead $lead, array $row): Lead
     {
         if (array_key_exists('facts', $row)) {
-            $facts = [...($lead->facts ?? []), ...$row['facts']];
-            $facts = array_filter(array_map(fn ($value) => trim((string) $value), $facts), fn (string $value) => $value !== '');
-            $lead->facts = $facts === [] ? null : $facts;
+            $lead->facts = Placeholders::mergeFacts($lead->facts, $row['facts']);
         }
 
         foreach (['email', 'hook', 'offer_id', 'status'] as $field) {
@@ -95,6 +94,10 @@ class UpdateLeads extends Tool
         }
 
         $lead->save();
+
+        if ($lead->wasChanged('email')) {
+            $lead->scrapeRun?->recount();
+        }
 
         if (array_key_exists('status', $row)) {
             Sequence::afterStatusChange($lead);

@@ -55,6 +55,23 @@ class Placeholders
     }
 
     /**
+     * New tag values merged over the lead's facts. Null removes a fact; an empty
+     * string is a deliberate blank ("Hoi {{first_name}}," becomes "Hoi,").
+     *
+     * @param  array<string, string>|null  $facts
+     * @param  array<string, string|null>  $values
+     * @return array<string, string>|null
+     */
+    public static function mergeFacts(?array $facts, array $values): ?array
+    {
+        $merged = [...($facts ?? []), ...$values];
+        $merged = array_map(fn ($value) => $value === null ? null : trim((string) $value), $merged);
+        $merged = array_filter($merged, fn (?string $value) => $value !== null);
+
+        return $merged === [] ? null : $merged;
+    }
+
+    /**
      * Tags in the text the lead has no value for.
      *
      * @return list<string>
@@ -68,15 +85,24 @@ class Placeholders
 
     /**
      * The text with every known tag replaced. Unknown tags stay as they are, so
-     * they are visible instead of silently blank.
+     * they are visible instead of silently blank. A blank value takes the space
+     * before it along, so "Hoi {{first_name}}," reads "Hoi,".
      */
     public static function fill(string $text, Lead $lead): string
     {
         $values = self::valuesFor($lead);
 
         return preg_replace_callback(
-            '/\{\{\s*([a-z0-9_]+)\s*\}\}/i',
-            fn (array $match) => $values[strtolower($match[1])] ?? $match[0],
+            '/( ?)\{\{\s*([a-z0-9_]+)\s*\}\}/i',
+            function (array $match) use ($values) {
+                $value = $values[strtolower($match[2])] ?? null;
+
+                return match ($value) {
+                    null => $match[0],
+                    '' => '',
+                    default => $match[1].$value,
+                };
+            },
             $text,
         );
     }

@@ -108,15 +108,19 @@ test('enrich_run queues the job for the leads not read yet', function () {
     Queue::assertPushed(EnrichRunLeads::class);
 });
 
-test('scrape_status sums up a run', function () {
-    $run = ScrapeRun::factory()->create(['found' => 40, 'with_email' => 12, 'blocked' => 2]);
-    Lead::factory()->count(2)->create(['scrape_run_id' => $run->id]);
-    Lead::factory()->create(['scrape_run_id' => $run->id, 'signals' => null]);
+test('scrape_status sums up a run, counting email and blocked from its leads', function () {
+    // The stored tallies are stale: these leads got their addresses after the run.
+    $run = ScrapeRun::factory()->create(['found' => 40, 'with_email' => 0, 'blocked' => 0]);
+    Lead::factory()->create(['scrape_run_id' => $run->id, 'email' => 'info@a.nl']);
+    Lead::factory()->create(['scrape_run_id' => $run->id, 'email' => 'info@b.nl', 'signals' => ['blocked' => true, 'javascript_only' => false]]);
+    Lead::factory()->create(['scrape_run_id' => $run->id, 'email' => null, 'signals' => null]);
 
     OutreachServer::actingAs($this->user)
         ->tool(ScrapeStatus::class, ['run_id' => $run->id])
         ->assertOk()
-        ->assertSee('40 found, 3 leads, 2 enriched, 12 with email, 2 blocked');
+        ->assertSee('40 found, 3 leads, 2 enriched, 2 with email, 1 blocked');
+
+    expect($run->refresh()->with_email)->toBe(2);
 });
 
 test('list_leads narrows to status and email', function () {

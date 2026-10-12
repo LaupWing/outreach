@@ -99,8 +99,8 @@ class PreviewMails extends Tool
         }
 
         // Values are tried on a copy: the preview must not change the lead.
-        $values = array_filter(array_map(fn ($value) => trim((string) $value), $row['values'] ?? []), fn (string $value) => $value !== '');
-        $lead->facts = [...($lead->facts ?? []), ...$values];
+        $values = $row['values'] ?? [];
+        $lead->facts = Placeholders::mergeFacts($lead->facts, $values);
 
         $lastStep = (int) $lead->messages()->whereIn('status', ['sent', 'replied'])->max('step');
         $number = $row['step'] ?? $lastStep + 1;

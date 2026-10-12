@@ -28,7 +28,6 @@ class EnrichRunLeads implements ShouldQueue
             ->orderBy('id')
             ->each(function ($lead) use ($enricher): void {
                 $enricher->enrich($lead);
-                ProcessScrapeRun::count($this->run, $lead);
             });
     }
 }

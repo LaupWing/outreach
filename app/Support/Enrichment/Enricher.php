@@ -30,6 +30,7 @@ class Enricher
         if ($lead->website === null) {
             $lead->signals = $this->signals(null);
             $lead->save();
+            $lead->scrapeRun?->recount();
 
             return $lead;
         }
@@ -40,6 +41,7 @@ class Enricher
         if ($home === null) {
             $lead->signals = [...$this->signals(null), 'blocked' => true];
             $lead->save();
+            $lead->scrapeRun?->recount();
 
             return $lead;
         }
@@ -65,6 +67,7 @@ class Enricher
         $lead->save();
 
         Blocklist::applyTo($lead);
+        $lead->scrapeRun?->recount();
 
         return $lead;
     }

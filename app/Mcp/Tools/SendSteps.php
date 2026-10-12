@@ -111,9 +111,7 @@ class SendSteps extends Tool
         }
 
         if (isset($row['values'])) {
-            $facts = [...($lead->facts ?? []), ...$row['values']];
-            $facts = array_filter(array_map(fn ($value) => trim((string) $value), $facts), fn (string $value) => $value !== '');
-            $lead->facts = $facts === [] ? null : $facts;
+            $lead->facts = Placeholders::mergeFacts($lead->facts, $row['values']);
         }
 
         $lead->save();

@@ -31,6 +31,7 @@ class ScrapeStatus extends Tool
             return Response::error("No scrape run with id {$validated['run_id']} on this account.");
         }
 
+        $run->recount();
         $leads = $run->leads()->count();
         $enriched = $run->leads()->whereNotNull('signals')->count();
 

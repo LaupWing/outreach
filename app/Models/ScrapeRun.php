@@ -85,4 +85,19 @@ class ScrapeRun extends Model
     {
         return $this->hasMany(Lead::class);
     }
+
+    /**
+     * Count the run's leads with an email and the blocked ones again. Leads get an
+     * address later too (enrich_leads, a hand edit), so the tallies are recounted
+     * from the leads instead of added up once.
+     */
+    public function recount(): void
+    {
+        $this->forceFill([
+            'with_email' => $this->leads()->whereNotNull('email')->count(),
+            'blocked' => $this->leads()
+                ->where(fn ($query) => $query->where('signals->blocked', true)->orWhere('signals->javascript_only', true))
+                ->count(),
+        ])->save();
+    }
 }

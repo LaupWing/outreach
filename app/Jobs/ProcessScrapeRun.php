@@ -69,7 +69,6 @@ class ProcessScrapeRun implements ShouldQueue
                     }
 
                     $enricher->enrich($lead);
-                    self::count($run, $lead);
                 }
 
                 $token = $result->nextPageToken;
@@ -85,15 +84,6 @@ class ProcessScrapeRun implements ShouldQueue
         }
 
         $run->forceFill(['status' => ScrapeRunStatus::Done, 'finished_at' => now()])->save();
-    }
-
-    /**
-     * Add an enriched lead to the run's email and blocked tallies.
-     */
-    public static function count(ScrapeRun $run, Lead $lead): void
-    {
-        $run->increment('with_email', $lead->email === null ? 0 : 1);
-        $run->increment('blocked', ($lead->signals['blocked'] || $lead->signals['javascript_only']) ? 1 : 0);
     }
 
     /**

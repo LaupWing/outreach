@@ -87,7 +87,7 @@ test('update_leads merges facts, sets the hook and adds a note, for many at once
     $other = Lead::factory()->create();
 
     $response = OutreachServer::actingAs($this->user)->tool(UpdateLeads::class, ['leads' => [
-        ['lead_id' => $lead->id, 'facts' => ['compliment' => 'Mooie reviews.', 'old' => ''], 'hook' => 'Site is niet mobiel.', 'note' => 'Eigenaar heet Marieke.'],
+        ['lead_id' => $lead->id, 'facts' => ['compliment' => 'Mooie reviews.', 'old' => null, 'greeting' => ''], 'hook' => 'Site is niet mobiel.', 'note' => 'Eigenaar heet Marieke.'],
         ['lead_id' => $other->id, 'status' => 'no'],
         ['lead_id' => 999999, 'status' => 'no'],
     ]]);
@@ -98,7 +98,7 @@ test('update_leads merges facts, sets the hook and adds a note, for many at once
 
     $lead->refresh();
 
-    expect($lead->facts)->toBe(['first_name' => 'Marieke', 'compliment' => 'Mooie reviews.'])
+    expect($lead->facts)->toBe(['first_name' => 'Marieke', 'compliment' => 'Mooie reviews.', 'greeting' => ''])
         ->and($lead->hook)->toBe('Site is niet mobiel.')
         ->and($lead->notes()->count())->toBe(1);
 });
@@ -128,6 +128,20 @@ test('send_steps skips a lead with an unfilled tag, then fills and queues the st
         ->and($message->subject)->toBe('Site is uit 2019')
         ->and($message->body)->toBe("Hoi Marieke,\n\nMooie angstpagina.\n\nSite is uit 2019.")
         ->and($message->send_after)->not->toBeNull();
+});
+
+test('send_steps takes an empty value as a deliberate blank: no name gives "Hoi,"', function () {
+    $offer = offerWithTags();
+    Mailbox::factory()->create(['daily_limit' => 20]);
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Tandarts Bos', 'email' => 'info@bos.nl', 'hook' => 'Site is uit 2019.']);
+
+    OutreachServer::actingAs($this->user)
+        ->tool(SendSteps::class, ['leads' => [['lead_id' => $lead->id, 'values' => ['first_name' => '', 'compliment' => 'Mooie angstpagina.']]]])
+        ->assertOk()
+        ->assertSee('1 mails queued');
+
+    expect(Message::query()->sole()->body)->toBe("Hoi,\n\nMooie angstpagina.\n\nSite is uit 2019.")
+        ->and($lead->refresh()->facts)->toBe(['first_name' => '', 'compliment' => 'Mooie angstpagina.']);
 });
 
 test('send_steps continues the thread for a later step and can assign the offer first', function () {
