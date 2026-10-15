@@ -16,6 +16,7 @@ use App\Mcp\Tools\ListLeads;
 use App\Mcp\Tools\ListMailboxes;
 use App\Mcp\Tools\ListNiches;
 use App\Mcp\Tools\ListOffers;
+use App\Mcp\Tools\Outbox;
 use App\Mcp\Tools\PreviewMails;
 use App\Mcp\Tools\SendDrafts;
 use App\Mcp\Tools\SendMails;
@@ -255,6 +256,36 @@ test('who_needs_follow_up explains why each due lead waits', function () {
     expect($due['Wachtend']['reason'])->toBe('will go out automatically within the hour')
         ->and($due['Wachtend']['next_step'])->toBe(2)
         ->and($due['Klaar']['reason'])->toStartWith('sequence finished');
+});
+
+test('outbox counts waiting mail per sending day and mailbox, and the follow-ups planned after', function () {
+    $offer = offerWithTags();
+    $a = Mailbox::factory()->create(['address' => 'a@snelstack.com', 'daily_limit' => 20]);
+    $b = Mailbox::factory()->create(['address' => 'b@snelstack.com', 'daily_limit' => 20]);
+    $lead = Lead::factory()->for($offer->niche)->for($offer)->create(['company' => 'Wachtend']);
+
+    // Monday 15:00 and Tuesday 09:00 in Amsterdam.
+    Message::factory()->for($lead)->for($a)->queued()->count(2)->create(['send_after' => '2026-09-28 13:00:00']);
+    Message::factory()->for($lead)->for($b)->queued()->create(['send_after' => '2026-09-29 07:00:00']);
+    Message::factory()->for($lead)->for($a)->create();
+
+    Lead::factory()->for($offer->niche)->for($offer)->emailed()->create(['next_action_at' => '2026-10-01 08:00:00']);
+    $offer->update(['auto_follow_up' => true]);
+
+    $response = OutreachServer::actingAs($this->user)->tool(Outbox::class, []);
+
+    $response->assertOk()->assertSee('3 mails in the outbox over 2 sending days, 1 follow-ups planned');
+
+    $outbox = structured($response);
+
+    expect($outbox['days'])->toBe([
+        ['date' => '2026-09-28', 'queued' => 2, 'by_mailbox' => ['a@snelstack.com' => 2]],
+        ['date' => '2026-09-29', 'queued' => 1, 'by_mailbox' => ['b@snelstack.com' => 1]],
+    ])
+        ->and($outbox['planned_follow_ups'])->toBe([['date' => '2026-10-01', 'leads' => 1]])
+        ->and($outbox['messages'][0]['company'])->toBe('Wachtend')
+        ->and($outbox['messages'][0]['send_after'])->toStartWith('2026-09-28T15:00')
+        ->and(collect($outbox['mailboxes'])->pluck('queued', 'address')->all())->toMatchArray(['a@snelstack.com' => 2, 'b@snelstack.com' => 1]);
 });
 
 test('stats sums leads and mails per niche, offer and mailbox', function () {
